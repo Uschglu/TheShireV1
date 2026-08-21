@@ -394,10 +394,12 @@ fun JardinScreen(onBack: () -> Unit) {
                 Button(
                     onClick = {
                         val nbCarres = nombreCarres.toIntOrNull() ?: 1
-                        scope.launch {
-                            jardinRepository.ajouterPlanche(nomPlanche, nbCarres)
+                        if (nbCarres > 0 && nomPlanche.isNotBlank()) {
+                            scope.launch {
+                                jardinRepository.ajouterPlanche(nomPlanche, nbCarres)
+                            }
+                            showAddPlancheDialog = false
                         }
-                        showAddPlancheDialog = false
                     },
                     enabled = nomPlanche.isNotBlank() && (nombreCarres.toIntOrNull() ?: 0) > 0
                 ) {
@@ -414,6 +416,7 @@ fun JardinScreen(onBack: () -> Unit) {
     
     // Dialogue pour choisir un légume
     if (showLegumeSelection && selectedCarre != null) {
+        val carre = selectedCarre!!
         AlertDialog(
             onDismissRequest = { 
                 showLegumeSelection = false
@@ -428,21 +431,18 @@ fun JardinScreen(onBack: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    val carre = selectedCarre
-                                    if (carre != null) {
-                                        val caseVide = getPremiereCaseVide(carre)
-                                        if (caseVide > 0) {
-                                            scope.launch {
-                                                jardinRepository.modifierCase(
-                                                    carre,
-                                                    caseVide,
-                                                    legume.nom
-                                                )
-                                            }
+                                    val caseVide = getPremiereCaseVide(carre)
+                                    if (caseVide > 0) {
+                                        scope.launch {
+                                            jardinRepository.modifierCase(
+                                                carre,
+                                                caseVide,
+                                                legume.nom
+                                            )
                                         }
-                                        showLegumeSelection = false
-                                        selectedCarre = null
                                     }
+                                    showLegumeSelection = false
+                                    selectedCarre = null
                                 }
                                 .padding(16.dp),
                             style = MaterialTheme.typography.bodyLarge
