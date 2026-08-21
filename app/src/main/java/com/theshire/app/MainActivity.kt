@@ -428,17 +428,21 @@ fun JardinScreen(onBack: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    scope.launch {
-                                        // Demander quelle case modifier
-                                        // Pour l'instant, on va modifier la première case vide
-                                        jardinRepository.modifierCase(
-                                            selectedCarre!!,
-                                            getPremiereCaseVide(selectedCarre!!),
-                                            legume.nom
-                                        )
+                                    val carre = selectedCarre
+                                    if (carre != null) {
+                                        val caseVide = getPremiereCaseVide(carre)
+                                        if (caseVide > 0) {
+                                            scope.launch {
+                                                jardinRepository.modifierCase(
+                                                    carre,
+                                                    caseVide,
+                                                    legume.nom
+                                                )
+                                            }
+                                        }
+                                        showLegumeSelection = false
+                                        selectedCarre = null
                                     }
-                                    showLegumeSelection = false
-                                    selectedCarre = null
                                 }
                                 .padding(16.dp),
                             style = MaterialTheme.typography.bodyLarge
@@ -460,18 +464,16 @@ fun JardinScreen(onBack: () -> Unit) {
 }
 
 fun getPremiereCaseVide(carre: CarreEntity): Int {
-    return when (null) {
-        carre.case1 -> 1
-        carre.case2 -> 2
-        carre.case3 -> 3
-        carre.case4 -> 4
-        carre.case5 -> 5
-        carre.case6 -> 6
-        carre.case7 -> 7
-        carre.case8 -> 8
-        carre.case9 -> 9
-        else -> 0
-    }
+    if (carre.case1 == null) return 1
+    if (carre.case2 == null) return 2
+    if (carre.case3 == null) return 3
+    if (carre.case4 == null) return 4
+    if (carre.case5 == null) return 5
+    if (carre.case6 == null) return 6
+    if (carre.case7 == null) return 7
+    if (carre.case8 == null) return 8
+    if (carre.case9 == null) return 9
+    return 0
 }
 
 @Composable
