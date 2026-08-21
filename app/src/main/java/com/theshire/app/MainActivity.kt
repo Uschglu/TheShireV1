@@ -116,11 +116,11 @@ fun LegumeCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.Eco,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
-            )
+    Icons.Default.Eco,
+    contentDescription = null,
+    tint = MaterialTheme.colorScheme.primary,
+    modifier = Modifier.size(32.dp)
+)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
