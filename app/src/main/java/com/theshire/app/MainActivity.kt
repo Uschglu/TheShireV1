@@ -3,27 +3,34 @@ package com.theshire.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.PlancheEntity
+import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
@@ -103,7 +110,6 @@ fun AccueilScreen(
             )
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Bouton Bibliothèque
             MenuButton(
                 icon = Icons.Default.MenuBook,
                 titre = "Bibliothèque",
@@ -113,17 +119,15 @@ fun AccueilScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Bouton Jardin
             MenuButton(
                 icon = Icons.Default.GridView,
                 titre = "Mon Jardin",
-                description = "Grille de 1m² en 9 carrés",
+                description = "Grilles de 1m² en 9 carrés",
                 onClick = onNavigateToJardin
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Bouton Calendrier
             MenuButton(
                 icon = Icons.Default.CalendarMonth,
                 titre = "Calendrier",
@@ -178,7 +182,7 @@ fun MenuButton(
     }
 }
 
-// Écran Bibliothèque (avec les fiches de culture)
+// Écran Bibliothèque
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -251,10 +255,26 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     }
 }
 
-// Écran Jardin (à créer)
+// Écran Jardin
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val jardinRepository = remember { JardinRepository(context) }
+    val legumeRepository = remember { LegumeRepository(context) }
+    val planches by jardinRepository.planches.collectAsState(initial = emptyList())
+    val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    
+    var showAddPlancheDialog by remember { mutableStateOf(false) }
+    var expandedPlancheId by remember { mutableStateOf<Long?>(null) }
+    var selectedCarre by remember { mutableStateOf<CarreEntity?>(null) }
+    var showLegumeSelection by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        legumeRepository.ajouterLegumesPredefinis()
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -275,35 +295,300 @@ fun JardinScreen(onBack: () -> Unit) {
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddPlancheDialog = true },
+                containerColor = MaterialTheme.colorScheme.secondary
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Ajouter une planche",
+                    tint = MaterialTheme.colorScheme.onSecondary
+                )
+            }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "🏡",
-                style = MaterialTheme.typography.displayLarge
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Votre jardin arrive bientôt !",
-                style = MaterialTheme.typography.titleLarge
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Grille de 1m² divisée en 9 carrés",
-                style = MaterialTheme.typography.bodyMedium
-            )
+        
+        if (planches.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "🏡",
+                    style = MaterialTheme.typography.displayLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Aucune planche de culture",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Cliquez sur + pour créer votre première planche",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(planches, key = { it.id }) { planche ->
+                    PlancheCard(
+                        planche = planche,
+                        isExpanded = expandedPlancheId == planche.id,
+                        onToggleExpand = {
+                            expandedPlancheId = if (expandedPlancheId == planche.id) null else planche.id
+                        },
+                        onDelete = {
+                            scope.launch {
+                                jardinRepository.supprimerPlanche(planche)
+                            }
+                        },
+                        jardinRepository = jardinRepository,
+                        onCarreClick = { carre ->
+                            selectedCarre = carre
+                            showLegumeSelection = true
+                        }
+                    )
+                }
+            }
+        }
+    }
+    
+    // Dialogue pour ajouter une planche
+    if (showAddPlancheDialog) {
+        var nomPlanche by remember { mutableStateOf("") }
+        var nombreCarres by remember { mutableStateOf("1") }
+        
+        AlertDialog(
+            onDismissRequest = { showAddPlancheDialog = false },
+            title = { Text("Nouvelle planche") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = nomPlanche,
+                        onValueChange = { nomPlanche = it },
+                        label = { Text("Nom de la planche") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = nombreCarres,
+                        onValueChange = { nombreCarres = it },
+                        label = { Text("Nombre de carrés d'1m²") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val nbCarres = nombreCarres.toIntOrNull() ?: 1
+                        scope.launch {
+                            jardinRepository.ajouterPlanche(nomPlanche, nbCarres)
+                        }
+                        showAddPlancheDialog = false
+                    },
+                    enabled = nomPlanche.isNotBlank() && (nombreCarres.toIntOrNull() ?: 0) > 0
+                ) {
+                    Text("Créer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPlancheDialog = false }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+    
+    // Dialogue pour choisir un légume
+    if (showLegumeSelection && selectedCarre != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showLegumeSelection = false
+                selectedCarre = null
+            },
+            title = { Text("Choisir un légume") },
+            text = {
+                LazyColumn {
+                    items(legumes) { legume ->
+                        Text(
+                            text = legume.nom,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        // Demander quelle case modifier
+                                        // Pour l'instant, on va modifier la première case vide
+                                        jardinRepository.modifierCase(
+                                            selectedCarre!!,
+                                            getPremiereCaseVide(selectedCarre!!),
+                                            legume.nom
+                                        )
+                                    }
+                                    showLegumeSelection = false
+                                    selectedCarre = null
+                                }
+                                .padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        HorizontalDivider()
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showLegumeSelection = false
+                    selectedCarre = null
+                }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+}
+
+fun getPremiereCaseVide(carre: CarreEntity): Int {
+    return when (null) {
+        carre.case1 -> 1
+        carre.case2 -> 2
+        carre.case3 -> 3
+        carre.case4 -> 4
+        carre.case5 -> 5
+        carre.case6 -> 6
+        carre.case7 -> 7
+        carre.case8 -> 8
+        carre.case9 -> 9
+        else -> 0
+    }
+}
+
+@Composable
+fun PlancheCard(
+    planche: PlancheEntity,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onDelete: () -> Unit,
+    jardinRepository: JardinRepository,
+    onCarreClick: (CarreEntity) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = planche.nom,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(onClick = onToggleExpand)
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Supprimer la planche",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
+                
+                carres.forEach { carre ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Carré ${carre.position}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Grille3x3(
+                        carre = carre,
+                        onClick = { onCarreClick(carre) }
+                    )
+                }
+            }
         }
     }
 }
 
-// Écran Calendrier (à créer)
+@Composable
+fun Grille3x3(
+    carre: CarreEntity,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .border(2.dp, MaterialTheme.colorScheme.primary)
+    ) {
+        for (row in 0..2) {
+            Row(modifier = Modifier.weight(1f)) {
+                for (col in 0..2) {
+                    val caseNumero = row * 3 + col + 1
+                    val legume = when (caseNumero) {
+                        1 -> carre.case1
+                        2 -> carre.case2
+                        3 -> carre.case3
+                        4 -> carre.case4
+                        5 -> carre.case5
+                        6 -> carre.case6
+                        7 -> carre.case7
+                        8 -> carre.case8
+                        9 -> carre.case9
+                        else -> null
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(
+                                if (legume != null) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                }
+                            )
+                            .border(1.dp, MaterialTheme.colorScheme.primary)
+                            .clickable(onClick = onClick),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = legume ?: "",
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Écran Calendrier
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
