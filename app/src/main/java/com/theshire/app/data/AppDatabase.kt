@@ -6,13 +6,18 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [LegumeEntity::class],
-    version = 1,
+    entities = [
+        LegumeEntity::class,
+        PlancheEntity::class,
+        CarreEntity::class
+    ],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     
     abstract fun legumeDao(): LegumeDao
+    abstract fun plancheDao(): PlancheDao
     
     companion object {
         @Volatile
