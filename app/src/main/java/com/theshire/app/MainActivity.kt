@@ -33,7 +33,6 @@ import com.theshire.app.data.PlancheEntity
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -611,17 +610,16 @@ fun CalendrierScreen(onBack: () -> Unit) {
     LaunchedEffect(planches) {
         val listeLegumes = mutableListOf<String>()
         planches.forEach { planche ->
-            val carres = jardinRepository.getCarresForPlanche(planche.id)
-            carres.collect { carreList ->
-                carreList.forEach { carre ->
-                    listOf(
-                        carre.case1, carre.case2, carre.case3,
-                        carre.case4, carre.case5, carre.case6,
-                        carre.case7, carre.case8, carre.case9
-                    ).forEach { legume ->
-                        if (legume != null && legume !in listeLegumes) {
-                            listeLegumes.add(legume)
-                        }
+            val carresFlow = jardinRepository.getCarresForPlanche(planche.id)
+            val carreList = carresFlow.collectAsState(initial = emptyList()).value
+            carreList.forEach { carre ->
+                listOf(
+                    carre.case1, carre.case2, carre.case3,
+                    carre.case4, carre.case5, carre.case6,
+                    carre.case7, carre.case8, carre.case9
+                ).forEach { legume ->
+                    if (legume != null && legume !in listeLegumes) {
+                        listeLegumes.add(legume)
                     }
                 }
             }
