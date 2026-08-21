@@ -3,11 +3,12 @@ package com.theshire.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.*
@@ -37,61 +38,35 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PotagerScreen(viewModel: LegumeViewModel = viewModel()) {
     val legumes by viewModel.legumes.collectAsStateWithLifecycle(initialValue = emptyList())
-    var showDialog by remember { mutableStateOf(false) }
+    var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text("Mon Potager 🌱", fontWeight = FontWeight.Bold)
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDialog = true },
-                containerColor = MaterialTheme.colorScheme.secondary
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Ajouter un légume",
-                    tint = MaterialTheme.colorScheme.onSecondary
-                )
-            }
-        }
-    ) { innerPadding ->
-        
-        if (legumes.isEmpty()) {
-            // Message si la liste est vide
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🌱",
-                    style = MaterialTheme.typography.displayLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Votre potager est vide",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Cliquez sur + pour ajouter votre premier légume",
-                    style = MaterialTheme.typography.bodyMedium
+    // Charger les légumes prédéfinis au premier lancement
+    LaunchedEffect(Unit) {
+        viewModel.ajouterLegumesPredefinis()
+    }
+    
+    if (selectedLegume != null) {
+        // Afficher la fiche détaillée
+        LegumeDetailScreen(
+            legume = selectedLegume!!,
+            onBack = { selectedLegume = null }
+        )
+    } else {
+        // Afficher la liste des légumes
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text("Mon Potager 🌱", fontWeight = FontWeight.Bold)
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
-        } else {
-            // Liste des légumes
+        ) { innerPadding ->
+            
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -99,35 +74,37 @@ fun PotagerScreen(viewModel: LegumeViewModel = viewModel()) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                item {
+                    Text(
+                        text = "${legumes.size} légumes dans votre bibliothèque",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
                 items(legumes, key = { it.id }) { legume ->
                     LegumeCard(
                         legume = legume,
+                        onClick = { selectedLegume = legume },
                         onDelete = { viewModel.supprimerLegume(legume) }
                     )
                 }
             }
         }
     }
-    
-    // Dialogue pour ajouter un légume
-    if (showDialog) {
-        AddLegumeDialog(
-            onDismiss = { showDialog = false },
-            onConfirm = { nom, categorie, conseils ->
-                viewModel.ajouterLegume(nom, categorie, conseils)
-                showDialog = false
-            }
-        )
-    }
 }
 
 @Composable
 fun LegumeCard(
     legume: LegumeEntity,
+    onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -157,8 +134,8 @@ fun LegumeCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = legume.conseils,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Difficulté : ${legume.difficulte}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -173,54 +150,110 @@ fun LegumeCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddLegumeDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, String) -> Unit
+fun LegumeDetailScreen(
+    legume: LegumeEntity,
+    onBack: () -> Unit
 ) {
-    var nom by remember { mutableStateOf("") }
-    var categorie by remember { mutableStateOf("") }
-    var conseils by remember { mutableStateOf("") }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Ajouter un légume") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = nom,
-                    onValueChange = { nom = it },
-                    label = { Text("Nom du légume") },
-                    modifier = Modifier.fillMaxWidth()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(legume.nom, fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = categorie,
-                    onValueChange = { categorie = it },
-                    label = { Text("Catégorie (ex: Racines)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = conseils,
-                    onValueChange = { conseils = it },
-                    label = { Text("Conseils de culture") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            )
+        }
+    ) { innerPadding ->
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                InfoCard("Catégorie", legume.categorie)
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(nom, categorie, conseils) },
-                enabled = nom.isNotBlank()
-            ) {
-                Text("Ajouter")
+            item {
+                InfoCard("Difficulté", legume.difficulte)
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Annuler")
+            item {
+                InfoCard("Exposition", legume.exposition)
+            }
+            item {
+                InfoCard("Sol", legume.sol)
+            }
+            item {
+                InfoCard("Arrosage", legume.arrosage)
+            }
+            item {
+                InfoCard("Température", legume.temperature)
+            }
+            item {
+                InfoCard("Semis", legume.semis)
+            }
+            item {
+                InfoCard("Plantation", legume.plantation)
+            }
+            item {
+                InfoCard("Récolte", legume.recolte)
+            }
+            item {
+                InfoCard("Entretien", legume.entretien)
+            }
+            item {
+                InfoCard("Maladies", legume.maladies)
+            }
+            item {
+                InfoCard("Prévention naturelle", legume.prevention)
+            }
+            item {
+                InfoCard("Bonnes associations", legume.bonnesAssociations)
+            }
+            item {
+                InfoCard("Mauvaises associations", legume.mauvaisesAssociations)
             }
         }
-    )
+    }
+}
+
+@Composable
+fun InfoCard(titre: String, contenu: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = titre,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = contenu,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
 }
