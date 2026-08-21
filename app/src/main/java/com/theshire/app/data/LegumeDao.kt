@@ -17,4 +17,7 @@ interface LegumeDao {
     
     @Query("DELETE FROM legumes")
     suspend fun deleteAllLegumes()
+    
+    @Query("SELECT COUNT(*) FROM legumes")
+    suspend fun countLegumes(): Int
 }
