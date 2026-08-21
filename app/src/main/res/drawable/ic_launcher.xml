@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    
+    <!-- Fond vert -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M24,4L44,24L24,44L4,24Z"/>
+    
+    <!-- Feuille blanche simplifiée -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,12C30,12 34,16 34,24C34,30 30,36 24,36C18,36 14,30 14,24C14,16 18,12 24,12Z"/>
+    
+    <!-- Tige de la feuille -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M24,36L24,42"/>
+</vector>
