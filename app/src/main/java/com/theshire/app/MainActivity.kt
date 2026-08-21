@@ -1,7 +1,6 @@
 package com.theshire.app
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -16,21 +15,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.theshire.app.data.LegumeEntity
-import com.theshire.app.ui.LegumeViewModel
+import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("DEBUG_APP", "MainActivity démarrée")
-        
         setContent {
-            Log.d("DEBUG_APP", "setContent appelé")
             PotagerShireTheme {
                 PotagerScreen()
             }
@@ -40,14 +37,15 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PotagerScreen(viewModel: LegumeViewModel = viewModel()) {
-    val legumes by viewModel.legumes.collectAsStateWithLifecycle(initialValue = emptyList())
+fun PotagerScreen() {
+    val context = LocalContext.current
+    val repository = remember { LegumeRepository(context) }
+    val legumes by repository.legumes.collectAsState(initial = emptyList())
     var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
-        Log.d("DEBUG_APP", "Chargement des légumes prédéfinis")
-        viewModel.ajouterLegumesPredefinis()
-        Log.d("DEBUG_APP", "Légumes chargés")
+        repository.ajouterLegumesPredefinis()
     }
     
     if (selectedLegume != null) {
@@ -80,8 +78,7 @@ fun PotagerScreen(viewModel: LegumeViewModel = viewModel()) {
                 item {
                     Text(
                         text = "${legumes.size} légumes dans votre bibliothèque",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -90,7 +87,11 @@ fun PotagerScreen(viewModel: LegumeViewModel = viewModel()) {
                     LegumeCard(
                         legume = legume,
                         onClick = { selectedLegume = legume },
-                        onDelete = { viewModel.supprimerLegume(legume) }
+                        onDelete = { 
+                            scope.launch { 
+                                repository.supprimerLegume(legume) 
+                            }
+                        }
                     )
                 }
             }
@@ -138,8 +139,7 @@ fun LegumeCard(
                 )
                 Text(
                     text = "Difficulté : ${legume.difficulte}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
             IconButton(onClick = onDelete) {
@@ -189,48 +189,20 @@ fun LegumeDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                InfoCard("Catégorie", legume.categorie)
-            }
-            item {
-                InfoCard("Difficulté", legume.difficulte)
-            }
-            item {
-                InfoCard("Exposition", legume.exposition)
-            }
-            item {
-                InfoCard("Sol", legume.sol)
-            }
-            item {
-                InfoCard("Arrosage", legume.arrosage)
-            }
-            item {
-                InfoCard("Température", legume.temperature)
-            }
-            item {
-                InfoCard("Semis", legume.semis)
-            }
-            item {
-                InfoCard("Plantation", legume.plantation)
-            }
-            item {
-                InfoCard("Récolte", legume.recolte)
-            }
-            item {
-                InfoCard("Entretien", legume.entretien)
-            }
-            item {
-                InfoCard("Maladies", legume.maladies)
-            }
-            item {
-                InfoCard("Prévention naturelle", legume.prevention)
-            }
-            item {
-                InfoCard("Bonnes associations", legume.bonnesAssociations)
-            }
-            item {
-                InfoCard("Mauvaises associations", legume.mauvaisesAssociations)
-            }
+            item { InfoCard("Catégorie", legume.categorie) }
+            item { InfoCard("Difficulté", legume.difficulte) }
+            item { InfoCard("Exposition", legume.exposition) }
+            item { InfoCard("Sol", legume.sol) }
+            item { InfoCard("Arrosage", legume.arrosage) }
+            item { InfoCard("Température", legume.temperature) }
+            item { InfoCard("Semis", legume.semis) }
+            item { InfoCard("Plantation", legume.plantation) }
+            item { InfoCard("Récolte", legume.recolte) }
+            item { InfoCard("Entretien", legume.entretien) }
+            item { InfoCard("Maladies", legume.maladies) }
+            item { InfoCard("Prévention naturelle", legume.prevention) }
+            item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
+            item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
         }
     }
 }
