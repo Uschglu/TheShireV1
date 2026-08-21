@@ -9,5 +9,17 @@ data class LegumeEntity(
     val id: Long = 0,
     val nom: String,
     val categorie: String,
-    val conseils: String
+    val difficulte: String,
+    val exposition: String,
+    val sol: String,
+    val arrosage: String,
+    val temperature: String,
+    val semis: String,
+    val plantation: String,
+    val recolte: String,
+    val entretien: String,
+    val maladies: String,
+    val prevention: String,
+    val bonnesAssociations: String,
+    val mauvaisesAssociations: String
 )
