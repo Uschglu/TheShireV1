@@ -26,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "potager_db"
                 )
                 .fallbackToDestructiveMigration()
+                .allowMainThreadQueries()
                 .build()
                 INSTANCE = instance
                 instance
