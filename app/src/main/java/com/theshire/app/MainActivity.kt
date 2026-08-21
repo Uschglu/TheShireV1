@@ -33,6 +33,7 @@ import com.theshire.app.data.PlancheEntity
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -594,6 +595,40 @@ fun Grille3x3(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val jardinRepository = remember { JardinRepository(context) }
+    val legumeRepository = remember { LegumeRepository(context) }
+    val planches by jardinRepository.planches.collectAsState(initial = emptyList())
+    val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
+    
+    var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
+    
+    LaunchedEffect(Unit) {
+        legumeRepository.ajouterLegumesPredefinis()
+    }
+    
+    // Récupérer tous les légumes plantés dans le jardin
+    LaunchedEffect(planches) {
+        val listeLegumes = mutableListOf<String>()
+        planches.forEach { planche ->
+            val carres = jardinRepository.getCarresForPlanche(planche.id)
+            carres.collect { carreList ->
+                carreList.forEach { carre ->
+                    listOf(
+                        carre.case1, carre.case2, carre.case3,
+                        carre.case4, carre.case5, carre.case6,
+                        carre.case7, carre.case8, carre.case9
+                    ).forEach { legume ->
+                        if (legume != null && legume !in listeLegumes) {
+                            listeLegumes.add(legume)
+                        }
+                    }
+                }
+            }
+        }
+        legumesPlantes = listeLegumes
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -616,26 +651,100 @@ fun CalendrierScreen(onBack: () -> Unit) {
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+        
+        if (legumesPlantes.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "📅",
+                    style = MaterialTheme.typography.displayLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Aucun légume planté",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Ajoutez des légumes dans votre jardin pour voir les opérations culturales",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Opérations culturales pour vos légumes plantés :",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                legumesPlantes.forEach { legumeNom ->
+                    val legume = legumes.find { it.nom == legumeNom }
+                    if (legume != null) {
+                        item {
+                            CalendrierLegumeCard(legume)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalendrierLegumeCard(legume: LegumeEntity) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "📅",
-                style = MaterialTheme.typography.displayLarge
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Votre calendrier arrive bientôt !",
-                style = MaterialTheme.typography.titleLarge
+                text = legume.nom,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Météo et rappels des opérations culturales",
+                text = "📅 Semis : ${legume.semis}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "🌱 Plantation : ${legume.plantation}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "🧺 Récolte : ${legume.recolte}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "💧 Arrosage : ${legume.arrosage}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "✂️ Entretien : ${legume.entretien}",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
