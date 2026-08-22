@@ -15,7 +15,7 @@ interface PlancheDao {
     @Delete
     suspend fun deletePlanche(planche: PlancheEntity)
     
-    @Query("SELECT * FROM carres WHERE plancheId = :plancheId ORDER BY position")
+    @Query("SELECT * FROM carres WHERE plancheId = :plancheId ORDER BY positionY, positionX")
     fun getCarresForPlanche(plancheId: Long): Flow<List<CarreEntity>>
     
     @Insert
