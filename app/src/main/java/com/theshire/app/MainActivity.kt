@@ -12,19 +12,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +47,9 @@ import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     
@@ -100,7 +108,7 @@ fun MainScreen() {
     }
 }
 
-// Page d'accueil
+// ============== NOUVEL ACCUEIL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccueilScreen(
@@ -109,121 +117,211 @@ fun AccueilScreen(
     onNavigateToCalendrier: () -> Unit,
     onNavigateToConservation: () -> Unit
 ) {
+    val context = LocalContext.current
+    val meteoRepository = remember { MeteoRepository() }
+    val localisationRepository = remember { LocalisationRepository(context) }
+    
+    var meteo by remember { mutableStateOf<MeteoData?>(null) }
+    var ville by remember { mutableStateOf("") }
+    
+    // Date du jour
+    val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
+    val dateDuJour = remember { dateFormat.format(Date()) }
+    
+    // Récupérer la météo
+    LaunchedEffect(Unit) {
+        try {
+            val villeDetectee = localisationRepository.getVille()
+            if (villeDetectee != null) {
+                ville = villeDetectee
+            }
+            meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" })
+        } catch (e: Exception) {
+            meteo = null
+        }
+    }
+    
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text("Potager de la Comté 🌱", fontWeight = FontWeight.Bold)
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+        bottomBar = {
+            // Barre de navigation en bas
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
+            ) {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToBibliotheque,
+                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Bibliothèque") },
+                    label = { Text("Biblio", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
                 )
-            )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToJardin,
+                    icon = { Icon(Icons.Default.GridView, contentDescription = "Jardin") },
+                    label = { Text("Jardin", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToCalendrier,
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendrier") },
+                    label = { Text("Calend.", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToConservation,
+                    icon = { Icon(Icons.Default.Kitchen, contentDescription = "Conservation") },
+                    label = { Text("Conserv.", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
+                )
+            }
         }
     ) { innerPadding ->
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp)
         ) {
-            Text(
-                text = "🌱",
-                style = MaterialTheme.typography.displayLarge
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Bienvenue dans votre potager",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(32.dp))
+            // ===== MÉTÉO EN HAUT À GAUCHE =====
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Emoji météo
+                    Text(
+                        text = getEmojiMeteo(meteo),
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        if (meteo != null) {
+                            Text(
+                                text = "${meteo!!.temperature}°C",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = meteo!!.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                text = "--°C",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Météo indisponible",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = dateDuJour,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (ville.isNotEmpty()) {
+                            Text(
+                                text = "📍 $ville",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
             
-            MenuButton(
-                icon = Icons.Default.MenuBook,
-                titre = "Bibliothèque",
-                description = "Fiches de culture des légumes",
-                onClick = onNavigateToBibliotheque
-            )
+            Spacer(modifier = Modifier.height(24.dp))
             
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            MenuButton(
-                icon = Icons.Default.GridView,
-                titre = "Mon Jardin",
-                description = "Grilles de 1m² en 9 carrés",
-                onClick = onNavigateToJardin
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            MenuButton(
-                icon = Icons.Default.CalendarMonth,
-                titre = "Calendrier",
-                description = "Opérations culturales et météo",
-                onClick = onNavigateToCalendrier
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            MenuButton(
-                icon = Icons.Default.Kitchen,
-                titre = "Conservation",
-                description = "Séchage, lactofermentation, conserves",
-                onClick = onNavigateToConservation
-            )
-        }
-    }
-}
-
-@Composable
-fun MenuButton(
-    icon: ImageVector,
-    titre: String,
-    description: String,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = titre,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // ===== PHOTO DU JARDIN AU CENTRE =====
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(24.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Default.PhotoCamera,
+                        contentDescription = "Photo du jardin",
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "📸 Photo de mon jardin",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Prenez une photo de votre potager pour suivre son évolution",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { /* La caméra sera implémentée plus tard */ },
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Prendre une photo")
+                    }
+                }
             }
         }
     }
 }
 
-// Écran Bibliothèque
+// Fonction pour obtenir l'emoji météo
+fun getEmojiMeteo(meteo: MeteoData?): String {
+    if (meteo == null) return "🌤️"
+    
+    return when {
+        meteo.description.contains("pluie", ignoreCase = true) -> "🌧️"
+        meteo.description.contains("nuage", ignoreCase = true) -> "☁️"
+        meteo.description.contains("soleil", ignoreCase = true) || 
+        meteo.description.contains("clair", ignoreCase = true) -> "☀️"
+        meteo.description.contains("neige", ignoreCase = true) -> "❄️"
+        meteo.description.contains("orage", ignoreCase = true) -> "⛈️"
+        meteo.description.contains("brume", ignoreCase = true) -> "🌫️"
+        else -> "🌤️"
+    }
+}
+
+// ============== ÉCRAN BIBLIOTHÈQUE ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -296,7 +394,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     }
 }
 
-// Écran Jardin
+// ============== ÉCRAN JARDIN ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
@@ -631,7 +729,7 @@ fun Grille3x3(
     }
 }
 
-// Écran Calendrier avec vue mensuelle, météo et mode hors-ligne
+// ============== ÉCRAN CALENDRIER ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
@@ -647,7 +745,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var ville by remember { mutableStateOf("Paris") }
     var estConnecte by remember { mutableStateOf(true) }
     
-    // État du calendrier
     var currentMonth by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) }
     var selectedDay by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)) }
@@ -657,7 +754,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
         isLoading = false
     }
     
-    // Récupérer les légumes plantés
     LaunchedEffect(Unit) {
         try {
             legumesPlantes = jardinRepository.getLegumesPlantes()
@@ -666,7 +762,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     }
     
-    // Vérifier la connexion et récupérer la météo
     LaunchedEffect(Unit) {
         val reseauRepository = ReseauRepository(context)
         estConnecte = reseauRepository.estConnecte()
@@ -722,12 +817,10 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section Météo
             item {
                 MeteoCard(meteo, ville, estConnecte)
             }
             
-            // Section Calendrier
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -832,7 +925,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 }
             }
             
-            // Section Légumes plantés
             item {
                 Text(
                     text = "Légumes plantés (${legumesPlantes.size}) :",
@@ -884,12 +976,6 @@ fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean) {
                     text = "📡 Mode hors-ligne - Pas de connexion internet",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "La météo sera disponible quand vous serez connecté",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else if (meteo == null) {
                 Text(
@@ -966,7 +1052,7 @@ fun CalendrierLegumeCard(legume: LegumeEntity) {
     }
 }
 
-// Écran Conservation
+// ============== ÉCRAN CONSERVATION ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConservationScreen(onBack: () -> Unit) {
@@ -1012,7 +1098,6 @@ fun ConservationScreen(onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Filtres
             item {
                 Text(
                     text = "Filtrer par méthode :",
@@ -1078,7 +1163,7 @@ fun ConservationCard(legume: LegumeEntity) {
     }
 }
 
-// Fiche détaillée d'un légume
+// ============== FICHE DÉTAILLÉE ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegumeDetailScreen(
@@ -1133,7 +1218,7 @@ fun LegumeDetailScreen(
     }
 }
 
-// Carte d'un légume dans la liste
+// ============== CARTE LÉGUME ==============
 @Composable
 fun LegumeCard(
     legume: LegumeEntity,
@@ -1188,7 +1273,7 @@ fun LegumeCard(
     }
 }
 
-// Carte d'information dans la fiche détaillée
+// ============== CARTE INFO ==============
 @Composable
 fun InfoCard(titre: String, contenu: String) {
     Card(
