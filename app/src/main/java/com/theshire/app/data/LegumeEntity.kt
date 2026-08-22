@@ -21,5 +21,6 @@ data class LegumeEntity(
     val maladies: String,
     val prevention: String,
     val bonnesAssociations: String,
-    val mauvaisesAssociations: String
+    val mauvaisesAssociations: String,
+    val conservation: String
 )
