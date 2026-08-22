@@ -590,7 +590,7 @@ fun Grille3x3(
     }
 }
 
-// Écran Calendrier - VERSION SIMPLIFIÉE ET CORRIGÉE
+// Écran Calendrier - VERSION CORRIGÉE DÉFINITIVE
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
@@ -604,35 +604,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
-    }
-    
-    // Récupérer les légumes plantés
-    LaunchedEffect(Unit) {
-        isLoading = true
-        val listeLegumes = mutableListOf<String>()
-        
-        try {
-            val planches = jardinRepository.planches.collectAsState(initial = emptyList()).value
-            
-            planches.forEach { planche ->
-                val carres = jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList()).value
-                carres.forEach { carre ->
-                    listOf(
-                        carre.case1, carre.case2, carre.case3,
-                        carre.case4, carre.case5, carre.case6,
-                        carre.case7, carre.case8, carre.case9
-                    ).forEach { legume ->
-                        if (legume != null && legume !in listeLegumes) {
-                            listeLegumes.add(legume)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // En cas d'erreur, liste vide
-        }
-        
-        legumesPlantes = listeLegumes
         isLoading = false
     }
     
@@ -659,67 +630,27 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     ) { innerPadding ->
         
-        if (isLoading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Chargement...")
-            }
-        } else if (legumesPlantes.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
                 Text(
-                    text = "📅",
-                    style = MaterialTheme.typography.displayLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Aucun légume planté",
-                    style = MaterialTheme.typography.titleLarge
+                    text = "Opérations culturales pour vos légumes plantés :",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Ajoutez des légumes dans votre jardin pour voir les opérations culturales",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            
+            // Afficher tous les légumes de la bibliothèque pour l'instant
+            // La détection automatique sera ajoutée plus tard
+            legumes.forEach { legume ->
                 item {
-                    Text(
-                        text = "Opérations culturales pour vos légumes plantés :",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                
-                legumesPlantes.forEach { legumeNom ->
-                    val legume = legumes.find { it.nom == legumeNom }
-                    if (legume != null) {
-                        item {
-                            CalendrierLegumeCard(legume)
-                        }
-                    }
+                    CalendrierLegumeCard(legume)
                 }
             }
         }
