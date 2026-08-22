@@ -1,5 +1,8 @@
 package com.theshire.app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,8 +42,27 @@ import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Demander la permission GPS au démarrage
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
+                PackageManager.PERMISSION_GRANTED &&
+                checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != 
+                PackageManager.PERMISSION_GRANTED) {
+                
+                requestPermissions(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ),
+                    100
+                )
+            }
+        }
+        
         setContent {
             PotagerShireTheme {
                 MainScreen()
