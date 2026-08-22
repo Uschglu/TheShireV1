@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.theshire.app.data.AppDatabase
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.PlancheEntity
@@ -606,13 +607,18 @@ fun CalendrierScreen(onBack: () -> Unit) {
         legumeRepository.ajouterLegumesPredefinis()
     }
     
- // Récupérer tous les légumes plantés dans le jardin
-LaunchedEffect(planches) {
-    val listeLegumes = mutableListOf<String>()
-    planches.forEach { planche ->
-        val carresFlow = jardinRepository.getCarresForPlanche(planche.id)
-        val carreList = carresFlow.collectAsState(initial = emptyList()).value
-        carreList.forEach { carre ->
+    // Récupérer tous les légumes plantés dans le jardin
+    LaunchedEffect(planches) {
+        val dao = AppDatabase.getDatabase(context).plancheDao()
+        val allCarres = mutableListOf<CarreEntity>()
+        
+        planches.forEach { planche ->
+            val carres = dao.getCarresForPlanche(planche.id).collectAsState(initial = emptyList()).value
+            allCarres.addAll(carres)
+        }
+        
+        val listeLegumes = mutableListOf<String>()
+        allCarres.forEach { carre ->
             listOf(
                 carre.case1, carre.case2, carre.case3,
                 carre.case4, carre.case5, carre.case6,
@@ -623,9 +629,8 @@ LaunchedEffect(planches) {
                 }
             }
         }
+        legumesPlantes = listeLegumes
     }
-    legumesPlantes = listeLegumes
-}
     
     Scaffold(
         topBar = {
