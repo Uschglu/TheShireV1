@@ -606,26 +606,26 @@ fun CalendrierScreen(onBack: () -> Unit) {
         legumeRepository.ajouterLegumesPredefinis()
     }
     
-    // Récupérer tous les légumes plantés dans le jardin
-    LaunchedEffect(planches) {
-        val listeLegumes = mutableListOf<String>()
-        planches.forEach { planche ->
-            val carresFlow = jardinRepository.getCarresForPlanche(planche.id)
-            val carreList = carresFlow.collectAsState(initial = emptyList()).value
-            carreList.forEach { carre ->
-                listOf(
-                    carre.case1, carre.case2, carre.case3,
-                    carre.case4, carre.case5, carre.case6,
-                    carre.case7, carre.case8, carre.case9
-                ).forEach { legume ->
-                    if (legume != null && legume !in listeLegumes) {
-                        listeLegumes.add(legume)
-                    }
+ // Récupérer tous les légumes plantés dans le jardin
+LaunchedEffect(planches) {
+    val listeLegumes = mutableListOf<String>()
+    planches.forEach { planche ->
+        val carresFlow = jardinRepository.getCarresForPlanche(planche.id)
+        val carreList = carresFlow.collectAsState(initial = emptyList()).value
+        carreList.forEach { carre ->
+            listOf(
+                carre.case1, carre.case2, carre.case3,
+                carre.case4, carre.case5, carre.case6,
+                carre.case7, carre.case8, carre.case9
+            ).forEach { legume ->
+                if (legume != null && legume !in listeLegumes) {
+                    listeLegumes.add(legume)
                 }
             }
         }
-        legumesPlantes = listeLegumes
     }
+    legumesPlantes = listeLegumes
+}
     
     Scaffold(
         topBar = {
