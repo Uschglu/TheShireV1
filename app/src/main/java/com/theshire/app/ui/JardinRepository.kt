@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 class JardinRepository(context: Context) {
     
     private val plancheDao = AppDatabase.getDatabase(context).plancheDao()
+    private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
     
     val planches: Flow<List<PlancheEntity>> = plancheDao.getAllPlanches()
     
@@ -17,18 +18,26 @@ class JardinRepository(context: Context) {
         return plancheDao.getCarresForPlanche(plancheId)
     }
     
-    suspend fun ajouterPlanche(nom: String, nombreCarres: Int): Long {
+    suspend fun ajouterPlanche(nom: String, largeur: Int, longueur: Int): Long {
         val plancheId = plancheDao.insertPlanche(
-            PlancheEntity(nom = nom)
+            PlancheEntity(
+                nom = nom,
+                largeur = largeur,
+                longueur = longueur
+            )
         )
         
-        for (i in 1..nombreCarres) {
-            plancheDao.insertCarre(
-                CarreEntity(
-                    plancheId = plancheId,
-                    position = i
+        // Créer les carrés d'1m² selon la largeur et la longueur
+        for (y in 0 until longueur) {
+            for (x in 0 until largeur) {
+                plancheDao.insertCarre(
+                    CarreEntity(
+                        plancheId = plancheId,
+                        positionX = x,
+                        positionY = y
+                    )
                 )
-            )
+            }
         }
         
         return plancheId
@@ -55,15 +64,6 @@ class JardinRepository(context: Context) {
         plancheDao.updateCarre(nouveauCarre)
     }
     
-    suspend fun ajouterCarre(plancheId: Long, position: Int) {
-        plancheDao.insertCarre(
-            CarreEntity(
-                plancheId = plancheId,
-                position = position
-            )
-        )
-    }
-    
     suspend fun getLegumesPlantes(): List<String> {
         val listeLegumes = mutableListOf<String>()
         
@@ -86,4 +86,31 @@ class JardinRepository(context: Context) {
         
         return listeLegumes
     }
+    
+    // Fonction pour vérifier la compatibilité entre deux légumes
+    suspend fun getCouleurCompatibilite(legumeActuel: String, legumeVoisin: String): ColorCompat {
+        val legume = legumeDao.getAllLegumes().first().find { it.nom == legumeActuel }
+            ?: return ColorCompat.NEUTRE
+        
+        val voisin = legumeDao.getAllLegumes().first().find { it.nom == legumeVoisin }
+            ?: return ColorCompat.NEUTRE
+        
+        // Vérifier les bonnes associations
+        if (legume.bonnesAssociations.contains(legumeVoisin, ignoreCase = true) ||
+            voisin.bonnesAssociations.contains(legumeActuel, ignoreCase = true)) {
+            return ColorCompat.BONNE
+        }
+        
+        // Vérifier les mauvaises associations
+        if (legume.mauvaisesAssociations.contains(legumeVoisin, ignoreCase = true) ||
+            voisin.mauvaisesAssociations.contains(legumeActuel, ignoreCase = true)) {
+            return ColorCompat.MAUVAISE
+        }
+        
+        return ColorCompat.NEUTRE
+    }
+}
+
+enum class ColorCompat {
+    BONNE, NEUTRE, MAUVAISE
 }
