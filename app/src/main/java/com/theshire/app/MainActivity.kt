@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -332,6 +333,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     val repository = remember { LegumeRepository(context) }
     val legumes by repository.legumes.collectAsState(initial = emptyList())
     var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
+    var showLegende by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
@@ -355,6 +357,15 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                             Icon(
                                 Icons.Default.ArrowBack,
                                 contentDescription = "Retour",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showLegende = true }) {
+                            Icon(
+                                Icons.Default.Help,
+                                contentDescription = "Légende",
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
@@ -394,6 +405,54 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+    
+    // Dialogue de légende des emojis
+    if (showLegende) {
+        AlertDialog(
+            onDismissRequest = { showLegende = false },
+            title = { Text("Légende des catégories") },
+            text = {
+                LazyColumn {
+                    item { LigneLegende("🥕", "Racines (carotte, panais, navet...)") }
+                    item { LigneLegende("🥔", "Tubercules (pomme de terre, topinambour...)") }
+                    item { LigneLegende("🍅", "Fruits (tomate, courgette, poivron...)") }
+                    item { LigneLegende("🥬", "Feuilles (salade, épinard, chou frisé...)") }
+                    item { LigneLegende("🫘", "Légumineuses (haricot, pois...)") }
+                    item { LigneLegende("🧅", "Alliacés (oignon, ail, poireau...)") }
+                    item { LigneLegende("🥦", "Choux (brocoli, chou-fleur...)") }
+                    item { LigneLegende("🎃", "Cucurbitacées (potiron, courge...)") }
+                    item { LigneLegende("🌿", "Aromatiques (basilic, thym, romarin...)") }
+                    item { LigneLegende("💐", "Fleurs vivaces (lavande...)") }
+                    item { LigneLegende("🌸", "Fleurs annuelles (capucine, souci...)") }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLegende = false }) {
+                    Text("Fermer")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun LigneLegende(emoji: String, description: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = emoji,
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -489,7 +548,6 @@ fun JardinScreen(onBack: () -> Unit) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Légende des couleurs
                 item {
                     LegendeCouleurs()
                 }
@@ -528,7 +586,6 @@ fun JardinScreen(onBack: () -> Unit) {
             title = { Text("Nouvelle planche") },
             text = {
                 Column {
-                    // Légende compacte
                     LegendeCompacte()
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
@@ -660,7 +717,7 @@ fun JardinScreen(onBack: () -> Unit) {
                         
                         items(legumes) { legume ->
                             Text(
-                                text = if (legume.estVivace) "${legume.nom} 🌿" else legume.nom,
+                                text = legume.nom,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -689,8 +746,7 @@ fun JardinScreen(onBack: () -> Unit) {
                                         }
                                     }
                                     .padding(16.dp),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (legume.estVivace) FontWeight.Bold else FontWeight.Normal
+                                style = MaterialTheme.typography.bodyLarge
                             )
                             HorizontalDivider()
                         }
@@ -709,7 +765,6 @@ fun JardinScreen(onBack: () -> Unit) {
         )
     }
     
-    // Dialogue d'avertissement de rotation
     if (showAvertissement && avertissement != null) {
         val av = avertissement!!
         val carre = selectedCarre
@@ -996,73 +1051,104 @@ fun Grille3x3(
     onSousCarreClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .aspectRatio(1f)
-            .border(2.dp, MaterialTheme.colorScheme.primary)
-    ) {
-        for (row in 0..2) {
-            Row(modifier = Modifier.weight(1f)) {
-                for (col in 0..2) {
-                    val caseNumero = row * 3 + col + 1
-                    val legume = when (caseNumero) {
-                        1 -> carre.case1
-                        2 -> carre.case2
-                        3 -> carre.case3
-                        4 -> carre.case4
-                        5 -> carre.case5
-                        6 -> carre.case6
-                        7 -> carre.case7
-                        8 -> carre.case8
-                        9 -> carre.case9
-                        else -> null
-                    }
-                    
-                    val couleurFond = if (legume != null) {
-                        val autresLegumes = listOfNotNull(
-                            carre.case1, carre.case2, carre.case3,
-                            carre.case4, carre.case5, carre.case6,
-                            carre.case7, carre.case8, carre.case9
-                        ).filter { it != legume }
-                        
-                        if (autresLegumes.isEmpty()) {
-                            Color(0xFF4CAF50).copy(alpha = 0.3f)
-                        } else {
-                            val estMauvaise = autresLegumes.any { voisin ->
-                                estMauvaiseAssociation(legume, voisin)
-                            }
-                            val estBonne = autresLegumes.any { voisin ->
-                                estBonneAssociation(legume, voisin)
-                            }
-                            
-                            when {
-                                estMauvaise -> Color(0xFFF44336).copy(alpha = 0.3f)
-                                estBonne -> Color(0xFF4CAF50).copy(alpha = 0.3f)
-                                else -> Color(0xFFFF9800).copy(alpha = 0.3f)
-                            }
+    val legumes = listOfNotNull(
+        carre.case1, carre.case2, carre.case3,
+        carre.case4, carre.case5, carre.case6,
+        carre.case7, carre.case8, carre.case9
+    )
+    
+    if (legumes.size == 9) {
+        Box(
+            modifier = modifier
+                .aspectRatio(1f)
+                .background(Color(0xFF4CAF50).copy(alpha = 0.2f))
+                .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                .clickable(onClick = { onSousCarreClick(1) }),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "✅",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Complet",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .aspectRatio(1f)
+                .border(2.dp, MaterialTheme.colorScheme.primary)
+        ) {
+            for (row in 0..2) {
+                Row(modifier = Modifier.weight(1f)) {
+                    for (col in 0..2) {
+                        val caseNumero = row * 3 + col + 1
+                        val legume = when (caseNumero) {
+                            1 -> carre.case1
+                            2 -> carre.case2
+                            3 -> carre.case3
+                            4 -> carre.case4
+                            5 -> carre.case5
+                            6 -> carre.case6
+                            7 -> carre.case7
+                            8 -> carre.case8
+                            9 -> carre.case9
+                            else -> null
                         }
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    }
-                    
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .background(couleurFond)
-                            .border(
-                                width = if (legume != null && estVivace(legume)) 3.dp else 1.dp,
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(4.dp)
+                        
+                        val couleurFond = if (legume != null) {
+                            val autresLegumes = listOfNotNull(
+                                carre.case1, carre.case2, carre.case3,
+                                carre.case4, carre.case5, carre.case6,
+                                carre.case7, carre.case8, carre.case9
+                            ).filter { it != legume }
+                            
+                            if (autresLegumes.isEmpty()) {
+                                Color(0xFF4CAF50).copy(alpha = 0.3f)
+                            } else {
+                                val estMauvaise = autresLegumes.any { voisin ->
+                                    estMauvaiseAssociation(legume, voisin)
+                                }
+                                val estBonne = autresLegumes.any { voisin ->
+                                    estBonneAssociation(legume, voisin)
+                                }
+                                
+                                when {
+                                    estMauvaise -> Color(0xFFF44336).copy(alpha = 0.3f)
+                                    estBonne -> Color(0xFF4CAF50).copy(alpha = 0.3f)
+                                    else -> Color(0xFFFF9800).copy(alpha = 0.3f)
+                                }
+                            }
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(couleurFond)
+                                .border(
+                                    width = if (legume != null && estVivace(legume)) 3.dp else 1.dp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                                .clickable(onClick = { onSousCarreClick(caseNumero) }),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = legume ?: "",
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                textAlign = TextAlign.Center
                             )
-                            .clickable(onClick = { onSousCarreClick(caseNumero) }),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (legume != null && estVivace(legume)) "🌿$legume" else legume ?: "",
-                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                            textAlign = TextAlign.Center
-                        )
+                        }
                     }
                 }
             }
@@ -1663,16 +1749,15 @@ fun LegumeCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Eco,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
+            Text(
+                text = getEmojiCategorie(legume.categorie),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (legume.estVivace) "🌿 ${legume.nom}" else if (legume.estFleur) "🌸 ${legume.nom}" else legume.nom,
+                    text = legume.nom,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -1694,6 +1779,27 @@ fun LegumeCard(
                 )
             }
         }
+    }
+}
+
+// Fonction pour obtenir l'emoji selon la catégorie
+fun getEmojiCategorie(categorie: String): String {
+    return when {
+        categorie.contains("Racine ancienne", ignoreCase = true) -> "🥕"
+        categorie.contains("Tubercule ancien", ignoreCase = true) -> "🥔"
+        categorie.contains("Racine", ignoreCase = true) -> "🥕"
+        categorie.contains("Tubercule", ignoreCase = true) -> "🥔"
+        categorie.contains("Fruit", ignoreCase = true) -> "🍅"
+        categorie.contains("Feuille ancienne", ignoreCase = true) -> "🥬"
+        categorie.contains("Feuille", ignoreCase = true) -> "🥬"
+        categorie.contains("Légumineuse", ignoreCase = true) -> "🫘"
+        categorie.contains("Alliacé", ignoreCase = true) -> "🧅"
+        categorie.contains("Chou", ignoreCase = true) -> "🥦"
+        categorie.contains("Cucurbitacée", ignoreCase = true) -> "🎃"
+        categorie.contains("Fleur vivace", ignoreCase = true) -> "💐"
+        categorie.contains("Fleur", ignoreCase = true) -> "🌸"
+        categorie.contains("Aromatique", ignoreCase = true) -> "🌿"
+        else -> "🌱"
     }
 }
 
