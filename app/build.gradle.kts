@@ -52,6 +52,9 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20240303")
     
+    // Pour la géolocalisation
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
