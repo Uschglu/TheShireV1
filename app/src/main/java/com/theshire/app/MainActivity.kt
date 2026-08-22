@@ -503,55 +503,92 @@ fun JardinScreen(onBack: () -> Unit) {
             }
         }
     }
-    
     // Dialogue pour ajouter une planche
-    if (showAddPlancheDialog) {
-        var nomPlanche by remember { mutableStateOf("") }
-        var nombreCarres by remember { mutableStateOf("1") }
-        
-        AlertDialog(
-            onDismissRequest = { showAddPlancheDialog = false },
-            title = { Text("Nouvelle planche") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = nomPlanche,
-                        onValueChange = { nomPlanche = it },
-                        label = { Text("Nom de la planche") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = nombreCarres,
-                        onValueChange = { nombreCarres = it },
-                        label = { Text("Nombre de carrés d'1m²") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val nbCarres = nombreCarres.toIntOrNull() ?: 1
-                        if (nbCarres > 0 && nomPlanche.isNotBlank()) {
-                            scope.launch {
-                                jardinRepository.ajouterPlanche(nomPlanche, nbCarres)
-                            }
-                            showAddPlancheDialog = false
-                        }
-                    },
-                    enabled = nomPlanche.isNotBlank() && (nombreCarres.toIntOrNull() ?: 0) > 0
+if (showAddPlancheDialog) {
+    var nomPlanche by remember { mutableStateOf("") }
+    var largeur by remember { mutableStateOf("3") }
+    var longueur by remember { mutableStateOf("4") }
+    
+    AlertDialog(
+        onDismissRequest = { showAddPlancheDialog = false },
+        title = { Text("Nouvelle planche") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = nomPlanche,
+                    onValueChange = { nomPlanche = it },
+                    label = { Text("Nom de la planche") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Dimensions (largeur × longueur en mètres)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Créer")
+                    OutlinedTextField(
+                        value = largeur,
+                        onValueChange = { largeur = it },
+                        label = { Text("Largeur (m)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Text(
+                        text = "×",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                    OutlinedTextField(
+                        value = longueur,
+                        onValueChange = { longueur = it },
+                        label = { Text("Longueur (m)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddPlancheDialog = false }) {
-                    Text("Annuler")
+                Spacer(modifier = Modifier.height(8.dp))
+                val totalCarres = (largeur.toIntOrNull() ?: 0) * (longueur.toIntOrNull() ?: 0)
+                if (totalCarres > 0) {
+                    Text(
+                        text = "= $totalCarres carrés d'1m²",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-        )
-    }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val l = largeur.toIntOrNull() ?: 1
+                    val L = longueur.toIntOrNull() ?: 1
+                    if (l > 0 && L > 0 && nomPlanche.isNotBlank()) {
+                        scope.launch {
+                            jardinRepository.ajouterPlanche(nomPlanche, l, L)
+                        }
+                        showAddPlancheDialog = false
+                    }
+                },
+                enabled = nomPlanche.isNotBlank() && 
+                          (largeur.toIntOrNull() ?: 0) > 0 && 
+                          (longueur.toIntOrNull() ?: 0) > 0
+            ) {
+                Text("Créer")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { showAddPlancheDialog = false }) {
+                Text("Annuler")
+            }
+        }
+    )
+}
     
     // Dialogue pour choisir un légume
     if (showLegumeSelection && selectedCarre != null) {
