@@ -41,7 +41,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mouche de la carotte, mildiou",
                 prevention = "Associer avec oignons, poireaux. Voile anti-insectes.",
                 bonnesAssociations = "Oignon, poireau, tomate, salade",
-                mauvaisesAssociations = "Aneth, persil"
+                mauvaisesAssociations = "Aneth, persil",
+                conservation = "Conservation : En cave dans du sable sec (plusieurs mois). Congélation : blanchir 3 min puis congeler. Lactofermentation : râper et saler à 2%. Conserves : en rondelles dans saumure."
             ),
             LegumeEntity(
                 nom = "Pomme de terre",
@@ -58,7 +59,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mildiou, doryphore",
                 prevention = "Purin de prêle, ramassage manuel des doryphores",
                 bonnesAssociations = "Haricot, maïs, chou",
-                mauvaisesAssociations = "Tomate, aubergine"
+                mauvaisesAssociations = "Tomate, aubergine",
+                conservation = "Conservation : En cave sombre et fraîche (4-8°C) dans des cagettes aérées (plusieurs mois). Ne pas congeler crues. Séchage : en purée déshydratée. Conserves : en dés stérilisés."
             ),
             LegumeEntity(
                 nom = "Radis",
@@ -75,7 +77,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Altises, pourriture",
                 prevention = "Voile anti-insectes, cendre",
                 bonnesAssociations = "Carotte, salade, tomate",
-                mauvaisesAssociations = "Chou"
+                mauvaisesAssociations = "Chou",
+                conservation = "Conservation : Au réfrigérateur 1-2 semaines dans un linge humide. Lactofermentation : entiers ou en rondelles salés à 2%. Conserves : au vinaigre (pickles)."
             ),
             LegumeEntity(
                 nom = "Betterave",
@@ -92,7 +95,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Cercosporiose",
                 prevention = "Rotation des cultures, purin de prêle",
                 bonnesAssociations = "Oignon, chou, salade",
-                mauvaisesAssociations = "Épinard"
+                mauvaisesAssociations = "Épinard",
+                conservation = "Conservation : En cave dans du sable (plusieurs mois). Cuites au réfrigérateur 1 semaine. Conserves : cuites et stérilisées entières ou en dés. Lactofermentation : râpées et salées."
             ),
             LegumeEntity(
                 nom = "Navet",
@@ -109,7 +113,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Altises, mildiou",
                 prevention = "Voile anti-insectes, cendre",
                 bonnesAssociations = "Pois, salade, haricot",
-                mauvaisesAssociations = "Chou"
+                mauvaisesAssociations = "Chou",
+                conservation = "Conservation : En cave dans du sable (3-4 mois). Congélation : blanchir 3 min. Lactofermentation : en rondelles salées à 2%. Conserves : au vinaigre."
             ),
             LegumeEntity(
                 nom = "Panais",
@@ -126,7 +131,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mouche de la carotte",
                 prevention = "Voile anti-insectes, purin de prêle",
                 bonnesAssociations = "Oignon, poireau, radis",
-                mauvaisesAssociations = "Aneth"
+                mauvaisesAssociations = "Aneth",
+                conservation = "Conservation : En terre tout l'hiver (résiste au gel). En cave dans du sable. Congélation : blanchir 3 min. Séchage : en chips déshydratées."
             ),
             LegumeEntity(
                 nom = "Rutabaga",
@@ -143,7 +149,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Hernie du chou",
                 prevention = "Rotation des cultures, chaulage",
                 bonnesAssociations = "Oignon, haricot, pois",
-                mauvaisesAssociations = "Autre chou"
+                mauvaisesAssociations = "Autre chou",
+                conservation = "Conservation : En cave dans du sable (plusieurs mois). Congélation : blanchir 3 min. Conserves : en dés stérilisés. Lactofermentation : râpé et salé."
             ),
             LegumeEntity(
                 nom = "Topinambour",
@@ -160,7 +167,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Oïdium",
                 prevention = "Purin de prêle, aération",
                 bonnesAssociations = "Maïs, haricot",
-                mauvaisesAssociations = "Pomme de terre"
+                mauvaisesAssociations = "Pomme de terre",
+                conservation = "Conservation : En terre (récolter au fur et à mesure). Au réfrigérateur 1-2 semaines dans un sac perforé. Lactofermentation : en rondelles salées. Conserves : au vinaigre."
             ),
             LegumeEntity(
                 nom = "Cerfeuil tubéreux",
@@ -177,7 +185,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Fonte des semis",
                 prevention = "Bonne aération, purin de prêle",
                 bonnesAssociations = "Salade, épinard",
-                mauvaisesAssociations = "Carotte"
+                mauvaisesAssociations = "Carotte",
+                conservation = "Conservation : En cave dans du sable (2-3 mois). Congélation : blanchir 2 min. Séchage : en rondelles déshydratées."
             ),
 
             // ===== LÉGUMES FRUITS =====
@@ -196,7 +205,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mildiou, cul noir",
                 prevention = "Purin d'ortie, éviter l'humidité sur feuillage",
                 bonnesAssociations = "Basilic, carotte, oignon, persil",
-                mauvaisesAssociations = "Pomme de terre, concombre"
+                mauvaisesAssociations = "Pomme de terre, concombre",
+                conservation = "Conservation : Conserves : coulis ou tomates pelées stérilisées. Séchage : en tranches au déshydrateur ou au four. Congélation : entières ou en coulis. Lactofermentation : cerises entières salées."
             ),
             LegumeEntity(
                 nom = "Courgette",
@@ -213,7 +223,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Oïdium, pourriture",
                 prevention = "Purin de prêle, éviter de mouiller les feuilles",
                 bonnesAssociations = "Haricot, salade, menthe",
-                mauvaisesAssociations = "Pomme de terre"
+                mauvaisesAssociations = "Pomme de terre",
+                conservation = "Conservation : Congélation : en rondelles blanchies 3 min. Conserves : ratatouille stérilisée. Lactofermentation : en bâtonnets salés. Séchage : en chips déshydratées."
             ),
             LegumeEntity(
                 nom = "Poivron",
@@ -230,7 +241,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Pucerons, mildiou",
                 prevention = "Savon noir, purin d'ortie",
                 bonnesAssociations = "Basilic, carotte, tomate",
-                mauvaisesAssociations = "Fenouil"
+                mauvaisesAssociations = "Fenouil",
+                conservation = "Conservation : Congélation : en lanières crues. Séchage : en poudre (paprika). Conserves : grillés à l'huile. Lactofermentation : en lanières salées."
             ),
             LegumeEntity(
                 nom = "Aubergine",
@@ -247,7 +259,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Doryphore, mildiou",
                 prevention = "Ramassage manuel, purin d'ortie",
                 bonnesAssociations = "Haricot, basilic, thym",
-                mauvaisesAssociations = "Pomme de terre"
+                mauvaisesAssociations = "Pomme de terre",
+                conservation = "Conservation : Congélation : en tranches grillées. Conserves : caviar d'aubergine stérilisé. Séchage : en tranches fines. Lactofermentation : en dés salés."
             ),
             LegumeEntity(
                 nom = "Concombre",
@@ -264,7 +277,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Oïdium, mildiou",
                 prevention = "Purin de prêle, éviter de mouiller les feuilles",
                 bonnesAssociations = "Maïs, haricot, salade",
-                mauvaisesAssociations = "Tomate, pomme de terre"
+                mauvaisesAssociations = "Tomate, pomme de terre",
+                conservation = "Conservation : Lactofermentation : en rondelles salées (pickles). Conserves : au vinaigre avec aromates. Congélation : en tranches pour smoothies. Réfrigérateur : 1 semaine."
             ),
             LegumeEntity(
                 nom = "Potiron",
@@ -281,7 +295,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Oïdium, pourriture",
                 prevention = "Purin de prêle, éviter de mouiller les feuilles",
                 bonnesAssociations = "Maïs, haricot",
-                mauvaisesAssociations = "Pomme de terre"
+                mauvaisesAssociations = "Pomme de terre",
+                conservation = "Conservation : Entier au sec et frais (3-6 mois). Congélation : en cubes blanchis. Conserves : purée stérilisée. Séchage : en lamelles déshydratées."
             ),
 
             // ===== LÉGUMES FEUILLES =====
@@ -300,7 +315,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Limaces, botrytis",
                 prevention = "Cendre autour des plants, purin de prêle",
                 bonnesAssociations = "Carotte, radis, fraisier, concombre",
-                mauvaisesAssociations = "Céleri, persil"
+                mauvaisesAssociations = "Céleri, persil",
+                conservation = "Conservation : Au réfrigérateur 1 semaine dans un linge humide. Lactofermentation : feuilles entières salées. Conserves : pesto de salade. Congélation : déconseillée."
             ),
             LegumeEntity(
                 nom = "Épinard",
@@ -317,7 +333,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mildiou, pucerons",
                 prevention = "Purin d'ortie, savon noir",
                 bonnesAssociations = "Fraisier, pois, chou",
-                mauvaisesAssociations = "Betterave"
+                mauvaisesAssociations = "Betterave",
+                conservation = "Conservation : Congélation : blanchir 2 min puis congeler en portions. Conserves : purée stérilisée. Séchage : en poudre pour smoothies. Réfrigérateur : 3-5 jours."
             ),
             LegumeEntity(
                 nom = "Chou frisé (Kale)",
@@ -334,7 +351,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Piéride du chou",
                 prevention = "Voile anti-insectes",
                 bonnesAssociations = "Oignon, pomme de terre, haricot",
-                mauvaisesAssociations = "Fraise, tomate"
+                mauvaisesAssociations = "Fraise, tomate",
+                conservation = "Conservation : Congélation : feuilles blanchies 2 min. Séchage : chips de kale au déshydrateur. Lactofermentation : feuilles salées. Réfrigérateur : 1 semaine."
             ),
             LegumeEntity(
                 nom = "Cardon",
@@ -351,7 +369,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Pucerons",
                 prevention = "Savon noir, purin d'ortie",
                 bonnesAssociations = "Chou, haricot",
-                mauvaisesAssociations = "Pomme de terre"
+                mauvaisesAssociations = "Pomme de terre",
+                conservation = "Conservation : En cave dans du sable (2-3 mois). Congélation : côtes blanchies 5 min. Conserves : côtes au naturel stérilisées."
             ),
 
             // ===== LÉGUMINEUSES =====
@@ -370,7 +389,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Anthracnose, rouille",
                 prevention = "Rotation des cultures, purin de prêle",
                 bonnesAssociations = "Maïs, courge, carotte",
-                mauvaisesAssociations = "Ail, oignon, fenouil"
+                mauvaisesAssociations = "Ail, oignon, fenouil",
+                conservation = "Conservation : Congélation : blanchir 3 min puis congeler. Conserves : en bocaux stérilisés. Lactofermentation : en bâtonnets salés. Séchage : haricots secs (variétés à écosser)."
             ),
             LegumeEntity(
                 nom = "Petit pois",
@@ -387,7 +407,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Oïdium, anthracnose",
                 prevention = "Purin de prêle, rotation des cultures",
                 bonnesAssociations = "Carotte, radis, salade",
-                mauvaisesAssociations = "Ail, oignon"
+                mauvaisesAssociations = "Ail, oignon",
+                conservation = "Conservation : Congélation : écossés puis congelés crus. Conserves : en bocaux stérilisés. Séchage : pois secs (laisser sécher sur pied)."
             ),
 
             // ===== ALLIACÉS =====
@@ -406,7 +427,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mildiou, pourriture",
                 prevention = "Rotation des cultures, purin de prêle",
                 bonnesAssociations = "Carotte, betterave, salade",
-                mauvaisesAssociations = "Haricot, pois"
+                mauvaisesAssociations = "Haricot, pois",
+                conservation = "Conservation : Séchage : tresser et suspendre au sec (6-8 mois). Conserves : confit d'oignon stérilisé. Lactofermentation : en rondelles salées. Congélation : émincés crus."
             ),
             LegumeEntity(
                 nom = "Poireau",
@@ -423,7 +445,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Rouille, teigne",
                 prevention = "Purin de prêle, rotation des cultures",
                 bonnesAssociations = "Carotte, céleri, fraisier",
-                mauvaisesAssociations = "Haricot, pois"
+                mauvaisesAssociations = "Haricot, pois",
+                conservation = "Conservation : En terre tout l'hiver. Congélation : en rondelles blanchies 2 min. Séchage : en lamelles déshydratées. Réfrigérateur : 2 semaines."
             ),
             LegumeEntity(
                 nom = "Ail",
@@ -440,7 +463,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Rouille, pourriture",
                 prevention = "Rotation des cultures, purin de prêle",
                 bonnesAssociations = "Carotte, betterave, fraisier",
-                mauvaisesAssociations = "Haricot, pois"
+                mauvaisesAssociations = "Haricot, pois",
+                conservation = "Conservation : Séchage : tresser et suspendre au sec (6-8 mois). Conserves : ail confit à l'huile. Lactofermentation : gousses entières salées. Congélation : gousses émincées."
             ),
 
             // ===== CHOUX =====
@@ -459,7 +483,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Piéride du chou, hernie",
                 prevention = "Voile anti-insectes, rotation des cultures",
                 bonnesAssociations = "Pomme de terre, oignon, aneth",
-                mauvaisesAssociations = "Fraise, tomate"
+                mauvaisesAssociations = "Fraise, tomate",
+                conservation = "Conservation : Congélation : fleurettes blanchies 3 min. Lactofermentation : fleurettes salées. Conserves : au naturel stérilisé. Réfrigérateur : 1 semaine."
             ),
             LegumeEntity(
                 nom = "Chou-fleur",
@@ -476,7 +501,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Piéride du chou, hernie",
                 prevention = "Voile anti-insectes, rotation des cultures",
                 bonnesAssociations = "Haricot, céleri, thym",
-                mauvaisesAssociations = "Fraise, tomate"
+                mauvaisesAssociations = "Fraise, tomate",
+                conservation = "Conservation : Congélation : fleurettes blanchies 3 min. Lactofermentation : fleurettes salées. Conserves : au vinaigre (pickles). Réfrigérateur : 1 semaine."
             ),
 
             // ===== HERBES AROMATIQUES =====
@@ -495,7 +521,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Fonte des semis, mildiou",
                 prevention = "Éviter l'excès d'eau, bonne aération",
                 bonnesAssociations = "Tomate, poivron, courgette",
-                mauvaisesAssociations = "Rue"
+                mauvaisesAssociations = "Rue",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles entières ou pesto. Conserves : pesto stérilisé. Réfrigérateur : 1 semaine dans l'eau."
             ),
             LegumeEntity(
                 nom = "Persil",
@@ -512,7 +539,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Mildiou, pucerons",
                 prevention = "Purin d'ortie, savon noir",
                 bonnesAssociations = "Tomate, carotte, oignon",
-                mauvaisesAssociations = "Salade"
+                mauvaisesAssociations = "Salade",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles ciselées. Conserves : huile parfumée. Réfrigérateur : 1-2 semaines."
             ),
             LegumeEntity(
                 nom = "Menthe",
@@ -529,7 +557,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Rouille",
                 prevention = "Purin de prêle, aération",
                 bonnesAssociations = "Chou, tomate, courgette",
-                mauvaisesAssociations = "Aucune"
+                mauvaisesAssociations = "Aucune",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles entières. Conserves : sirop de menthe. Réfrigérateur : 1 semaine dans l'eau."
             ),
             LegumeEntity(
                 nom = "Thym",
@@ -546,7 +575,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Aucune majeure",
                 prevention = "Bonne aération",
                 bonnesAssociations = "Chou, fraisier, aubergine",
-                mauvaisesAssociations = "Aucune"
+                mauvaisesAssociations = "Aucune",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Conserves : huile parfumée au thym. Congélation : branches entières. Réfrigérateur : 2 semaines."
             ),
             LegumeEntity(
                 nom = "Romarin",
@@ -563,7 +593,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Aucune majeure",
                 prevention = "Bonne aération",
                 bonnesAssociations = "Haricot, chou, carotte",
-                mauvaisesAssociations = "Aucune"
+                mauvaisesAssociations = "Aucune",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Conserves : huile parfumée au romarin. Congélation : branches entières. Réfrigérateur : 2 semaines."
             ),
             LegumeEntity(
                 nom = "Ciboulette",
@@ -580,7 +611,8 @@ class LegumeRepository(context: Context) {
                 maladies = "Rouille",
                 prevention = "Purin de prêle",
                 bonnesAssociations = "Carotte, tomate, pomme de terre",
-                mauvaisesAssociations = "Haricot, pois"
+                mauvaisesAssociations = "Haricot, pois",
+                conservation = "Conservation : Congélation : ciseaux dans un sac. Séchage : à plat à l'ombre. Conserves : vinaigre parfumé. Réfrigérateur : 1-2 semaines."
             ),
             LegumeEntity(
                 nom = "Coriandre",
@@ -597,25 +629,12 @@ class LegumeRepository(context: Context) {
                 maladies = "Fonte des semis",
                 prevention = "Bonne aération",
                 bonnesAssociations = "Carotte, chou, concombre",
-                mauvaisesAssociations = "Fenouil"
+                mauvaisesAssociations = "Fenouil",
+                conservation = "Conservation : Congélation : feuilles ciselées. Séchage : graines (coriandre en grains). Conserves : pesto de coriandre. Réfrigérateur : 1 semaine."
             ),
             LegumeEntity(
                 nom = "Aneth",
                 categorie = "Aromatique",
                 difficulte = "Facile",
                 exposition = "Plein soleil",
-                sol = "Léger, bien drainé",
-                arrosage = "Modéré",
-                temperature = "Rustique",
-                semis = "Avril à juillet",
-                plantation = "Semis direct",
-                recolte = "Juin à septembre",
-                entretien = "Éclaircir, tuteurer si nécessaire",
-                maladies = "Fonte des semis",
-                prevention = "Bonne aération",
-                bonnesAssociations = "Chou, concombre, oignon",
-                mauvaisesAssociations = "Carotte, tomate"
-            )
-        )
-    }
-}
+                sol = "
