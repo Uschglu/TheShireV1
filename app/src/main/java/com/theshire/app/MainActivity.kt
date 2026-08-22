@@ -724,7 +724,8 @@ fun PlancheCard(
 fun Grille3x3(
     carre: CarreEntity,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onGetCouleur: (String) -> Color = { Color.Gray }
 ) {
     Column(
         modifier = modifier
@@ -748,17 +749,42 @@ fun Grille3x3(
                         else -> null
                     }
                     
+                    // Déterminer la couleur de fond
+                    val couleurFond = if (legume != null) {
+                        // Vérifier la compatibilité avec les autres légumes du même carré
+                        val autresLegumes = listOfNotNull(
+                            carre.case1, carre.case2, carre.case3,
+                            carre.case4, carre.case5, carre.case6,
+                            carre.case7, carre.case8, carre.case9
+                        ).filter { it != legume }
+                        
+                        if (autresLegumes.isEmpty()) {
+                            // Premier légume : vert par défaut
+                            Color(0xFF4CAF50).copy(alpha = 0.3f)
+                        } else {
+                            // Vérifier la compatibilité
+                            val estBonneAssociation = autresLegumes.any { voisin ->
+                                estBonneAssociation(legume, voisin)
+                            }
+                            val estMauvaiseAssociation = autresLegumes.any { voisin ->
+                                estMauvaiseAssociation(legume, voisin)
+                            }
+                            
+                            when {
+                                estMauvaiseAssociation -> Color(0xFFF44336).copy(alpha = 0.3f)
+                                estBonneAssociation -> Color(0xFF4CAF50).copy(alpha = 0.3f)
+                                else -> Color(0xFFFF9800).copy(alpha = 0.3f)
+                            }
+                        }
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+                    
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .background(
-                                if (legume != null) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                            )
+                            .background(couleurFond)
                             .border(1.dp, MaterialTheme.colorScheme.primary)
                             .clickable(onClick = onClick),
                         contentAlignment = Alignment.Center
@@ -773,6 +799,44 @@ fun Grille3x3(
             }
         }
     }
+}
+
+// Fonctions de compatibilité (à remplacer par les vraies données)
+fun estBonneAssociation(legume1: String, legume2: String): Boolean {
+    // Liste simplifiée des bonnes associations
+    val bonnesAssociations = mapOf(
+        "Carotte" to listOf("Tomate", "Salade", "Oignon", "Poireau"),
+        "Tomate" to listOf("Carotte", "Basilic", "Oignon"),
+        "Salade" to listOf("Carotte", "Radis", "Concombre"),
+        "Oignon" to listOf("Carotte", "Tomate", "Betterave"),
+        "Poireau" to listOf("Carotte", "Céleri"),
+        "Basilic" to listOf("Tomate", "Poivron"),
+        "Radis" to listOf("Salade", "Carotte"),
+        "Concombre" to listOf("Salade", "Haricot"),
+        "Haricot" to listOf("Concombre", "Maïs", "Courge"),
+        "Courge" to listOf("Haricot", "Maïs")
+    )
+    
+    return bonnesAssociations[legume1]?.contains(legume2) == true ||
+           bonnesAssociations[legume2]?.contains(legume1) == true
+}
+
+fun estMauvaiseAssociation(legume1: String, legume2: String): Boolean {
+    // Liste simplifiée des mauvaises associations
+    val mauvaisesAssociations = mapOf(
+        "Carotte" to listOf("Aneth", "Persil"),
+        "Tomate" to listOf("Pomme de terre", "Concombre"),
+        "Pomme de terre" to listOf("Tomate", "Aubergine"),
+        "Oignon" to listOf("Haricot", "Pois"),
+        "Poireau" to listOf("Haricot", "Pois"),
+        "Haricot" to listOf("Ail", "Oignon"),
+        "Salade" to listOf("Persil", "Céleri"),
+        "Concombre" to listOf("Tomate", "Pomme de terre")
+    )
+    
+    return mauvaisesAssociations[legume1]?.contains(legume2) == true ||
+           mauvaisesAssociations[legume2]?.contains(legume1) == true
+}
 }
 
 // ============== CALENDRIER ==============
