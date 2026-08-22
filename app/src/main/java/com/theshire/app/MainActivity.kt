@@ -894,6 +894,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var datesPlantation by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("Paris") }
@@ -912,8 +913,10 @@ fun CalendrierScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         try {
             legumesPlantes = jardinRepository.getLegumesPlantes()
+            datesPlantation = jardinRepository.getDatesPlantation()
         } catch (e: Exception) {
             legumesPlantes = emptyList()
+            datesPlantation = emptyMap()
         }
     }
     
@@ -1101,7 +1104,10 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     val legume = legumes.find { it.nom == legumeNom }
                     if (legume != null) {
                         item {
-                            CalendrierLegumeCard(legume)
+                            CalendrierLegumeCard(
+                                legume = legume,
+                                datePlantation = datesPlantation[legume.nom]
+                            )
                         }
                     }
                 }
@@ -1173,7 +1179,7 @@ fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune:
 }
 
 @Composable
-fun CalendrierLegumeCard(legume: LegumeEntity) {
+fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1188,6 +1194,17 @@ fun CalendrierLegumeCard(legume: LegumeEntity) {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
+            if (datePlantation != null) {
+                val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
+                val date = Date(datePlantation)
+                Text(
+                    text = "🌱 Planté le : ${dateFormat.format(date)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             Text(
                 text = "📅 Semis : ${legume.semis}",
                 style = MaterialTheme.typography.bodyMedium
