@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.theshire.app.data.AppDatabase
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.PlancheEntity
@@ -591,45 +590,50 @@ fun Grille3x3(
     }
 }
 
-// Écran Calendrier
+// Écran Calendrier - VERSION SIMPLIFIÉE ET CORRIGÉE
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val jardinRepository = remember { JardinRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
-    val planches by jardinRepository.planches.collectAsState(initial = emptyList())
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
     }
     
-    // Récupérer tous les légumes plantés dans le jardin
-    LaunchedEffect(planches) {
-        val dao = AppDatabase.getDatabase(context).plancheDao()
-        val allCarres = mutableListOf<CarreEntity>()
-        
-        planches.forEach { planche ->
-            val carres = dao.getCarresForPlanche(planche.id).collectAsState(initial = emptyList()).value
-            allCarres.addAll(carres)
-        }
-        
+    // Récupérer les légumes plantés
+    LaunchedEffect(Unit) {
+        isLoading = true
         val listeLegumes = mutableListOf<String>()
-        allCarres.forEach { carre ->
-            listOf(
-                carre.case1, carre.case2, carre.case3,
-                carre.case4, carre.case5, carre.case6,
-                carre.case7, carre.case8, carre.case9
-            ).forEach { legume ->
-                if (legume != null && legume !in listeLegumes) {
-                    listeLegumes.add(legume)
+        
+        try {
+            val planches = jardinRepository.planches.collectAsState(initial = emptyList()).value
+            
+            planches.forEach { planche ->
+                val carres = jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList()).value
+                carres.forEach { carre ->
+                    listOf(
+                        carre.case1, carre.case2, carre.case3,
+                        carre.case4, carre.case5, carre.case6,
+                        carre.case7, carre.case8, carre.case9
+                    ).forEach { legume ->
+                        if (legume != null && legume !in listeLegumes) {
+                            listeLegumes.add(legume)
+                        }
+                    }
                 }
             }
+        } catch (e: Exception) {
+            // En cas d'erreur, liste vide
         }
+        
         legumesPlantes = listeLegumes
+        isLoading = false
     }
     
     Scaffold(
@@ -655,7 +659,19 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     ) { innerPadding ->
         
-        if (legumesPlantes.isEmpty()) {
+        if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Chargement...")
+            }
+        } else if (legumesPlantes.isEmpty()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
