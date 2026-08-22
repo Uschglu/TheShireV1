@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.MeteoData
+import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
@@ -590,17 +592,24 @@ fun Grille3x3(
     }
 }
 
-// Écran Calendrier
+// Écran Calendrier avec vue mensuelle et météo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val jardinRepository = remember { JardinRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
+    val meteoRepository = remember { MeteoRepository() }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var meteo by remember { mutableStateOf<MeteoData?>(null) }
+    
+    // État du calendrier
+    var currentMonth by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)) }
+    var currentYear by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) }
+    var selectedDay by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)) }
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
@@ -615,6 +624,20 @@ fun CalendrierScreen(onBack: () -> Unit) {
             legumesPlantes = emptyList()
         }
     }
+    
+    // Récupérer la météo
+    LaunchedEffect(Unit) {
+        try {
+            meteo = meteoRepository.getMeteo()
+        } catch (e: Exception) {
+            meteo = null
+        }
+    }
+    
+    val moisNoms = listOf(
+        "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    )
     
     Scaffold(
         topBar = {
@@ -639,58 +662,144 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     ) { innerPadding ->
         
-        if (isLoading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Section Météo
+            item {
+                MeteoCard(meteo)
             }
-        } else if (legumesPlantes.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+            
+            // Section Calendrier
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Navigation des mois
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = {
+                                if (currentMonth == 0) {
+                                    currentMonth = 11
+                                    currentYear--
+                                } else {
+                                    currentMonth--
+                                }
+                            }) {
+                                Text("◀")
+                            }
+                            Text(
+                                text = "${moisNoms[currentMonth]} $currentYear",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = {
+                                if (currentMonth == 11) {
+                                    currentMonth = 0
+                                    currentYear++
+                                } else {
+                                    currentMonth++
+                                }
+                            }) {
+                                Text("▶")
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Jours de la semaine
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { jour ->
+                                Text(
+                                    text = jour,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Jours du mois
+                        val cal = java.util.Calendar.getInstance()
+                        cal.set(currentYear, currentMonth, 1)
+                        val firstDayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
+                        val daysInMonth = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+                        val offset = if (firstDayOfWeek == java.util.Calendar.SUNDAY) 6 else firstDayOfWeek - 2
+                        
+                        val totalCells = offset + daysInMonth
+                        val rows = (totalCells + 6) / 7
+                        
+                        for (row in 0 until rows) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                for (col in 0..6) {
+                                    val dayNumber = row * 7 + col - offset + 1
+                                    if (dayNumber in 1..daysInMonth) {
+                                        val isSelected = dayNumber == selectedDay
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .clickable { selectedDay = dayNumber }
+                                                .padding(4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$dayNumber",
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                                        else MaterialTheme.colorScheme.onSurface,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Section Légumes plantés
+            item {
                 Text(
-                    text = "📅",
-                    style = MaterialTheme.typography.displayLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Aucun légume planté",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Ajoutez des légumes dans votre jardin pour voir les opérations culturales",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
+                    text = "Légumes plantés (${legumesPlantes.size}) :",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            
+            if (legumesPlantes.isEmpty()) {
                 item {
                     Text(
-                        text = "Opérations culturales pour vos légumes plantés (${legumesPlantes.size}) :",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = "Aucun légume planté. Ajoutez des légumes dans votre jardin !",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                
+            } else {
                 legumesPlantes.forEach { legumeNom ->
                     val legume = legumes.find { it.nom == legumeNom }
                     if (legume != null) {
@@ -699,6 +808,53 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun MeteoCard(meteo: MeteoData?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "🌦️ Météo actuelle",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (meteo == null) {
+                Text(
+                    text = "Impossible de récupérer la météo",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "🌡️ Température : ${meteo.temperature}°C",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "☁️ Conditions : ${meteo.description}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "💧 Humidité : ${meteo.humidite}%",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "🌬️ Vent : ${meteo.vent} m/s",
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
     }
