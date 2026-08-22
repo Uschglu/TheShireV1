@@ -22,5 +22,7 @@ data class LegumeEntity(
     val prevention: String,
     val bonnesAssociations: String,
     val mauvaisesAssociations: String,
-    val conservation: String
+    val conservation: String,
+    val estVivace: Boolean = false,
+    val estFleur: Boolean = false
 )
