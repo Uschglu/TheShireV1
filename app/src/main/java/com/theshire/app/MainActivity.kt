@@ -494,7 +494,6 @@ fun JardinScreen(onBack: () -> Unit) {
         }
     }
     
-    // Dialogue pour ajouter une planche
     if (showAddPlancheDialog) {
         var nomPlanche by remember { mutableStateOf("") }
         var largeur by remember { mutableStateOf("3") }
@@ -581,7 +580,6 @@ fun JardinScreen(onBack: () -> Unit) {
         )
     }
     
-    // Dialogue pour choisir un légume
     if (showLegumeSelection && selectedCarre != null) {
         val carre = selectedCarre!!
         AlertDialog(
@@ -692,7 +690,6 @@ fun PlancheCard(
                 
                 val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
                 
-                // Affichage en grille 2D
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -724,8 +721,7 @@ fun PlancheCard(
 fun Grille3x3(
     carre: CarreEntity,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    onGetCouleur: (String) -> Color = { Color.Gray }
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
@@ -749,9 +745,7 @@ fun Grille3x3(
                         else -> null
                     }
                     
-                    // Déterminer la couleur de fond
                     val couleurFond = if (legume != null) {
-                        // Vérifier la compatibilité avec les autres légumes du même carré
                         val autresLegumes = listOfNotNull(
                             carre.case1, carre.case2, carre.case3,
                             carre.case4, carre.case5, carre.case6,
@@ -759,20 +753,18 @@ fun Grille3x3(
                         ).filter { it != legume }
                         
                         if (autresLegumes.isEmpty()) {
-                            // Premier légume : vert par défaut
                             Color(0xFF4CAF50).copy(alpha = 0.3f)
                         } else {
-                            // Vérifier la compatibilité
-                            val estBonneAssociation = autresLegumes.any { voisin ->
-                                estBonneAssociation(legume, voisin)
-                            }
-                            val estMauvaiseAssociation = autresLegumes.any { voisin ->
+                            val estMauvaise = autresLegumes.any { voisin ->
                                 estMauvaiseAssociation(legume, voisin)
+                            }
+                            val estBonne = autresLegumes.any { voisin ->
+                                estBonneAssociation(legume, voisin)
                             }
                             
                             when {
-                                estMauvaiseAssociation -> Color(0xFFF44336).copy(alpha = 0.3f)
-                                estBonneAssociation -> Color(0xFF4CAF50).copy(alpha = 0.3f)
+                                estMauvaise -> Color(0xFFF44336).copy(alpha = 0.3f)
+                                estBonne -> Color(0xFF4CAF50).copy(alpha = 0.3f)
                                 else -> Color(0xFFFF9800).copy(alpha = 0.3f)
                             }
                         }
@@ -801,9 +793,7 @@ fun Grille3x3(
     }
 }
 
-// Fonctions de compatibilité (à remplacer par les vraies données)
 fun estBonneAssociation(legume1: String, legume2: String): Boolean {
-    // Liste simplifiée des bonnes associations
     val bonnesAssociations = mapOf(
         "Carotte" to listOf("Tomate", "Salade", "Oignon", "Poireau"),
         "Tomate" to listOf("Carotte", "Basilic", "Oignon"),
@@ -822,7 +812,6 @@ fun estBonneAssociation(legume1: String, legume2: String): Boolean {
 }
 
 fun estMauvaiseAssociation(legume1: String, legume2: String): Boolean {
-    // Liste simplifiée des mauvaises associations
     val mauvaisesAssociations = mapOf(
         "Carotte" to listOf("Aneth", "Persil"),
         "Tomate" to listOf("Pomme de terre", "Concombre"),
@@ -836,7 +825,6 @@ fun estMauvaiseAssociation(legume1: String, legume2: String): Boolean {
     
     return mauvaisesAssociations[legume1]?.contains(legume2) == true ||
            mauvaisesAssociations[legume2]?.contains(legume1) == true
-}
 }
 
 // ============== CALENDRIER ==============
