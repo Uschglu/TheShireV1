@@ -27,7 +27,6 @@ class JardinRepository(context: Context) {
             )
         )
         
-        // Créer les carrés d'1m² selon la largeur et la longueur
         for (y in 0 until longueur) {
             for (x in 0 until largeur) {
                 plancheDao.insertCarre(
@@ -65,16 +64,17 @@ class JardinRepository(context: Context) {
     }
     
     suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?) {
+        val dateActuelle = System.currentTimeMillis()
         val nouveauCarre = when (caseNumero) {
-            1 -> carre.copy(case1 = legumeNom)
-            2 -> carre.copy(case2 = legumeNom)
-            3 -> carre.copy(case3 = legumeNom)
-            4 -> carre.copy(case4 = legumeNom)
-            5 -> carre.copy(case5 = legumeNom)
-            6 -> carre.copy(case6 = legumeNom)
-            7 -> carre.copy(case7 = legumeNom)
-            8 -> carre.copy(case8 = legumeNom)
-            9 -> carre.copy(case9 = legumeNom)
+            1 -> carre.copy(case1 = legumeNom, datePlantationCase1 = if (legumeNom != null) dateActuelle else null)
+            2 -> carre.copy(case2 = legumeNom, datePlantationCase2 = if (legumeNom != null) dateActuelle else null)
+            3 -> carre.copy(case3 = legumeNom, datePlantationCase3 = if (legumeNom != null) dateActuelle else null)
+            4 -> carre.copy(case4 = legumeNom, datePlantationCase4 = if (legumeNom != null) dateActuelle else null)
+            5 -> carre.copy(case5 = legumeNom, datePlantationCase5 = if (legumeNom != null) dateActuelle else null)
+            6 -> carre.copy(case6 = legumeNom, datePlantationCase6 = if (legumeNom != null) dateActuelle else null)
+            7 -> carre.copy(case7 = legumeNom, datePlantationCase7 = if (legumeNom != null) dateActuelle else null)
+            8 -> carre.copy(case8 = legumeNom, datePlantationCase8 = if (legumeNom != null) dateActuelle else null)
+            9 -> carre.copy(case9 = legumeNom, datePlantationCase9 = if (legumeNom != null) dateActuelle else null)
             else -> carre
         }
         plancheDao.updateCarre(nouveauCarre)
@@ -101,5 +101,33 @@ class JardinRepository(context: Context) {
         }
         
         return listeLegumes
+    }
+    
+    suspend fun getDatesPlantation(): Map<String, Long> {
+        val dates = mutableMapOf<String, Long>()
+        val toutesPlanches = plancheDao.getAllPlanches().first()
+        
+        toutesPlanches.forEach { planche ->
+            val carres = plancheDao.getCarresForPlanche(planche.id).first()
+            carres.forEach { carre ->
+                listOf(
+                    carre.case1 to carre.datePlantationCase1,
+                    carre.case2 to carre.datePlantationCase2,
+                    carre.case3 to carre.datePlantationCase3,
+                    carre.case4 to carre.datePlantationCase4,
+                    carre.case5 to carre.datePlantationCase5,
+                    carre.case6 to carre.datePlantationCase6,
+                    carre.case7 to carre.datePlantationCase7,
+                    carre.case8 to carre.datePlantationCase8,
+                    carre.case9 to carre.datePlantationCase9
+                ).forEach { (legume, date) ->
+                    if (legume != null && date != null) {
+                        dates[legume] = date
+                    }
+                }
+            }
+        }
+        
+        return dates
     }
 }
