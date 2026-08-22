@@ -64,6 +64,22 @@ class JardinRepository(context: Context) {
         plancheDao.updateCarre(nouveauCarre)
     }
     
+    suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?) {
+        val nouveauCarre = when (caseNumero) {
+            1 -> carre.copy(case1 = legumeNom)
+            2 -> carre.copy(case2 = legumeNom)
+            3 -> carre.copy(case3 = legumeNom)
+            4 -> carre.copy(case4 = legumeNom)
+            5 -> carre.copy(case5 = legumeNom)
+            6 -> carre.copy(case6 = legumeNom)
+            7 -> carre.copy(case7 = legumeNom)
+            8 -> carre.copy(case8 = legumeNom)
+            9 -> carre.copy(case9 = legumeNom)
+            else -> carre
+        }
+        plancheDao.updateCarre(nouveauCarre)
+    }
+    
     suspend fun getLegumesPlantes(): List<String> {
         val listeLegumes = mutableListOf<String>()
         
@@ -86,31 +102,4 @@ class JardinRepository(context: Context) {
         
         return listeLegumes
     }
-    
-    // Fonction pour vérifier la compatibilité entre deux légumes
-    suspend fun getCouleurCompatibilite(legumeActuel: String, legumeVoisin: String): ColorCompat {
-        val legume = legumeDao.getAllLegumes().first().find { it.nom == legumeActuel }
-            ?: return ColorCompat.NEUTRE
-        
-        val voisin = legumeDao.getAllLegumes().first().find { it.nom == legumeVoisin }
-            ?: return ColorCompat.NEUTRE
-        
-        // Vérifier les bonnes associations
-        if (legume.bonnesAssociations.contains(legumeVoisin, ignoreCase = true) ||
-            voisin.bonnesAssociations.contains(legumeActuel, ignoreCase = true)) {
-            return ColorCompat.BONNE
-        }
-        
-        // Vérifier les mauvaises associations
-        if (legume.mauvaisesAssociations.contains(legumeVoisin, ignoreCase = true) ||
-            voisin.mauvaisesAssociations.contains(legumeActuel, ignoreCase = true)) {
-            return ColorCompat.MAUVAISE
-        }
-        
-        return ColorCompat.NEUTRE
-    }
-}
-
-enum class ColorCompat {
-    BONNE, NEUTRE, MAUVAISE
 }
