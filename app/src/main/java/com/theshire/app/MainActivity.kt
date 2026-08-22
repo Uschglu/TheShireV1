@@ -398,6 +398,7 @@ fun JardinScreen(onBack: () -> Unit) {
     var showAddPlancheDialog by remember { mutableStateOf(false) }
     var expandedPlancheId by remember { mutableStateOf<Long?>(null) }
     var selectedCarre by remember { mutableStateOf<CarreEntity?>(null) }
+    var selectedCaseNumero by remember { mutableStateOf(0) }
     var showLegumeSelection by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
@@ -484,8 +485,9 @@ fun JardinScreen(onBack: () -> Unit) {
                             }
                         },
                         jardinRepository = jardinRepository,
-                        onCarreClick = { carre ->
+                        onSousCarreClick = { carre, caseNumero ->
                             selectedCarre = carre
+                            selectedCaseNumero = caseNumero
                             showLegumeSelection = true
                         }
                     )
@@ -582,37 +584,77 @@ fun JardinScreen(onBack: () -> Unit) {
     
     if (showLegumeSelection && selectedCarre != null) {
         val carre = selectedCarre!!
+        val caseNumero = selectedCaseNumero
+        
         AlertDialog(
             onDismissRequest = { 
                 showLegumeSelection = false
                 selectedCarre = null
+                selectedCaseNumero = 0
             },
-            title = { Text("Choisir un légume") },
+            title = { Text("Que voulez-vous faire ?") },
             text = {
-                LazyColumn {
-                    items(legumes) { legume ->
-                        Text(
-                            text = legume.nom,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    val caseVide = getPremiereCaseVide(carre)
-                                    if (caseVide > 0) {
+                Column {
+                    Text(
+                        text = "Case ${caseNumero} du carré",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Choisissez un légume à planter :",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyColumn {
+                        item {
+                            Text(
+                                text = "🗑️ Vider la case",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
                                         scope.launch {
-                                            jardinRepository.modifierCase(
+                                            jardinRepository.modifierCasePrecise(
                                                 carre,
-                                                caseVide,
+                                                caseNumero,
+                                                null
+                                            )
+                                        }
+                                        showLegumeSelection = false
+                                        selectedCarre = null
+                                        selectedCaseNumero = 0
+                                    }
+                                    .padding(16.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            HorizontalDivider()
+                        }
+                        
+                        items(legumes) { legume ->
+                            Text(
+                                text = legume.nom,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        scope.launch {
+                                            jardinRepository.modifierCasePrecise(
+                                                carre,
+                                                caseNumero,
                                                 legume.nom
                                             )
                                         }
+                                        showLegumeSelection = false
+                                        selectedCarre = null
+                                        selectedCaseNumero = 0
                                     }
-                                    showLegumeSelection = false
-                                    selectedCarre = null
-                                }
-                                .padding(16.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        HorizontalDivider()
+                                    .padding(16.dp),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             },
@@ -620,6 +662,7 @@ fun JardinScreen(onBack: () -> Unit) {
                 TextButton(onClick = { 
                     showLegumeSelection = false
                     selectedCarre = null
+                    selectedCaseNumero = 0
                 }) {
                     Text("Annuler")
                 }
@@ -648,7 +691,7 @@ fun PlancheCard(
     onToggleExpand: () -> Unit,
     onDelete: () -> Unit,
     jardinRepository: JardinRepository,
-    onCarreClick: (CarreEntity) -> Unit
+    onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -704,7 +747,9 @@ fun PlancheCard(
                                 if (carre != null) {
                                     Grille3x3(
                                         carre = carre,
-                                        onClick = { onCarreClick(carre) },
+                                        onSousCarreClick = { caseNumero ->
+                                            onSousCarreClick(carre, caseNumero)
+                                        },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -720,7 +765,7 @@ fun PlancheCard(
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
-    onClick: () -> Unit,
+    onSousCarreClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -778,7 +823,7 @@ fun Grille3x3(
                             .fillMaxHeight()
                             .background(couleurFond)
                             .border(1.dp, MaterialTheme.colorScheme.primary)
-                            .clickable(onClick = onClick),
+                            .clickable(onClick = { onSousCarreClick(caseNumero) }),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
