@@ -36,6 +36,7 @@ import com.theshire.app.data.LocalisationRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.PlancheEntity
+import com.theshire.app.data.ReseauRepository
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
@@ -615,7 +616,7 @@ fun Grille3x3(
     }
 }
 
-// Écran Calendrier avec vue mensuelle et météo
+// Écran Calendrier avec vue mensuelle, météo et mode hors-ligne
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
@@ -629,6 +630,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("Paris") }
+    var estConnecte by remember { mutableStateOf(true) }
     
     // État du calendrier
     var currentMonth by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)) }
@@ -649,16 +651,23 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     }
     
-    // Récupérer la météo avec géolocalisation
+    // Vérifier la connexion et récupérer la météo
     LaunchedEffect(Unit) {
-        try {
-            val localisationRepository = LocalisationRepository(context)
-            val villeDetectee = localisationRepository.getVille()
-            if (villeDetectee != null) {
-                ville = villeDetectee
+        val reseauRepository = ReseauRepository(context)
+        estConnecte = reseauRepository.estConnecte()
+        
+        if (estConnecte) {
+            try {
+                val localisationRepository = LocalisationRepository(context)
+                val villeDetectee = localisationRepository.getVille()
+                if (villeDetectee != null) {
+                    ville = villeDetectee
+                }
+                meteo = meteoRepository.getMeteo(ville)
+            } catch (e: Exception) {
+                meteo = null
             }
-            meteo = meteoRepository.getMeteo(ville)
-        } catch (e: Exception) {
+        } else {
             meteo = null
         }
     }
@@ -700,7 +709,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
         ) {
             // Section Météo
             item {
-                MeteoCard(meteo, ville)
+                MeteoCard(meteo, ville, estConnecte)
             }
             
             // Section Calendrier
@@ -843,7 +852,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun MeteoCard(meteo: MeteoData?, ville: String) {
+fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -858,7 +867,19 @@ fun MeteoCard(meteo: MeteoData?, ville: String) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             
-            if (meteo == null) {
+            if (!estConnecte) {
+                Text(
+                    text = "📡 Mode hors-ligne - Pas de connexion internet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "La météo sera disponible quand vous serez connecté",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (meteo == null) {
                 Text(
                     text = "Impossible de récupérer la météo",
                     style = MaterialTheme.typography.bodyMedium,
