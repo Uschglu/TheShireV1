@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.LocalisationRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.PlancheEntity
@@ -605,6 +606,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
+    var ville by remember { mutableStateOf("Paris") }
     
     // État du calendrier
     var currentMonth by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)) }
@@ -625,10 +627,15 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     }
     
-    // Récupérer la météo
+    // Récupérer la météo avec géolocalisation
     LaunchedEffect(Unit) {
         try {
-            meteo = meteoRepository.getMeteo()
+            val localisationRepository = LocalisationRepository(context)
+            val villeDetectee = localisationRepository.getVille()
+            if (villeDetectee != null) {
+                ville = villeDetectee
+            }
+            meteo = meteoRepository.getMeteo(ville)
         } catch (e: Exception) {
             meteo = null
         }
@@ -671,7 +678,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
         ) {
             // Section Météo
             item {
-                MeteoCard(meteo)
+                MeteoCard(meteo, ville)
             }
             
             // Section Calendrier
@@ -814,7 +821,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun MeteoCard(meteo: MeteoData?) {
+fun MeteoCard(meteo: MeteoData?, ville: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -823,7 +830,7 @@ fun MeteoCard(meteo: MeteoData?) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "🌦️ Météo actuelle",
+                text = "🌦️ Météo à $ville",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
