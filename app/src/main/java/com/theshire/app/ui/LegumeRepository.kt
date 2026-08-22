@@ -637,4 +637,19 @@ class LegumeRepository(context: Context) {
                 categorie = "Aromatique",
                 difficulte = "Facile",
                 exposition = "Plein soleil",
-                sol = "
+                sol = "Léger, bien drainé",
+                arrosage = "Modéré",
+                temperature = "Rustique",
+                semis = "Avril à juillet",
+                plantation = "Semis direct",
+                recolte = "Juin à septembre",
+                entretien = "Éclaircir, tuteurer si nécessaire",
+                maladies = "Fonte des semis",
+                prevention = "Bonne aération",
+                bonnesAssociations = "Chou, concombre, oignon",
+                mauvaisesAssociations = "Carotte, tomate",
+                conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles ciselées. Conserves : vinaigre parfumé à l'aneth. Réfrigérateur : 1 semaine."
+            )
+        )
+    }
+}
