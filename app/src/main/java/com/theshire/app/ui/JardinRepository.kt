@@ -5,6 +5,7 @@ import com.theshire.app.data.AppDatabase
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.PlancheEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 class JardinRepository(context: Context) {
     
@@ -21,7 +22,6 @@ class JardinRepository(context: Context) {
             PlancheEntity(nom = nom)
         )
         
-        // Créer les carrés d'1m² pour cette planche
         for (i in 1..nombreCarres) {
             plancheDao.insertCarre(
                 CarreEntity(
@@ -62,5 +62,28 @@ class JardinRepository(context: Context) {
                 position = position
             )
         )
+    }
+    
+    suspend fun getLegumesPlantes(): List<String> {
+        val listeLegumes = mutableListOf<String>()
+        
+        val toutesPlanches = plancheDao.getAllPlanches().first()
+        
+        toutesPlanches.forEach { planche ->
+            val carres = plancheDao.getCarresForPlanche(planche.id).first()
+            carres.forEach { carre ->
+                listOf(
+                    carre.case1, carre.case2, carre.case3,
+                    carre.case4, carre.case5, carre.case6,
+                    carre.case7, carre.case8, carre.case9
+                ).forEach { legume ->
+                    if (legume != null && legume !in listeLegumes) {
+                        listeLegumes.add(legume)
+                    }
+                }
+            }
+        }
+        
+        return listeLegumes
     }
 }
