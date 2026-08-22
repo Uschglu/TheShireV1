@@ -8,7 +8,8 @@ data class CarreEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val plancheId: Long,
-    val position: Int,
+    val positionX: Int = 0,
+    val positionY: Int = 0,
     val case1: String? = null,
     val case2: String? = null,
     val case3: String? = null,
