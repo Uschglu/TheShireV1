@@ -37,8 +37,10 @@ import androidx.compose.ui.unit.dp
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LocalisationRepository
+import com.theshire.app.data.LuneRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
+import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.ui.JardinRepository
@@ -117,12 +119,14 @@ fun AccueilScreen(
     val context = LocalContext.current
     val meteoRepository = remember { MeteoRepository() }
     val localisationRepository = remember { LocalisationRepository(context) }
+    val luneRepository = remember { LuneRepository() }
     
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("") }
     
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val dateDuJour = remember { dateFormat.format(Date()) }
+    val phaseLune = remember { luneRepository.getPhaseLune() }
     
     LaunchedEffect(Unit) {
         try {
@@ -223,6 +227,12 @@ fun AccueilScreen(
                             text = dateDuJour,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${phaseLune.emoji} ${phaseLune.nom}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
                         if (ville.isNotEmpty()) {
                             Text(
@@ -880,6 +890,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
     val jardinRepository = remember { JardinRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
     val meteoRepository = remember { MeteoRepository() }
+    val luneRepository = remember { LuneRepository() }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -887,6 +898,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("Paris") }
     var estConnecte by remember { mutableStateOf(true) }
+    val phaseLune = remember { luneRepository.getPhaseLune() }
     
     var currentMonth by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) }
@@ -961,7 +973,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                MeteoCard(meteo, ville, estConnecte)
+                MeteoCard(meteo, ville, estConnecte, phaseLune)
             }
             
             item {
@@ -1099,7 +1111,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean) {
+fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune: PhaseLune? = null) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1112,6 +1124,15 @@ fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+            if (phaseLune != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${phaseLune.emoji} ${phaseLune.nom}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
             
             if (!estConnecte) {
