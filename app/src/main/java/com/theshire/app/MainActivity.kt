@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -56,7 +54,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Demander la permission GPS au démarrage
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
                 PackageManager.PERMISSION_GRANTED &&
@@ -108,7 +105,7 @@ fun MainScreen() {
     }
 }
 
-// ============== NOUVEL ACCUEIL ==============
+// ============== ACCUEIL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccueilScreen(
@@ -124,11 +121,9 @@ fun AccueilScreen(
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("") }
     
-    // Date du jour
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val dateDuJour = remember { dateFormat.format(Date()) }
     
-    // Récupérer la météo
     LaunchedEffect(Unit) {
         try {
             val villeDetectee = localisationRepository.getVille()
@@ -143,7 +138,6 @@ fun AccueilScreen(
     
     Scaffold(
         bottomBar = {
-            // Barre de navigation en bas
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
@@ -182,7 +176,6 @@ fun AccueilScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            // ===== MÉTÉO EN HAUT À GAUCHE =====
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -196,7 +189,6 @@ fun AccueilScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Emoji météo
                     Text(
                         text = getEmojiMeteo(meteo),
                         style = MaterialTheme.typography.displayLarge
@@ -245,7 +237,6 @@ fun AccueilScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // ===== PHOTO DU JARDIN AU CENTRE =====
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -285,7 +276,7 @@ fun AccueilScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { /* La caméra sera implémentée plus tard */ },
+                        onClick = { },
                         shape = RoundedCornerShape(50.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -305,7 +296,6 @@ fun AccueilScreen(
     }
 }
 
-// Fonction pour obtenir l'emoji météo
 fun getEmojiMeteo(meteo: MeteoData?): String {
     if (meteo == null) return "🌤️"
     
@@ -321,7 +311,7 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
     }
 }
 
-// ============== ÉCRAN BIBLIOTHÈQUE ==============
+// ============== BIBLIOTHÈQUE ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -394,7 +384,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     }
 }
 
-// ============== ÉCRAN JARDIN ==============
+// ============== JARDIN ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
@@ -503,92 +493,93 @@ fun JardinScreen(onBack: () -> Unit) {
             }
         }
     }
-    // Dialogue pour ajouter une planche
-if (showAddPlancheDialog) {
-    var nomPlanche by remember { mutableStateOf("") }
-    var largeur by remember { mutableStateOf("3") }
-    var longueur by remember { mutableStateOf("4") }
     
-    AlertDialog(
-        onDismissRequest = { showAddPlancheDialog = false },
-        title = { Text("Nouvelle planche") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = nomPlanche,
-                    onValueChange = { nomPlanche = it },
-                    label = { Text("Nom de la planche") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Dimensions (largeur × longueur en mètres)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+    // Dialogue pour ajouter une planche
+    if (showAddPlancheDialog) {
+        var nomPlanche by remember { mutableStateOf("") }
+        var largeur by remember { mutableStateOf("3") }
+        var longueur by remember { mutableStateOf("4") }
+        
+        AlertDialog(
+            onDismissRequest = { showAddPlancheDialog = false },
+            title = { Text("Nouvelle planche") },
+            text = {
+                Column {
                     OutlinedTextField(
-                        value = largeur,
-                        onValueChange = { largeur = it },
-                        label = { Text("Largeur (m)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                        value = nomPlanche,
+                        onValueChange = { nomPlanche = it },
+                        label = { Text("Nom de la planche") },
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "×",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.align(Alignment.CenterVertically)
+                        text = "Dimensions (largeur × longueur en mètres)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
-                        value = longueur,
-                        onValueChange = { longueur = it },
-                        label = { Text("Longueur (m)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                val totalCarres = (largeur.toIntOrNull() ?: 0) * (longueur.toIntOrNull() ?: 0)
-                if (totalCarres > 0) {
-                    Text(
-                        text = "= $totalCarres carrés d'1m²",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val l = largeur.toIntOrNull() ?: 1
-                    val L = longueur.toIntOrNull() ?: 1
-                    if (l > 0 && L > 0 && nomPlanche.isNotBlank()) {
-                        scope.launch {
-                            jardinRepository.ajouterPlanche(nomPlanche, l, L)
-                        }
-                        showAddPlancheDialog = false
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = largeur,
+                            onValueChange = { largeur = it },
+                            label = { Text("Largeur (m)") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        Text(
+                            text = "×",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                        OutlinedTextField(
+                            value = longueur,
+                            onValueChange = { longueur = it },
+                            label = { Text("Longueur (m)") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
                     }
-                },
-                enabled = nomPlanche.isNotBlank() && 
-                          (largeur.toIntOrNull() ?: 0) > 0 && 
-                          (longueur.toIntOrNull() ?: 0) > 0
-            ) {
-                Text("Créer")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val totalCarres = (largeur.toIntOrNull() ?: 0) * (longueur.toIntOrNull() ?: 0)
+                    if (totalCarres > 0) {
+                        Text(
+                            text = "= $totalCarres carrés d'1m²",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val l = largeur.toIntOrNull() ?: 1
+                        val L = longueur.toIntOrNull() ?: 1
+                        if (l > 0 && L > 0 && nomPlanche.isNotBlank()) {
+                            scope.launch {
+                                jardinRepository.ajouterPlanche(nomPlanche, l, L)
+                            }
+                            showAddPlancheDialog = false
+                        }
+                    },
+                    enabled = nomPlanche.isNotBlank() && 
+                              (largeur.toIntOrNull() ?: 0) > 0 && 
+                              (longueur.toIntOrNull() ?: 0) > 0
+                ) {
+                    Text("Créer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPlancheDialog = false }) {
+                    Text("Annuler")
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = { showAddPlancheDialog = false }) {
-                Text("Annuler")
-            }
-        }
-    )
-}
+        )
+    }
     
     // Dialogue pour choisir un légume
     if (showLegumeSelection && selectedCarre != null) {
@@ -665,7 +656,8 @@ fun PlancheCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -673,12 +665,19 @@ fun PlancheCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = planche.nom,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(onClick = onToggleExpand)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = planche.nom,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable(onClick = onToggleExpand)
+                    )
+                    Text(
+                        text = "${planche.largeur}m × ${planche.longueur}m = ${planche.largeur * planche.longueur} carrés",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
@@ -693,18 +692,28 @@ fun PlancheCard(
                 
                 val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
                 
-                carres.forEach { carre ->
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Carré ${carre.position}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Grille3x3(
-                        carre = carre,
-                        onClick = { onCarreClick(carre) }
-                    )
+                // Affichage en grille 2D
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (y in 0 until planche.longueur) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            for (x in 0 until planche.largeur) {
+                                val carre = carres.find { it.positionX == x && it.positionY == y }
+                                if (carre != null) {
+                                    Grille3x3(
+                                        carre = carre,
+                                        onClick = { onCarreClick(carre) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -714,11 +723,11 @@ fun PlancheCard(
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .aspectRatio(1f)
             .border(2.dp, MaterialTheme.colorScheme.primary)
     ) {
@@ -766,7 +775,7 @@ fun Grille3x3(
     }
 }
 
-// ============== ÉCRAN CALENDRIER ==============
+// ============== CALENDRIER ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
@@ -1089,7 +1098,7 @@ fun CalendrierLegumeCard(legume: LegumeEntity) {
     }
 }
 
-// ============== ÉCRAN CONSERVATION ==============
+// ============== CONSERVATION ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConservationScreen(onBack: () -> Unit) {
