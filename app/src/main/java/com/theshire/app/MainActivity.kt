@@ -407,7 +407,6 @@ fun BibliothequeScreen(onBack: () -> Unit) {
         }
     }
     
-    // Dialogue de légende des emojis
     if (showLegende) {
         AlertDialog(
             onDismissRequest = { showLegende = false },
@@ -1057,7 +1056,10 @@ fun Grille3x3(
         carre.case7, carre.case8, carre.case9
     )
     
-    if (legumes.size == 9) {
+    // Fusionner seulement si les 9 cases contiennent la MÊME plante
+    val toutesMemePlante = legumes.size == 9 && legumes.distinct().size == 1
+    
+    if (toutesMemePlante) {
         Box(
             modifier = modifier
                 .aspectRatio(1f)
@@ -1068,15 +1070,15 @@ fun Grille3x3(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "✅",
-                    style = MaterialTheme.typography.titleLarge
+                    text = legumes[0],
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Complet",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    text = "✅",
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         }
