@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -81,7 +82,8 @@ fun MainScreen() {
         "accueil" -> AccueilScreen(
             onNavigateToBibliotheque = { currentScreen = "bibliotheque" },
             onNavigateToJardin = { currentScreen = "jardin" },
-            onNavigateToCalendrier = { currentScreen = "calendrier" }
+            onNavigateToCalendrier = { currentScreen = "calendrier" },
+            onNavigateToConservation = { currentScreen = "conservation" }
         )
         "bibliotheque" -> BibliothequeScreen(
             onBack = { currentScreen = "accueil" }
@@ -90,6 +92,9 @@ fun MainScreen() {
             onBack = { currentScreen = "accueil" }
         )
         "calendrier" -> CalendrierScreen(
+            onBack = { currentScreen = "accueil" }
+        )
+        "conservation" -> ConservationScreen(
             onBack = { currentScreen = "accueil" }
         )
     }
@@ -101,7 +106,8 @@ fun MainScreen() {
 fun AccueilScreen(
     onNavigateToBibliotheque: () -> Unit,
     onNavigateToJardin: () -> Unit,
-    onNavigateToCalendrier: () -> Unit
+    onNavigateToCalendrier: () -> Unit,
+    onNavigateToConservation: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -159,6 +165,15 @@ fun AccueilScreen(
                 titre = "Calendrier",
                 description = "Opérations culturales et météo",
                 onClick = onNavigateToCalendrier
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            MenuButton(
+                icon = Icons.Default.Kitchen,
+                titre = "Conservation",
+                description = "Séchage, lactofermentation, conserves",
+                onClick = onNavigateToConservation
             )
         }
     }
@@ -721,7 +736,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Navigation des mois
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -756,7 +770,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        // Jours de la semaine
                         Row(modifier = Modifier.fillMaxWidth()) {
                             listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { jour ->
                                 Text(
@@ -771,7 +784,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Jours du mois
                         val cal = java.util.Calendar.getInstance()
                         cal.set(currentYear, currentMonth, 1)
                         val firstDayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
@@ -954,6 +966,118 @@ fun CalendrierLegumeCard(legume: LegumeEntity) {
     }
 }
 
+// Écran Conservation
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConservationScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val repository = remember { LegumeRepository(context) }
+    val legumes by repository.legumes.collectAsState(initial = emptyList())
+    
+    var filtre by remember { mutableStateOf("Tous") }
+    
+    LaunchedEffect(Unit) {
+        repository.ajouterLegumesPredefinis()
+    }
+    
+    val methodes = listOf("Tous", "Séchage", "Lactofermentation", "Conserves", "Congélation")
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text("Conservation 🥫", fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { innerPadding ->
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Filtres
+            item {
+                Text(
+                    text = "Filtrer par méthode :",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column {
+                    methodes.forEach { methode ->
+                        FilterChip(
+                            selected = filtre == methode,
+                            onClick = { filtre = methode },
+                            label = { Text(methode) },
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${legumes.filter { legume -> 
+                        if (filtre == "Tous") true else legume.conservation.contains(filtre, ignoreCase = true)
+                    }.size} légumes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            legumes.filter { legume ->
+                if (filtre == "Tous") true else legume.conservation.contains(filtre, ignoreCase = true)
+            }.forEach { legume ->
+                item {
+                    ConservationCard(legume)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ConservationCard(legume: LegumeEntity) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = legume.nom,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = legume.conservation,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
 // Fiche détaillée d'un légume
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1004,6 +1128,7 @@ fun LegumeDetailScreen(
             item { InfoCard("Prévention naturelle", legume.prevention) }
             item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
             item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
+            item { InfoCard("Conservation", legume.conservation) }
         }
     }
 }
