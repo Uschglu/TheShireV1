@@ -375,7 +375,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
             ) {
                 item {
                     Text(
-                        text = "${legumes.size} légumes dans votre bibliothèque",
+                        text = "${legumes.size} plantes dans votre bibliothèque",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -489,6 +489,11 @@ fun JardinScreen(onBack: () -> Unit) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Légende des couleurs
+                item {
+                    LegendeCouleurs()
+                }
+                
                 items(planches, key = { it.id }) { planche ->
                     PlancheCard(
                         planche = planche,
@@ -523,6 +528,9 @@ fun JardinScreen(onBack: () -> Unit) {
             title = { Text("Nouvelle planche") },
             text = {
                 Column {
+                    // Légende compacte
+                    LegendeCompacte()
+                    Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = nomPlanche,
                         onValueChange = { nomPlanche = it },
@@ -619,7 +627,7 @@ fun JardinScreen(onBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Choisissez un légume à planter :",
+                        text = "Choisissez une plante :",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -652,7 +660,7 @@ fun JardinScreen(onBack: () -> Unit) {
                         
                         items(legumes) { legume ->
                             Text(
-                                text = legume.nom,
+                                text = if (legume.estVivace) "${legume.nom} 🌿" else legume.nom,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -681,7 +689,8 @@ fun JardinScreen(onBack: () -> Unit) {
                                         }
                                     }
                                     .padding(16.dp),
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (legume.estVivace) FontWeight.Bold else FontWeight.Normal
                             )
                             HorizontalDivider()
                         }
@@ -773,6 +782,120 @@ fun JardinScreen(onBack: () -> Unit) {
                 }
             }
         )
+    }
+}
+
+// Légende des couleurs pour le jardin
+@Composable
+fun LegendeCouleurs() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Légende",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Bonne association", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color(0xFFFF9800).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Association neutre", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color(0xFFF44336).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Mauvaise association", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Plante vivace (bordure en gras)", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+// Légende compacte pour le dialogue de création
+@Composable
+fun LegendeCompacte() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "Légende des couleurs :",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Bonne", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(Color(0xFFFF9800).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Neutre", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(Color(0xFFF44336).copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Mauvaise", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Vivace", style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 
@@ -927,12 +1050,16 @@ fun Grille3x3(
                             .weight(1f)
                             .fillMaxHeight()
                             .background(couleurFond)
-                            .border(1.dp, MaterialTheme.colorScheme.primary)
+                            .border(
+                                width = if (legume != null && estVivace(legume)) 3.dp else 1.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(4.dp)
+                            )
                             .clickable(onClick = { onSousCarreClick(caseNumero) }),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = legume ?: "",
+                            text = if (legume != null && estVivace(legume)) "🌿$legume" else legume ?: "",
                             fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             textAlign = TextAlign.Center
                         )
@@ -941,6 +1068,14 @@ fun Grille3x3(
             }
         }
     }
+}
+
+// Vérifier si un légume est vivace
+fun estVivace(nomLegume: String): Boolean {
+    val vivaces = listOf(
+        "Lavande", "Menthe", "Thym", "Romarin", "Ciboulette", "Topinambour"
+    )
+    return nomLegume in vivaces
 }
 
 fun estBonneAssociation(legume1: String, legume2: String): Boolean {
@@ -954,7 +1089,14 @@ fun estBonneAssociation(legume1: String, legume2: String): Boolean {
         "Radis" to listOf("Salade", "Carotte"),
         "Concombre" to listOf("Salade", "Haricot"),
         "Haricot" to listOf("Concombre", "Maïs", "Courge"),
-        "Courge" to listOf("Haricot", "Maïs")
+        "Courge" to listOf("Haricot", "Maïs"),
+        "Lavande" to listOf("Tomate", "Chou"),
+        "Capucine" to listOf("Tomate", "Chou", "Courgette"),
+        "Souci" to listOf("Tomate", "Chou", "Carotte"),
+        "Bourrache" to listOf("Fraisier", "Tomate", "Courgette"),
+        "Phacélie" to listOf("Tous les légumes"),
+        "Cosmos" to listOf("Tous les légumes"),
+        "Œillet d'Inde" to listOf("Tomate", "Pomme de terre", "Chou")
     )
     
     return bonnesAssociations[legume1]?.contains(legume2) == true ||
@@ -1180,7 +1322,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             
             item {
                 Text(
-                    text = "Légumes plantés (${legumesPlantes.size}) :",
+                    text = "Plantes plantées (${legumesPlantes.size}) :",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -1189,7 +1331,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             if (legumesPlantes.isEmpty()) {
                 item {
                     Text(
-                        text = "Aucun légume planté. Ajoutez des légumes dans votre jardin !",
+                        text = "Aucune plante plantée. Ajoutez des plantes dans votre jardin !",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1398,7 +1540,7 @@ fun ConservationScreen(onBack: () -> Unit) {
                 Text(
                     text = "${legumes.filter { legume -> 
                         if (filtre == "Tous") true else legume.conservation.contains(filtre, ignoreCase = true)
-                    }.size} légumes",
+                    }.size} plantes",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1476,6 +1618,12 @@ fun LegumeDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { InfoCard("Catégorie", legume.categorie) }
+            if (legume.estVivace) {
+                item { InfoCard("Type", "🌿 Plante vivace") }
+            }
+            if (legume.estFleur) {
+                item { InfoCard("Type", "🌸 Fleur") }
+            }
             item { InfoCard("Difficulté", legume.difficulte) }
             item { InfoCard("Exposition", legume.exposition) }
             item { InfoCard("Sol", legume.sol) }
@@ -1524,7 +1672,7 @@ fun LegumeCard(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = legume.nom,
+                    text = if (legume.estVivace) "🌿 ${legume.nom}" else if (legume.estFleur) "🌸 ${legume.nom}" else legume.nom,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
