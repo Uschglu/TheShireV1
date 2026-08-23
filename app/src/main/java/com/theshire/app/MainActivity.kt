@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -757,6 +758,9 @@ fun JardinScreen(onBack: () -> Unit) {
     if (showLegumeSelection && selectedCarre != null) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
+        var selectedCategorie by remember { mutableStateOf<String?>(null) }
+        
+        val categories = legumes.groupBy { it.categorie }.keys.toList()
         
         AlertDialog(
             onDismissRequest = { 
@@ -773,57 +777,55 @@ fun JardinScreen(onBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    LazyColumn {
-                        item {
-                            Text(
-                                text = "🗑️ Vider la case",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        scope.launch {
-                                            jardinRepository.modifierCasePrecise(
-                                                carre,
-                                                caseNumero,
-                                                null
-                                            )
-                                        }
-                                        showLegumeSelection = false
-                                        selectedCarre = null
-                                        selectedCaseNumero = 0
-                                    }
-                                    .padding(16.dp),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold
-                            )
-                            HorizontalDivider()
-                        }
-                        
-                        val categories = legumes.groupBy { it.categorie }
-                        
-                        categories.forEach { (categorie, plantes) ->
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = getEmojiCategorie(categorie),
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = categorie,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                    
+                    Text(
+                        text = "🗑️ Vider la case",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                scope.launch {
+                                    jardinRepository.modifierCasePrecise(
+                                        carre,
+                                        caseNumero,
+                                        null
                                     )
                                 }
+                                showLegumeSelection = false
+                                selectedCarre = null
+                                selectedCaseNumero = 0
                             }
-                            
+                            .padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(categories) { categorie ->
+                            FilterChip(
+                                selected = selectedCategorie == categorie,
+                                onClick = { 
+                                    selectedCategorie = if (selectedCategorie == categorie) null else categorie
+                                },
+                                label = { 
+                                    Text(
+                                        text = "${getEmojiCategorie(categorie)} ${categorie}",
+                                        fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (selectedCategorie != null) {
+                        val plantes = legumes.filter { it.categorie == selectedCategorie }
+                        LazyColumn {
                             items(plantes) { legume ->
                                 Text(
                                     text = legume.nom,
@@ -854,7 +856,7 @@ fun JardinScreen(onBack: () -> Unit) {
                                                 selectedCaseNumero = 0
                                             }
                                         }
-                                        .padding(start = 32.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
+                                        .padding(16.dp),
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 HorizontalDivider()
