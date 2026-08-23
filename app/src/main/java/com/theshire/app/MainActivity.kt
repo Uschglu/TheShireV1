@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,30 +86,74 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Écran principal avec navigation
+// Écran principal avec navigation par glissement
 @Composable
 fun MainScreen() {
     var currentScreen by remember { mutableStateOf("accueil") }
     
-    when (currentScreen) {
-        "accueil" -> AccueilScreen(
-            onNavigateToBibliotheque = { currentScreen = "bibliotheque" },
-            onNavigateToJardin = { currentScreen = "jardin" },
-            onNavigateToCalendrier = { currentScreen = "calendrier" },
-            onNavigateToConservation = { currentScreen = "conservation" }
-        )
-        "bibliotheque" -> BibliothequeScreen(
-            onBack = { currentScreen = "accueil" }
-        )
-        "jardin" -> JardinScreen(
-            onBack = { currentScreen = "accueil" }
-        )
-        "calendrier" -> CalendrierScreen(
-            onBack = { currentScreen = "accueil" }
-        )
-        "conservation" -> ConservationScreen(
-            onBack = { currentScreen = "accueil" }
-        )
+    // Liste des écrans dans l'ordre
+    val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
+    
+    // Fonction pour naviguer vers l'écran suivant (swipe gauche)
+    fun goToNext() {
+        val currentIndex = screens.indexOf(currentScreen)
+        if (currentIndex < screens.size - 1) {
+            currentScreen = screens[currentIndex + 1]
+        }
+    }
+    
+    // Fonction pour naviguer vers l'écran précédent (swipe droite)
+    fun goToPrevious() {
+        val currentIndex = screens.indexOf(currentScreen)
+        if (currentIndex > 0) {
+            currentScreen = screens[currentIndex - 1]
+        }
+    }
+    
+    // Détecter les gestes de glissement
+    var dragOffset by remember { mutableStateOf(0f) }
+    val swipeThreshold = 200f
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(currentScreen) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (dragOffset < -swipeThreshold) {
+                            goToNext()
+                        } else if (dragOffset > swipeThreshold) {
+                            goToPrevious()
+                        }
+                        dragOffset = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        dragOffset += dragAmount
+                    }
+                )
+            }
+    ) {
+        when (currentScreen) {
+            "accueil" -> AccueilScreen(
+                onNavigateToBibliotheque = { currentScreen = "bibliotheque" },
+                onNavigateToJardin = { currentScreen = "jardin" },
+                onNavigateToCalendrier = { currentScreen = "calendrier" },
+                onNavigateToConservation = { currentScreen = "conservation" }
+            )
+            "bibliotheque" -> BibliothequeScreen(
+                onBack = { currentScreen = "accueil" }
+            )
+            "jardin" -> JardinScreen(
+                onBack = { currentScreen = "accueil" }
+            )
+            "calendrier" -> CalendrierScreen(
+                onBack = { currentScreen = "accueil" }
+            )
+            "conservation" -> ConservationScreen(
+                onBack = { currentScreen = "accueil" }
+            )
+        }
     }
 }
 
@@ -1056,7 +1102,6 @@ fun Grille3x3(
         carre.case7, carre.case8, carre.case9
     )
     
-    // Fusionner seulement si les 9 cases contiennent la MÊME plante
     val toutesMemePlante = legumes.size == 9 && legumes.distinct().size == 1
     
     if (toutesMemePlante) {
@@ -1158,7 +1203,6 @@ fun Grille3x3(
     }
 }
 
-// Vérifier si un légume est vivace
 fun estVivace(nomLegume: String): Boolean {
     val vivaces = listOf(
         "Lavande", "Menthe", "Thym", "Romarin", "Ciboulette", "Topinambour"
