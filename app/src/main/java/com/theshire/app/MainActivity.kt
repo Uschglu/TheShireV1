@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,7 +92,7 @@ class MainActivity : ComponentActivity() {
 // Écran principal avec navigation par glissement
 @Composable
 fun MainScreen() {
-    var currentScreen by remember { mutableStateOf("accueil") }
+    var currentScreen by rememberSaveable { mutableStateOf("accueil") }
     
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
     
@@ -1097,7 +1098,9 @@ fun PlancheCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpand),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1105,8 +1108,7 @@ fun PlancheCard(
                     Text(
                         text = planche.nom,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable(onClick = onToggleExpand)
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "${planche.largeur}m × ${planche.longueur}m = ${planche.largeur * planche.longueur} carrés",
