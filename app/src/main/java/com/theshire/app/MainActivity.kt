@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -154,6 +155,56 @@ fun MainScreen() {
                 onBack = { currentScreen = "accueil" }
             )
         }
+        
+        // Indicateur de page en bas
+        PageIndicator(
+            currentPage = screens.indexOf(currentScreen),
+            totalPages = screens.size,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp)
+        )
+    }
+}
+
+// Indicateur de page pour la navigation par glissement
+@Composable
+fun PageIndicator(
+    currentPage: Int,
+    totalPages: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "←",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (currentPage > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        repeat(totalPages) { index ->
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(if (index == currentPage) 12.dp else 8.dp)
+                    .background(
+                        color = if (index == currentPage) MaterialTheme.colorScheme.primary 
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    )
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "→",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (currentPage < totalPages - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+        )
     }
 }
 
