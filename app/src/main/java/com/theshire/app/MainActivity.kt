@@ -92,10 +92,8 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     var currentScreen by remember { mutableStateOf("accueil") }
     
-    // Liste des écrans dans l'ordre
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
     
-    // Fonction pour naviguer vers l'écran suivant (swipe gauche)
     fun goToNext() {
         val currentIndex = screens.indexOf(currentScreen)
         if (currentIndex < screens.size - 1) {
@@ -103,7 +101,6 @@ fun MainScreen() {
         }
     }
     
-    // Fonction pour naviguer vers l'écran précédent (swipe droite)
     fun goToPrevious() {
         val currentIndex = screens.indexOf(currentScreen)
         if (currentIndex > 0) {
@@ -111,7 +108,6 @@ fun MainScreen() {
         }
     }
     
-    // Détecter les gestes de glissement
     var dragOffset by remember { mutableStateOf(0f) }
     val swipeThreshold = 200f
     
@@ -156,7 +152,6 @@ fun MainScreen() {
             )
         }
         
-        // Indicateur de page en bas
         PageIndicator(
             currentPage = screens.indexOf(currentScreen),
             totalPages = screens.size,
@@ -167,7 +162,6 @@ fun MainScreen() {
     }
 }
 
-// Indicateur de page pour la navigation par glissement
 @Composable
 fun PageIndicator(
     currentPage: Int,
@@ -770,7 +764,7 @@ fun JardinScreen(onBack: () -> Unit) {
                 selectedCarre = null
                 selectedCaseNumero = 0
             },
-            title = { Text("Que voulez-vous faire ?") },
+            title = { Text("Choisissez une plante") },
             text = {
                 Column {
                     Text(
@@ -778,140 +772,93 @@ fun JardinScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Choisissez une plante :",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyColumn {
-    // Option pour vider la case
-    item {
-        Text(
-            text = "🗑️ Vider la case",
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    scope.launch {
-                        jardinRepository.modifierCasePrecise(
-                            carre,
-                            caseNumero,
-                            null
-                        )
-                    }
-                    showLegumeSelection = false
-                    selectedCarre = null
-                    selectedCaseNumero = 0
-                }
-                .padding(16.dp),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.error,
-            fontWeight = FontWeight.Bold
-        )
-        HorizontalDivider()
-    }
-    
-    // Grouper les légumes par catégorie
-    val categories = legumes.groupBy { it.categorie }
-    
-    categories.forEach { (categorie, plantes) ->
-        // Intercalaire de catégorie
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = getEmojiCategorie(categorie),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = categorie,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        
-        // Plantes de cette catégorie
-        items(plantes) { legume ->
-            Text(
-                text = legume.nom,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        val famillesAnterieures = rotationRepository.getFamillesFromCarre(carre)
-                        val avertissementRotation = rotationRepository.getAvertissement(
-                            legume.nom,
-                            famillesAnterieures
-                        )
-                        
-                        if (avertissementRotation != null) {
-                            selectedLegumeNom = legume.nom
-                            avertissement = avertissementRotation
-                            showAvertissement = true
-                            showLegumeSelection = false
-                        } else {
-                            scope.launch {
-                                jardinRepository.modifierCasePrecise(
-                                    carre,
-                                    caseNumero,
-                                    legume.nom
-                                )
-                            }
-                            showLegumeSelection = false
-                            selectedCarre = null
-                            selectedCaseNumero = 0
-                        }
-                    }
-                    .padding(start = 32.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            HorizontalDivider()
-        }
-    }
-}
-                        
-                        items(legumes) { legume ->
+                        item {
                             Text(
-                                text = legume.nom,
+                                text = "🗑️ Vider la case",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        val famillesAnterieures = rotationRepository.getFamillesFromCarre(carre)
-                                        val avertissementRotation = rotationRepository.getAvertissement(
-                                            legume.nom,
-                                            famillesAnterieures
-                                        )
-                                        
-                                        if (avertissementRotation != null) {
-                                            selectedLegumeNom = legume.nom
-                                            avertissement = avertissementRotation
-                                            showAvertissement = true
-                                            showLegumeSelection = false
-                                        } else {
-                                            scope.launch {
-                                                jardinRepository.modifierCasePrecise(
-                                                    carre,
-                                                    caseNumero,
-                                                    legume.nom
-                                                )
-                                            }
-                                            showLegumeSelection = false
-                                            selectedCarre = null
-                                            selectedCaseNumero = 0
+                                        scope.launch {
+                                            jardinRepository.modifierCasePrecise(
+                                                carre,
+                                                caseNumero,
+                                                null
+                                            )
                                         }
+                                        showLegumeSelection = false
+                                        selectedCarre = null
+                                        selectedCaseNumero = 0
                                     }
                                     .padding(16.dp),
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
                             )
                             HorizontalDivider()
+                        }
+                        
+                        val categories = legumes.groupBy { it.categorie }
+                        
+                        categories.forEach { (categorie, plantes) ->
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = getEmojiCategorie(categorie),
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = categorie,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            
+                            items(plantes) { legume ->
+                                Text(
+                                    text = legume.nom,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val famillesAnterieures = rotationRepository.getFamillesFromCarre(carre)
+                                            val avertissementRotation = rotationRepository.getAvertissement(
+                                                legume.nom,
+                                                famillesAnterieures
+                                            )
+                                            
+                                            if (avertissementRotation != null) {
+                                                selectedLegumeNom = legume.nom
+                                                avertissement = avertissementRotation
+                                                showAvertissement = true
+                                                showLegumeSelection = false
+                                            } else {
+                                                scope.launch {
+                                                    jardinRepository.modifierCasePrecise(
+                                                        carre,
+                                                        caseNumero,
+                                                        legume.nom
+                                                    )
+                                                }
+                                                showLegumeSelection = false
+                                                selectedCarre = null
+                                                selectedCaseNumero = 0
+                                            }
+                                        }
+                                        .padding(start = 32.dp, top = 12.dp, bottom = 12.dp, end = 16.dp),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
