@@ -14,5 +14,6 @@ data class VarieteEntity(
     val plantation: String,
     val recolte: String,
     val entretien: String,
-    val particularites: String
+    val particularites: String,
+    val imageUrl: String = ""
 )
