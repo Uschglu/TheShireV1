@@ -1090,29 +1090,17 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            val famillesAnterieures = rotationRepository.getFamillesFromCarre(carre)
-                                            val avertissementRotation = rotationRepository.getAvertissement(
-                                                legume.nom,
-                                                famillesAnterieures
-                                            )
-                                            
-                                            if (avertissementRotation != null) {
-                                                selectedLegumeNom = legume.nom
-                                                avertissement = avertissementRotation
-                                                showAvertissement = true
-                                                showLegumeSelection = false
-                                            } else {
-                                                scope.launch {
-                                                    jardinRepository.modifierCasePrecise(
-                                                        carre,
-                                                        caseNumero,
-                                                        legume.nom
-                                                    )
-                                                }
-                                                showLegumeSelection = false
-                                                selectedCarre = null
-                                                selectedCaseNumero = 0
+                                            // Année 0 = pas d'avertissement
+                                            scope.launch {
+                                                jardinRepository.modifierCasePrecise(
+                                                    carre,
+                                                    caseNumero,
+                                                    legume.nom
+                                                )
                                             }
+                                            showLegumeSelection = false
+                                            selectedCarre = null
+                                            selectedCaseNumero = 0
                                         }
                                         .padding(16.dp),
                                     style = MaterialTheme.typography.bodyLarge
@@ -1128,80 +1116,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                     showLegumeSelection = false
                     selectedCarre = null
                     selectedCaseNumero = 0
-                }) {
-                    Text("Annuler")
-                }
-            }
-        )
-    }
-    
-    if (showAvertissement && avertissement != null) {
-        val av = avertissement!!
-        val carre = selectedCarre
-        val caseNumero = selectedCaseNumero
-        val legumeNom = selectedLegumeNom
-        
-        AlertDialog(
-            onDismissRequest = {
-                showAvertissement = false
-                avertissement = null
-            },
-            title = { 
-                Text(
-                    "Rotation des cultures",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = av.message,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (av.niveau == NiveauRisque.ELEVE || av.niveau == NiveauRisque.MOYEN) {
-                        Text(
-                            text = "Voulez-vous quand même planter ce légume ?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (carre != null && caseNumero > 0 && legumeNom != null) {
-                            scope.launch {
-                                jardinRepository.modifierCasePrecise(
-                                    carre,
-                                    caseNumero,
-                                    legumeNom
-                                )
-                            }
-                        }
-                        showAvertissement = false
-                        avertissement = null
-                        selectedCarre = null
-                        selectedCaseNumero = 0
-                        selectedLegumeNom = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (av.niveau == NiveauRisque.ELEVE) 
-                            MaterialTheme.colorScheme.error 
-                        else 
-                            MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text("Planter quand même")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAvertissement = false
-                    avertissement = null
-                    selectedLegumeNom = null
                 }) {
                     Text("Annuler")
                 }
