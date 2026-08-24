@@ -48,6 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import okhttp3.OkHttpClient
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
@@ -97,6 +101,32 @@ class MainActivity : ComponentActivity() {
                 MainScreen()
             }
         }
+    }
+}
+
+// ImageLoader personnalisé
+object ImageLoaderProvider {
+    fun getImageLoader(context: android.content.Context): ImageLoader {
+        return ImageLoader.Builder(context)
+            .okHttpClient {
+                OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .build()
+            }
+            .memoryCache {
+                MemoryCache.Builder(context)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(context.cacheDir.resolve("image_cache"))
+                    .maxSizePercent(0.02)
+                    .build()
+            }
+            .crossfade(true)
+            .build()
     }
 }
 
@@ -408,9 +438,11 @@ fun AccueilScreen(
             ) {
                 if (imageUri != null) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
                         AsyncImage(
                             model = imageUri,
                             contentDescription = "Photo du jardin",
+                            imageLoader = imageLoader,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(RoundedCornerShape(24.dp))
@@ -635,6 +667,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
     var showLegende by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
     
     LaunchedEffect(Unit) {
         repository.ajouterLegumesPredefinis()
@@ -700,7 +733,8 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                             scope.launch { 
                                 repository.supprimerLegume(legume) 
                             }
-                        }
+                        },
+                        imageLoader = imageLoader
                     )
                 }
             }
@@ -2159,6 +2193,7 @@ fun LegumeDetailScreen(
     val varieteRepository = remember { VarieteRepository(context) }
     val varietes by varieteRepository.getVarietesForLegume(legume.nom).collectAsState(initial = emptyList())
     var selectedVariete by remember { mutableStateOf<VarieteEntity?>(null) }
+    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
     
     LaunchedEffect(Unit) {
         varieteRepository.ajouterVarietesPredefinies()
@@ -2199,12 +2234,12 @@ fun LegumeDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Image du légume
                 if (legume.imageUrl.isNotEmpty()) {
                     item {
                         AsyncImage(
                             model = legume.imageUrl,
                             contentDescription = legume.nom,
+                            imageLoader = imageLoader,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
@@ -2345,7 +2380,8 @@ fun VarieteDetailScreen(
 fun LegumeCard(
     legume: LegumeEntity,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    imageLoader: ImageLoader
 ) {
     Card(
         modifier = Modifier
@@ -2361,11 +2397,11 @@ fun LegumeCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Image du légume en petit
             if (legume.imageUrl.isNotEmpty()) {
                 AsyncImage(
                     model = legume.imageUrl,
                     contentDescription = legume.nom,
+                    imageLoader = imageLoader,
                     modifier = Modifier
                         .size(50.dp)
                         .clip(RoundedCornerShape(8.dp))
