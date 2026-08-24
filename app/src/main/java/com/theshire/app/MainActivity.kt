@@ -56,6 +56,7 @@ import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
+import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.ui.JardinRepository
@@ -228,6 +229,9 @@ fun AccueilScreen(
     var ville by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showPhotoDialog by remember { mutableStateOf(false) }
+    var showPrevisions by remember { mutableStateOf(false) }
+    var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
+    var isLoadingPrevisions by remember { mutableStateOf(false) }
     
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val dateDuJour = remember { dateFormat.format(Date()) }
@@ -266,6 +270,19 @@ fun AccueilScreen(
             meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" })
         } catch (e: Exception) {
             meteo = null
+        }
+    }
+    
+    // Charger les prévisions quand on clique sur la météo
+    LaunchedEffect(showPrevisions) {
+        if (showPrevisions && previsions.isEmpty()) {
+            isLoadingPrevisions = true
+            try {
+                previsions = meteoRepository.getPrevisions7Jours(ville.ifEmpty { "Paris" })
+            } catch (e: Exception) {
+                previsions = emptyList()
+            }
+            isLoadingPrevisions = false
         }
     }
     
@@ -312,7 +329,8 @@ fun AccueilScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp)),
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { showPrevisions = true },
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
@@ -460,6 +478,73 @@ fun AccueilScreen(
                 }
             }
         }
+    }
+    
+    // Dialogue des prévisions météo
+    if (showPrevisions) {
+        AlertDialog(
+            onDismissRequest = { showPrevisions = false },
+            title = { 
+                Text("📅 Prévisions 7 jours")
+            },
+            text = {
+                if (isLoadingPrevisions) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Chargement...")
+                    }
+                } else if (previsions.isEmpty()) {
+                    Text("Impossible de récupérer les prévisions")
+                } else {
+                    Column {
+                        previsions.forEach { prevision ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = prevision.date,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = prevision.emoji,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${prevision.tempMin.toInt()}° / ${prevision.tempMax.toInt()}°",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPrevisions = false }) {
+                    Text("Fermer")
+                }
+            }
+        )
     }
     
     // Dialogue pour choisir la source
