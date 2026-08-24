@@ -762,55 +762,44 @@ fun LigneLegende(emoji: String, description: String) {
 fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("planches") }
     
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = { 
-                        Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold)
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "Retour",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
-                // Onglets horizontaux
-                TabRow(
-                    selectedTabIndex = if (selectedOnglet == "planches") 0 else 1,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Tab(
-                        selected = selectedOnglet == "planches",
-                        onClick = { selectedOnglet = "planches" },
-                        text = { Text("🌱 Planches", fontWeight = FontWeight.Bold) }
-                    )
-                    Tab(
-                        selected = selectedOnglet == "analyse",
-                        onClick = { selectedOnglet = "analyse" },
-                        text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold) }
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = if (selectedOnglet == "planches") 0 else 1,
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Tab(
+                selected = selectedOnglet == "planches",
+                onClick = { selectedOnglet = "planches" },
+                text = { 
+                    Text(
+                        "🌱 Planches",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedOnglet == "planches") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                     )
                 }
-            }
+            )
+            Tab(
+                selected = selectedOnglet == "analyse",
+                onClick = { selectedOnglet = "analyse" },
+                text = { 
+                    Text(
+                        "🔬 Analyse du sol",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedOnglet == "analyse") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    )
+                }
+            )
         }
-    ) { innerPadding ->
+        
         if (selectedOnglet == "planches") {
-            JardinPlanchesContent(
+            JardinPlanchesScreen(
                 onBack = onBack,
-                innerPadding = innerPadding
+                onNavigateToAnalyse = { selectedOnglet = "analyse" }
             )
         } else {
-            AnalyseSolContent(
+            AnalyseSolScreen(
                 onBack = onBack,
-                innerPadding = innerPadding
+                onNavigateToPlanches = { selectedOnglet = "planches" }
             )
         }
     }
@@ -852,15 +841,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Retour",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToAnalyse) {
-                        Icon(
-                            Icons.Default.Science,
-                            contentDescription = "Analyse du sol",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -1277,13 +1257,6 @@ fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToPlanches) {
-                        Icon(
-                            Icons.Default.GridView,
-                            contentDescription = "Planches",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
                     IconButton(onClick = { showAide = true }) {
                         Icon(
                             Icons.Default.Help,
@@ -2397,7 +2370,6 @@ fun LegumeDetailScreen(
     }
 }
 
-// Sous-fiche détaillée d'une variété
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VarieteDetailScreen(
