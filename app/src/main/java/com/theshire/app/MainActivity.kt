@@ -762,16 +762,57 @@ fun LigneLegende(emoji: String, description: String) {
 fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("planches") }
     
-    if (selectedOnglet == "planches") {
-        JardinPlanchesScreen(
-            onBack = onBack,
-            onNavigateToAnalyse = { selectedOnglet = "analyse" }
-        )
-    } else {
-        AnalyseSolScreen(
-            onBack = onBack,
-            onNavigateToPlanches = { selectedOnglet = "planches" }
-        )
+    Scaffold(
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = { 
+                        Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Retour",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+                // Onglets horizontaux
+                TabRow(
+                    selectedTabIndex = if (selectedOnglet == "planches") 0 else 1,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Tab(
+                        selected = selectedOnglet == "planches",
+                        onClick = { selectedOnglet = "planches" },
+                        text = { Text("🌱 Planches", fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedOnglet == "analyse",
+                        onClick = { selectedOnglet = "analyse" },
+                        text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold) }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        if (selectedOnglet == "planches") {
+            JardinPlanchesContent(
+                onBack = onBack,
+                innerPadding = innerPadding
+            )
+        } else {
+            AnalyseSolContent(
+                onBack = onBack,
+                innerPadding = innerPadding
+            )
+        }
     }
 }
 
