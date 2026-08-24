@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
@@ -59,8 +60,10 @@ import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
+import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -273,7 +276,6 @@ fun AccueilScreen(
         }
     }
     
-    // Charger les prévisions quand on clique sur la météo
     LaunchedEffect(showPrevisions) {
         if (showPrevisions && previsions.isEmpty()) {
             isLoadingPrevisions = true
@@ -480,7 +482,6 @@ fun AccueilScreen(
         }
     }
     
-    // Dialogue des prévisions météo
     if (showPrevisions) {
         AlertDialog(
             onDismissRequest = { showPrevisions = false },
@@ -547,7 +548,6 @@ fun AccueilScreen(
         )
     }
     
-    // Dialogue pour choisir la source
     if (showPhotoDialog) {
         AlertDialog(
             onDismissRequest = { showPhotoDialog = false },
@@ -1989,18 +1989,151 @@ fun ConservationCard(legume: LegumeEntity) {
     }
 }
 
-// ============== FICHE DÉTAILLÉE ==============
+// ============== FICHE DÉTAILLÉE AVEC VARIÉTÉS ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegumeDetailScreen(
     legume: LegumeEntity,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val varieteRepository = remember { VarieteRepository(context) }
+    val varietes by varieteRepository.getVarietesForLegume(legume.nom).collectAsState(initial = emptyList())
+    var selectedVariete by remember { mutableStateOf<VarieteEntity?>(null) }
+    
+    LaunchedEffect(Unit) {
+        varieteRepository.ajouterVarietesPredefinies()
+    }
+    
+    if (selectedVariete != null) {
+        VarieteDetailScreen(
+            variete = selectedVariete!!,
+            onBack = { selectedVariete = null }
+        )
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text(legume.nom, fontWeight = FontWeight.Bold)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Retour",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item { InfoCard("Catégorie", legume.categorie) }
+                if (legume.estVivace) {
+                    item { InfoCard("Type", "🌿 Plante vivace") }
+                }
+                if (legume.estFleur) {
+                    item { InfoCard("Type", "🌸 Fleur") }
+                }
+                item { InfoCard("Difficulté", legume.difficulte) }
+                item { InfoCard("Exposition", legume.exposition) }
+                item { InfoCard("Sol", legume.sol) }
+                item { InfoCard("Arrosage", legume.arrosage) }
+                item { InfoCard("Température", legume.temperature) }
+                item { InfoCard("Semis", legume.semis) }
+                item { InfoCard("Plantation", legume.plantation) }
+                item { InfoCard("Récolte", legume.recolte) }
+                item { InfoCard("Entretien", legume.entretien) }
+                item { InfoCard("Maladies", legume.maladies) }
+                item { InfoCard("Prévention naturelle", legume.prevention) }
+                item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
+                item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
+                item { InfoCard("Conservation", legume.conservation) }
+                
+                if (varietes.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "🌱 Variétés populaires (${varietes.size}) :",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    items(varietes) { variete ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedVariete = variete },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🌱",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = variete.nom,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = variete.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.ArrowForward,
+                                    contentDescription = "Voir",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Sous-fiche détaillée d'une variété
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VarieteDetailScreen(
+    variete: VarieteEntity,
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(legume.nom, fontWeight = FontWeight.Bold)
+                    Text(variete.nom, fontWeight = FontWeight.Bold)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -2025,27 +2158,12 @@ fun LegumeDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { InfoCard("Catégorie", legume.categorie) }
-            if (legume.estVivace) {
-                item { InfoCard("Type", "🌿 Plante vivace") }
-            }
-            if (legume.estFleur) {
-                item { InfoCard("Type", "🌸 Fleur") }
-            }
-            item { InfoCard("Difficulté", legume.difficulte) }
-            item { InfoCard("Exposition", legume.exposition) }
-            item { InfoCard("Sol", legume.sol) }
-            item { InfoCard("Arrosage", legume.arrosage) }
-            item { InfoCard("Température", legume.temperature) }
-            item { InfoCard("Semis", legume.semis) }
-            item { InfoCard("Plantation", legume.plantation) }
-            item { InfoCard("Récolte", legume.recolte) }
-            item { InfoCard("Entretien", legume.entretien) }
-            item { InfoCard("Maladies", legume.maladies) }
-            item { InfoCard("Prévention naturelle", legume.prevention) }
-            item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
-            item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
-            item { InfoCard("Conservation", legume.conservation) }
+            item { InfoCard("Description", variete.description) }
+            item { InfoCard("Semis", variete.semis) }
+            item { InfoCard("Plantation", variete.plantation) }
+            item { InfoCard("Récolte", variete.recolte) }
+            item { InfoCard("Entretien", variete.entretien) }
+            item { InfoCard("Particularités", variete.particularites) }
         }
     }
 }
