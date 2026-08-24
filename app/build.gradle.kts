@@ -63,6 +63,9 @@ dependencies {
     // Pour les gestes (swipe)
     implementation("androidx.compose.foundation:foundation:1.6.8")
     
+    // Pour le chargement d'images (Coil)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
