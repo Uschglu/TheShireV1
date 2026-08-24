@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -755,10 +756,29 @@ fun LigneLegende(emoji: String, description: String) {
     }
 }
 
-// ============== JARDIN ==============
+// ============== JARDIN (avec onglets) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
+    var selectedOnglet by remember { mutableStateOf("planches") }
+    
+    if (selectedOnglet == "planches") {
+        JardinPlanchesScreen(
+            onBack = onBack,
+            onNavigateToAnalyse = { selectedOnglet = "analyse" }
+        )
+    } else {
+        AnalyseSolScreen(
+            onBack = onBack,
+            onNavigateToPlanches = { selectedOnglet = "planches" }
+        )
+    }
+}
+
+// ============== JARDIN - PLANCHES ==============
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     val context = LocalContext.current
     val jardinRepository = remember { JardinRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
@@ -791,6 +811,15 @@ fun JardinScreen(onBack: () -> Unit) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToAnalyse) {
+                        Icon(
+                            Icons.Default.Science,
+                            contentDescription = "Analyse du sol",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -1154,6 +1183,211 @@ fun JardinScreen(onBack: () -> Unit) {
                     selectedLegumeNom = null
                 }) {
                     Text("Annuler")
+                }
+            }
+        )
+    }
+}
+
+// ============== JARDIN - ANALYSE DU SOL ==============
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
+    var argile by remember { mutableStateOf("") }
+    var sable by remember { mutableStateOf("") }
+    var limon by remember { mutableStateOf("") }
+    var showAide by remember { mutableStateOf(false) }
+    var typeSol by remember { mutableStateOf("") }
+    
+    fun calculerTypeSol() {
+        val a = argile.toIntOrNull() ?: 0
+        val s = sable.toIntOrNull() ?: 0
+        val l = limon.toIntOrNull() ?: 0
+        val total = a + s + l
+        
+        if (total == 100) {
+            typeSol = when {
+                a > 40 -> "Sol argileux"
+                s > 70 -> "Sol sableux"
+                l > 50 -> "Sol limoneux"
+                a in 20..35 && s in 35..50 -> "Sol équilibré (idéal)"
+                a > 35 -> "Sol argilo-limoneux"
+                s > 50 -> "Sol sablo-limoneux"
+                else -> "Sol limono-argileux"
+            }
+        } else {
+            typeSol = "Le total doit faire 100% (actuellement ${total}%)"
+        }
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text("Analyse du sol 🔬", fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToPlanches) {
+                        Icon(
+                            Icons.Default.GridView,
+                            contentDescription = "Planches",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    IconButton(onClick = { showAide = true }) {
+                        Icon(
+                            Icons.Default.Help,
+                            contentDescription = "Aide",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { innerPadding ->
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Composition du sol",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Renseignez les pourcentages d'argile, de sable et de limon.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = argile,
+                            onValueChange = { argile = it },
+                            label = { Text("Argile (%)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = sable,
+                            onValueChange = { sable = it },
+                            label = { Text("Sable (%)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = limon,
+                            onValueChange = { limon = it },
+                            label = { Text("Limon (%)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = { calculerTypeSol() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Analyser")
+                        }
+                    }
+                }
+            }
+            
+            if (typeSol.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Résultat",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = typeSol,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if (showAide) {
+        AlertDialog(
+            onDismissRequest = { showAide = false },
+            title = { Text("Méthodes d'analyse du sol") },
+            text = {
+                LazyColumn {
+                    item {
+                        Text(
+                            text = "Méthode I : Test tactile",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("1. Prélevez une poignée de terre humide.\n2. Roulez-la entre vos doigts pour former une boule.\n3. Écrasez-la entre le pouce et l'index.\n\n• Si elle est rugueuse et se désagrège : sol sableux.\n• Si elle est douce comme du talc : sol limoneux.\n• Si elle colle et se lisse facilement : sol argileux.")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Méthode II : Test du bocal",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("1. Prélevez un échantillon de sol (sans racines ni cailloux).\n2. Remplissez un bocal transparent à moitié avec ce sol.\n3. Ajoutez de l'eau et une goutte de liquide vaisselle.\n4. Secouez vigoureusement pendant 1 à 2 minutes.\n5. Laissez reposer 24 à 48 heures.\n\n• Le sable se dépose en premier (au fond).\n• Le limon forme la couche intermédiaire.\n• L'argile reste en suspension ou dépose lentement.\n\nMesurez la hauteur de chaque couche pour calculer les pourcentages.")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAide = false }) {
+                    Text("Fermer")
                 }
             }
         )
