@@ -11,7 +11,8 @@
         android:icon="@drawable/ic_launcher"
         android:label="Potager Shire"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PotagerShire">
+        android:theme="@style/Theme.PotagerShire"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
