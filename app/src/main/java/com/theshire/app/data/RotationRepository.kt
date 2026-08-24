@@ -57,11 +57,19 @@ class RotationRepository {
         return familles[legume] ?: "Autre"
     }
     
-    fun getAvertissement(nouveauLegume: String, famillesAnterieures: List<String>): AvertissementRotation? {
+    fun getAvertissement(
+        nouveauLegume: String,
+        famillesAnterieures: List<String>,
+        anneePrecedente: Int = 0
+    ): AvertissementRotation? {
         val nouvelleFamille = getFamille(nouveauLegume)
-        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
         
-        // Vérifier si la même famille était présente l'année dernière
+        // Si anneePrecedente est 0 (année 0), pas d'avertissement
+        if (anneePrecedente == 0) {
+            return null
+        }
+        
+        // Vérifier si la même famille était présente l'année précédente
         val famillePresente = famillesAnterieures.any { famille -> famille == nouvelleFamille }
         
         if (famillePresente) {
