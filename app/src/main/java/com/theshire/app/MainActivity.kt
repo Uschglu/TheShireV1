@@ -100,7 +100,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Écran principal avec navigation par glissement
 @Composable
 fun MainScreen() {
     var currentScreen by rememberSaveable { mutableStateOf("accueil") }
@@ -1090,7 +1089,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            // Année 0 = pas d'avertissement
                                             scope.launch {
                                                 jardinRepository.modifierCasePrecise(
                                                     carre,
@@ -1381,7 +1379,6 @@ fun LegendeCouleurs() {
     }
 }
 
-// Légende compacte pour le dialogue de création
 @Composable
 fun LegendeCompacte() {
     Card(
@@ -2151,7 +2148,7 @@ fun ConservationCard(legume: LegumeEntity) {
     }
 }
 
-// ============== FICHE DÉTAILLÉE AVEC VARIÉTÉS ==============
+// ============== FICHE DÉTAILLÉE AVEC VARIÉTÉS ET IMAGES ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegumeDetailScreen(
@@ -2202,6 +2199,20 @@ fun LegumeDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Image du légume
+                if (legume.imageUrl.isNotEmpty()) {
+                    item {
+                        AsyncImage(
+                            model = legume.imageUrl,
+                            contentDescription = legume.nom,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    }
+                }
+                
                 item { InfoCard("Catégorie", legume.categorie) }
                 if (legume.estVivace) {
                     item { InfoCard("Type", "🌿 Plante vivace") }
@@ -2329,7 +2340,7 @@ fun VarieteDetailScreen(
     }
 }
 
-// ============== CARTE LÉGUME ==============
+// ============== CARTE LÉGUME AVEC IMAGE ==============
 @Composable
 fun LegumeCard(
     legume: LegumeEntity,
@@ -2350,11 +2361,22 @@ fun LegumeCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = getEmojiCategorie(legume.categorie),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.size(40.dp)
-            )
+            // Image du légume en petit
+            if (legume.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = legume.imageUrl,
+                    contentDescription = legume.nom,
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            } else {
+                Text(
+                    text = getEmojiCategorie(legume.categorie),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -2383,7 +2405,6 @@ fun LegumeCard(
     }
 }
 
-// Fonction pour obtenir l'emoji selon la catégorie
 fun getEmojiCategorie(categorie: String): String {
     return when {
         categorie.contains("Racine ancienne", ignoreCase = true) -> "🥕"
@@ -2404,7 +2425,6 @@ fun getEmojiCategorie(categorie: String): String {
     }
 }
 
-// ============== CARTE INFO ==============
 @Composable
 fun InfoCard(titre: String, contenu: String) {
     Card(
