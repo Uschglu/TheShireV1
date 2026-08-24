@@ -20,4 +20,18 @@ interface LegumeDao {
     
     @Query("SELECT COUNT(*) FROM legumes")
     suspend fun countLegumes(): Int
+    
+    // ===== VARIÉTÉS =====
+    
+    @Query("SELECT * FROM varietes WHERE legumeParent = :legumeNom ORDER BY nom")
+    fun getVarietesForLegume(legumeNom: String): Flow<List<VarieteEntity>>
+    
+    @Insert
+    suspend fun insertVariete(variete: VarieteEntity)
+    
+    @Query("DELETE FROM varietes")
+    suspend fun deleteAllVarietes()
+    
+    @Query("SELECT COUNT(*) FROM varietes")
+    suspend fun countVarietes(): Int
 }
