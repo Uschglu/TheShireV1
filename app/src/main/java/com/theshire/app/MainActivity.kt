@@ -1450,7 +1450,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     }
 }
 
-// ============== JARDIN - ANALYSE DU SOL ==============
+// ============== JARDIN - ANALYSE DU SOL (avec explications et conseils) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
@@ -1459,6 +1459,8 @@ fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
     var limon by remember { mutableStateOf("") }
     var showAide by remember { mutableStateOf(false) }
     var typeSol by remember { mutableStateOf("") }
+    var explicationSol by remember { mutableStateOf("") }
+    var conseilSol by remember { mutableStateOf("") }
     
     fun calculerTypeSol() {
         val a = argile.toIntOrNull() ?: 0
@@ -1467,17 +1469,47 @@ fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
         val total = a + s + l
         
         if (total == 100) {
-            typeSol = when {
-                a > 40 -> "Sol argileux"
-                s > 70 -> "Sol sableux"
-                l > 50 -> "Sol limoneux"
-                a in 20..35 && s in 35..50 -> "Sol équilibré (idéal)"
-                a > 35 -> "Sol argilo-limoneux"
-                s > 50 -> "Sol sablo-limoneux"
-                else -> "Sol limono-argileux"
+            when {
+                a > 40 -> {
+                    typeSol = "Sol argileux"
+                    explicationSol = "Sol lourd et compact, retient bien l'eau et les nutriments mais se réchauffe lentement au printemps. Difficile à travailler."
+                    conseilSol = "• Ajouter du compost mûr et du sable grossier\n• Pailler pour éviter le tassement\n• Éviter de travailler le sol mouillé\n• Cultiver sur buttes pour améliorer le drainage"
+                }
+                s > 70 -> {
+                    typeSol = "Sol sableux"
+                    explicationSol = "Sol léger et facile à travailler, se réchauffe rapidement mais retient mal l'eau et les nutriments."
+                    conseilSol = "• Ajouter beaucoup de compost et de fumier\n• Pailler abondamment pour retenir l'humidité\n• Arroser plus souvent mais en petites quantités\n• Cultiver des légumes adaptés (carottes, radis...)"
+                }
+                l > 50 -> {
+                    typeSol = "Sol limoneux"
+                    explicationSol = "Sol fertile et facile à travailler, bonne rétention d'eau et de nutriments. Idéal pour la plupart des cultures."
+                    conseilSol = "• Ajouter du compost pour maintenir la fertilité\n• Pailler pour protéger la structure\n• Éviter le tassement en utilisant des planches de culture"
+                }
+                a in 20..35 && s in 35..50 -> {
+                    typeSol = "Sol équilibré (idéal)"
+                    explicationSol = "Sol parfaitement équilibré, facile à travailler, bonne rétention d'eau et de nutriments. Idéal pour toutes les cultures."
+                    conseilSol = "• Maintenir avec du compost annuel\n• Pailler pour conserver l'humidité\n• Rotation des cultures pour préserver la fertilité"
+                }
+                a > 35 -> {
+                    typeSol = "Sol argilo-limoneux"
+                    explicationSol = "Sol riche et fertile, bonne rétention d'eau mais peut être lourd à travailler."
+                    conseilSol = "• Ajouter du compost et du sable\n• Pailler pour éviter le tassement\n• Éviter de travailler le sol humide"
+                }
+                s > 50 -> {
+                    typeSol = "Sol sablo-limoneux"
+                    explicationSol = "Sol léger et bien drainé, se réchauffe rapidement mais nécessite des arrosages réguliers."
+                    conseilSol = "• Ajouter du compost et du fumier\n• Pailler abondamment\n• Arroser régulièrement"
+                }
+                else -> {
+                    typeSol = "Sol limono-argileux"
+                    explicationSol = "Sol fertile et équilibré, bonne rétention d'eau et de nutriments."
+                    conseilSol = "• Maintenir avec du compost annuel\n• Pailler pour protéger la structure\n• Rotation des cultures"
+                }
             }
         } else {
             typeSol = "Le total doit faire 100% (actuellement ${total}%)"
+            explicationSol = ""
+            conseilSol = ""
         }
     }
     
@@ -1603,6 +1635,56 @@ fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        }
+                    }
+                }
+                
+                if (explicationSol.isNotEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "📋 Caractéristiques",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = explicationSol,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                if (conseilSol.isNotEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "💡 Conseils d'amélioration",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = conseilSol,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
                     }
                 }
