@@ -6,11 +6,11 @@ import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.PlancheEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import java.util.Calendar
 
 class JardinRepository(context: Context) {
     
     private val plancheDao = AppDatabase.getDatabase(context).plancheDao()
-    private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
     
     val planches: Flow<List<PlancheEntity>> = plancheDao.getAllPlanches()
     
@@ -47,37 +47,77 @@ class JardinRepository(context: Context) {
         plancheDao.deletePlanche(planche)
     }
     
-    suspend fun modifierCase(carre: CarreEntity, caseNumero: Int, legumeNom: String?) {
-        val nouveauCarre = when (caseNumero) {
-            1 -> carre.copy(case1 = legumeNom)
-            2 -> carre.copy(case2 = legumeNom)
-            3 -> carre.copy(case3 = legumeNom)
-            4 -> carre.copy(case4 = legumeNom)
-            5 -> carre.copy(case5 = legumeNom)
-            6 -> carre.copy(case6 = legumeNom)
-            7 -> carre.copy(case7 = legumeNom)
-            8 -> carre.copy(case8 = legumeNom)
-            9 -> carre.copy(case9 = legumeNom)
-            else -> carre
-        }
-        plancheDao.updateCarre(nouveauCarre)
-    }
-    
     suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?) {
         val dateActuelle = System.currentTimeMillis()
+        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
+        
         val nouveauCarre = when (caseNumero) {
-            1 -> carre.copy(case1 = legumeNom, datePlantationCase1 = if (legumeNom != null) dateActuelle else null)
-            2 -> carre.copy(case2 = legumeNom, datePlantationCase2 = if (legumeNom != null) dateActuelle else null)
-            3 -> carre.copy(case3 = legumeNom, datePlantationCase3 = if (legumeNom != null) dateActuelle else null)
-            4 -> carre.copy(case4 = legumeNom, datePlantationCase4 = if (legumeNom != null) dateActuelle else null)
-            5 -> carre.copy(case5 = legumeNom, datePlantationCase5 = if (legumeNom != null) dateActuelle else null)
-            6 -> carre.copy(case6 = legumeNom, datePlantationCase6 = if (legumeNom != null) dateActuelle else null)
-            7 -> carre.copy(case7 = legumeNom, datePlantationCase7 = if (legumeNom != null) dateActuelle else null)
-            8 -> carre.copy(case8 = legumeNom, datePlantationCase8 = if (legumeNom != null) dateActuelle else null)
-            9 -> carre.copy(case9 = legumeNom, datePlantationCase9 = if (legumeNom != null) dateActuelle else null)
+            1 -> carre.copy(
+                case1 = legumeNom, 
+                datePlantationCase1 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            2 -> carre.copy(
+                case2 = legumeNom, 
+                datePlantationCase2 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            3 -> carre.copy(
+                case3 = legumeNom, 
+                datePlantationCase3 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            4 -> carre.copy(
+                case4 = legumeNom, 
+                datePlantationCase4 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            5 -> carre.copy(
+                case5 = legumeNom, 
+                datePlantationCase5 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            6 -> carre.copy(
+                case6 = legumeNom, 
+                datePlantationCase6 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            7 -> carre.copy(
+                case7 = legumeNom, 
+                datePlantationCase7 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            8 -> carre.copy(
+                case8 = legumeNom, 
+                datePlantationCase8 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
+            9 -> carre.copy(
+                case9 = legumeNom, 
+                datePlantationCase9 = if (legumeNom != null) dateActuelle else null,
+                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+            )
             else -> carre
         }
-        plancheDao.updateCarre(nouveauCarre)
+        
+        // Mettre à jour les familles plantées
+        val legumesActuels = listOfNotNull(
+            nouveauCarre.case1, nouveauCarre.case2, nouveauCarre.case3,
+            nouveauCarre.case4, nouveauCarre.case5, nouveauCarre.case6,
+            nouveauCarre.case7, nouveauCarre.case8, nouveauCarre.case9
+        )
+        
+        val famillesSet = mutableSetOf<String>()
+        legumesActuels.forEach { legume ->
+            val famille = getFamilleLegume(legume)
+            if (famille != "Autre") {
+                famillesSet.add(famille)
+            }
+        }
+        
+        val carreFinal = nouveauCarre.copy(famillesPlantees = famillesSet.joinToString(","))
+        
+        plancheDao.updateCarre(carreFinal)
     }
     
     suspend fun getLegumesPlantes(): List<String> {
@@ -129,5 +169,21 @@ class JardinRepository(context: Context) {
         }
         
         return dates
+    }
+    
+    // Fonction pour obtenir la famille d'un légume
+    private fun getFamilleLegume(legume: String): String {
+        return when (legume) {
+            "Tomate", "Poivron", "Aubergine", "Pomme de terre" -> "Solanacées"
+            "Chou", "Brocoli", "Chou-fleur", "Radis", "Navet", "Rutabaga", "Chou frisé (Kale)" -> "Brassicacées"
+            "Oignon", "Ail", "Poireau", "Ciboulette" -> "Alliacées"
+            "Haricot vert", "Petit pois" -> "Légumineuses"
+            "Courgette", "Concombre", "Potiron" -> "Cucurbitacées"
+            "Carotte", "Panais", "Persil", "Cerfeuil tubéreux", "Coriandre", "Aneth" -> "Apiacées"
+            "Épinard", "Betterave" -> "Chénopodiacées"
+            "Salade", "Cardon", "Topinambour" -> "Astéracées"
+            "Basilic", "Menthe", "Thym", "Romarin" -> "Lamiacées"
+            else -> "Autre"
+        }
     }
 }
