@@ -34,4 +34,18 @@ interface LegumeDao {
     
     @Query("SELECT COUNT(*) FROM varietes")
     suspend fun countVarietes(): Int
+    
+    // ===== ADVENTICES =====
+    
+    @Query("SELECT * FROM adventices ORDER BY nom")
+    fun getAllAdventices(): Flow<List<AdventiceEntity>>
+    
+    @Insert
+    suspend fun insertAdventice(adventice: AdventiceEntity)
+    
+    @Query("DELETE FROM adventices")
+    suspend fun deleteAllAdventices()
+    
+    @Query("SELECT COUNT(*) FROM adventices")
+    suspend fun countAdventices(): Int
 }
