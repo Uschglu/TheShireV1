@@ -29,7 +29,7 @@ class RotationRepository {
         "Oignon" to "Alliacées",
         "Ail" to "Alliacées",
         "Poireau" to "Alliacées",
-        "Échalote" to "Alliacées",
+        "Ciboulette" to "Alliacées",
         "Haricot vert" to "Légumineuses",
         "Petit pois" to "Légumineuses",
         "Courgette" to "Cucurbitacées",
@@ -39,6 +39,8 @@ class RotationRepository {
         "Panais" to "Apiacées",
         "Persil" to "Apiacées",
         "Cerfeuil tubéreux" to "Apiacées",
+        "Coriandre" to "Apiacées",
+        "Aneth" to "Apiacées",
         "Épinard" to "Chénopodiacées",
         "Betterave" to "Chénopodiacées",
         "Salade" to "Astéracées",
@@ -47,10 +49,7 @@ class RotationRepository {
         "Basilic" to "Lamiacées",
         "Menthe" to "Lamiacées",
         "Thym" to "Lamiacées",
-        "Romarin" to "Lamiacées",
-        "Ciboulette" to "Alliacées",
-        "Coriandre" to "Apiacées",
-        "Aneth" to "Apiacées"
+        "Romarin" to "Lamiacées"
     )
     
     fun getFamille(legume: String): String {
@@ -59,21 +58,27 @@ class RotationRepository {
     
     fun getAvertissement(
         nouveauLegume: String,
-        famillesAnterieures: List<String>,
-        anneePrecedente: Int = 0
+        carre: CarreEntity
     ): AvertissementRotation? {
         val nouvelleFamille = getFamille(nouveauLegume)
+        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
+        val anneeDerniereCulture = carre.anneeCulture
         
-        // Si anneePrecedente est 0 (année 0), pas d'avertissement
-        if (anneePrecedente == 0) {
+        // Si le carré n'a jamais été cultivé (année 0), pas d'avertissement
+        if (anneeDerniereCulture == 0) {
             return null
         }
         
-        // Vérifier si la même famille était présente l'année précédente
+        // Si la dernière culture date de cette année, pas d'avertissement
+        if (anneeDerniereCulture == anneeActuelle) {
+            return null
+        }
+        
+        // Vérifier si la même famille était présente l'année dernière
+        val famillesAnterieures = carre.famillesPlantees.split(",").filter { it.isNotEmpty() }
         val famillePresente = famillesAnterieures.any { famille -> famille == nouvelleFamille }
         
         if (famillePresente) {
-            // Déterminer le niveau de risque selon la famille
             val risque = when (nouvelleFamille) {
                 "Solanacées", "Brassicacées", "Cucurbitacées" -> NiveauRisque.ELEVE
                 "Alliacées", "Apiacées" -> NiveauRisque.MOYEN
@@ -82,7 +87,7 @@ class RotationRepository {
             
             val message = when (risque) {
                 NiveauRisque.ELEVE -> "⚠️ ATTENTION : Risque élevé !\n\n" +
-                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré l'année dernière.\n\n" +
+                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré en $anneeDerniereCulture.\n\n" +
                     "• Risque accru de maladies (mildiou, fusariose, hernie...)\n" +
                     "• Risque accru de ravageurs (doryphores, piérides, nématodes...)\n" +
                     "• Appauvrissement important du sol\n" +
@@ -90,14 +95,14 @@ class RotationRepository {
                     "Recommandation : Attendre 3-4 ans avant de replanter des $nouvelleFamille ici."
                 
                 NiveauRisque.MOYEN -> "⚠️ Attention : Risque modéré\n\n" +
-                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré l'année dernière.\n\n" +
+                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré en $anneeDerniereCulture.\n\n" +
                     "• Risque de maladies spécifiques\n" +
                     "• Appauvrissement du sol en nutriments\n" +
                     "• Baisse de productivité possible\n\n" +
                     "Recommandation : Attendre 2-3 ans avant de replanter des $nouvelleFamille ici."
                 
                 NiveauRisque.FAIBLE -> "ℹ️ Information : Risque faible\n\n" +
-                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré l'année dernière.\n\n" +
+                    "Un légume de la famille des $nouvelleFamille était déjà présent dans ce carré en $anneeDerniereCulture.\n\n" +
                     "• Léger risque de maladies\n" +
                     "• Appauvrissement modéré du sol\n\n" +
                     "Recommandation : Un apport de compost est conseillé."
