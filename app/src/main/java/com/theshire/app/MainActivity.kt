@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ImageLoader personnalisé
+// ImageLoader pour la photo du jardin
 object ImageLoaderProvider {
     fun getImageLoader(context: android.content.Context): ImageLoader {
         return ImageLoader.Builder(context)
@@ -667,7 +667,6 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
     var showLegende by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
     
     LaunchedEffect(Unit) {
         repository.ajouterLegumesPredefinis()
@@ -733,8 +732,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                             scope.launch { 
                                 repository.supprimerLegume(legume) 
                             }
-                        },
-                        imageLoader = imageLoader
+                        }
                     )
                 }
             }
@@ -848,16 +846,12 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     val planches by jardinRepository.planches.collectAsState(initial = emptyList())
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
-    val rotationRepository = remember { RotationRepository() }
     
     var showAddPlancheDialog by remember { mutableStateOf(false) }
     var expandedPlancheId by remember { mutableStateOf<Long?>(null) }
     var selectedCarre by remember { mutableStateOf<CarreEntity?>(null) }
     var selectedCaseNumero by remember { mutableStateOf(0) }
-    var selectedLegumeNom by remember { mutableStateOf<String?>(null) }
     var showLegumeSelection by remember { mutableStateOf(false) }
-    var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
-    var showAvertissement by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
@@ -2182,7 +2176,7 @@ fun ConservationCard(legume: LegumeEntity) {
     }
 }
 
-// ============== FICHE DÉTAILLÉE AVEC VARIÉTÉS ET IMAGES ==============
+// ============== FICHE DÉTAILLÉE ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegumeDetailScreen(
@@ -2193,7 +2187,6 @@ fun LegumeDetailScreen(
     val varieteRepository = remember { VarieteRepository(context) }
     val varietes by varieteRepository.getVarietesForLegume(legume.nom).collectAsState(initial = emptyList())
     var selectedVariete by remember { mutableStateOf<VarieteEntity?>(null) }
-    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
     
     LaunchedEffect(Unit) {
         varieteRepository.ajouterVarietesPredefinies()
@@ -2234,16 +2227,20 @@ fun LegumeDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (legume.imageUrl.isNotEmpty()) {
-                    item {
-                        AsyncImage(
-                            model = legume.imageUrl,
-                            contentDescription = legume.nom,
-                            imageLoader = imageLoader,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                // Grand émoji
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = getEmojiCategorie(legume.categorie),
+                            style = MaterialTheme.typography.displayLarge,
+                            modifier = Modifier.size(100.dp)
                         )
                     }
                 }
@@ -2375,13 +2372,12 @@ fun VarieteDetailScreen(
     }
 }
 
-// ============== CARTE LÉGUME AVEC IMAGE ==============
+// ============== CARTE LÉGUME ==============
 @Composable
 fun LegumeCard(
     legume: LegumeEntity,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
-    imageLoader: ImageLoader
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -2397,22 +2393,11 @@ fun LegumeCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (legume.imageUrl.isNotEmpty()) {
-                AsyncImage(
-                    model = legume.imageUrl,
-                    contentDescription = legume.nom,
-                    imageLoader = imageLoader,
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                )
-            } else {
-                Text(
-                    text = getEmojiCategorie(legume.categorie),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.size(50.dp)
-                )
-            }
+            Text(
+                text = getEmojiCategorie(legume.categorie),
+                style = MaterialTheme.typography.displayMedium,
+                modifier = Modifier.size(60.dp)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
