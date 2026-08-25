@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Demander les permissions de localisation
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
                 PackageManager.PERMISSION_GRANTED &&
@@ -98,11 +99,44 @@ class MainActivity : ComponentActivity() {
             }
         }
         
+        // Demander la permission de notifications (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 
+                PackageManager.PERMISSION_GRANTED) {
+                
+                requestPermissions(
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    200
+                )
+            }
+        }
+        
         setContent {
             PotagerShireTheme {
                 MainScreen()
             }
         }
+        
+        // Déclencher les notifications après un délai
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            val notificationService = NotificationService(this)
+            notificationService.verifierEtNotifier()
+        }, 5000)
+        
+        planifierNotifications()
+    }
+    
+    private fun planifierNotifications() {
+        val notificationService = NotificationService(this)
+        
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val runnable = object : Runnable {
+            override fun run() {
+                notificationService.verifierEtNotifier()
+                handler.postDelayed(this, 24 * 60 * 60 * 1000)
+            }
+        }
+        handler.postDelayed(runnable, 24 * 60 * 60 * 1000)
     }
 }
 
