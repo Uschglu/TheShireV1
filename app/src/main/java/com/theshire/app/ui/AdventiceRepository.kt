@@ -140,6 +140,126 @@ class AdventiceRepository(context: Context) {
                 indicationSol = "Sol pauvre en azote",
                 typeSol = "Sol pauvre, appauvri",
                 emoji = "🍀"
+            ),
+            AdventiceEntity(
+                nom = "Chénopode blanc",
+                nomScientifique = "Chenopodium album",
+                description = "Plante annuelle à feuilles farineuses, très commune.",
+                indicationSol = "Sol riche en azote, fertile",
+                typeSol = "Sol riche, bien drainé",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Renouée des oiseaux",
+                nomScientifique = "Polygonum aviculare",
+                description = "Plante rampante très résistante au piétinement.",
+                indicationSol = "Sol compact, piétiné",
+                typeSol = "Sol tassé, compact",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Capselle bourse-à-pasteur",
+                nomScientifique = "Capsella bursa-pastoris",
+                description = "Petite plante à fruits en forme de cœur.",
+                indicationSol = "Sol riche en azote",
+                typeSol = "Sol fertile, riche",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Coquelicot",
+                nomScientifique = "Papaver rhoeas",
+                description = "Fleur rouge emblématique des champs.",
+                indicationSol = "Sol calcaire, riche",
+                typeSol = "Sol calcaire, fertile",
+                emoji = "🌺"
+            ),
+            AdventiceEntity(
+                nom = "Matricaire",
+                nomScientifique = "Matricaria discoidea",
+                description = "Petite plante à fleurs jaunes, odeur de camomille.",
+                indicationSol = "Sol compact, acide",
+                typeSol = "Sol tassé, acide",
+                emoji = "🌼"
+            ),
+            AdventiceEntity(
+                nom = "Séneçon commun",
+                nomScientifique = "Senecio vulgaris",
+                description = "Plante annuelle à fleurs jaunes, très commune.",
+                indicationSol = "Sol riche, frais",
+                typeSol = "Sol fertile, humide",
+                emoji = "🌼"
+            ),
+            AdventiceEntity(
+                nom = "Laiteron",
+                nomScientifique = "Sonchus oleraceus",
+                description = "Plante à latex blanc, feuilles découpées.",
+                indicationSol = "Sol fertile, riche",
+                typeSol = "Sol riche, bien drainé",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Euphorbe réveille-matin",
+                nomScientifique = "Euphorbia helioscopia",
+                description = "Plante à latex blanc, petites fleurs vertes.",
+                indicationSol = "Sol calcaire, sec",
+                typeSol = "Sol calcaire, drainé",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Moutarde des champs",
+                nomScientifique = "Sinapis arvensis",
+                description = "Plante à fleurs jaunes, très envahissante.",
+                indicationSol = "Sol calcaire, riche",
+                typeSol = "Sol calcaire, fertile",
+                emoji = "🌼"
+            ),
+            AdventiceEntity(
+                nom = "Gaillet gratteron",
+                nomScientifique = "Galium aparine",
+                description = "Plante grimpante qui s'accroche aux vêtements.",
+                indicationSol = "Sol riche en azote",
+                typeSol = "Sol fertile, riche",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Compagnon blanc",
+                nomScientifique = "Silene latifolia",
+                description = "Plante à fleurs blanches, commune dans les cultures.",
+                indicationSol = "Sol calcaire, sec",
+                typeSol = "Sol calcaire, drainé",
+                emoji = "🌸"
+            ),
+            AdventiceEntity(
+                nom = "Bleuet",
+                nomScientifique = "Centaurea cyanus",
+                description = "Fleur bleue emblématique, protégée dans certains endroits.",
+                indicationSol = "Sol acide, pauvre",
+                typeSol = "Sol acide, appauvri",
+                emoji = "🌸"
+            ),
+            AdventiceEntity(
+                nom = "Saponaire",
+                nomScientifique = "Saponaria officinalis",
+                description = "Plante à fleurs roses, contient de la saponine.",
+                indicationSol = "Sol calcaire, riche",
+                typeSol = "Sol calcaire, fertile",
+                emoji = "🌸"
+            ),
+            AdventiceEntity(
+                nom = "Arroche",
+                nomScientifique = "Atriplex patula",
+                description = "Plante à feuilles triangulaires, supporte le sel.",
+                indicationSol = "Sol riche, salin",
+                typeSol = "Sol riche, salé",
+                emoji = "🌿"
+            ),
+            AdventiceEntity(
+                nom = "Folle avoine",
+                nomScientifique = "Avena fatua",
+                description = "Graminée annuelle, ressemble à l'avoine cultivée.",
+                indicationSol = "Sol acide, pauvre",
+                typeSol = "Sol acide, appauvri",
+                emoji = "🌾"
             )
         )
     }
