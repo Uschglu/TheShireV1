@@ -82,7 +82,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Demander les permissions de localisation
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
                 PackageManager.PERMISSION_GRANTED &&
@@ -99,7 +98,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // Demander la permission de notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 
                 PackageManager.PERMISSION_GRANTED) {
@@ -117,26 +115,63 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // Déclencher les notifications après un délai
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            val notificationService = NotificationService(this)
-            notificationService.verifierEtNotifier()
-        }, 5000)
-        
         planifierNotifications()
     }
     
     private fun planifierNotifications() {
-        val notificationService = NotificationService(this)
+        val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
         
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        val runnable = object : Runnable {
-            override fun run() {
-                notificationService.verifierEtNotifier()
-                handler.postDelayed(this, 24 * 60 * 60 * 1000)
+        // Notification d'arrosage + météo à 18h00
+        val intentArrosage = android.content.Intent(this, NotificationReceiver::class.java)
+        intentArrosage.putExtra("type", "arrosage")
+        val pendingIntentArrosage = android.app.PendingIntent.getBroadcast(
+            this,
+            1,
+            intentArrosage,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val calendarArrosage = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 18)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            if (before(java.util.Calendar.getInstance())) {
+                add(java.util.Calendar.DAY_OF_MONTH, 1)
             }
         }
-        handler.postDelayed(runnable, 24 * 60 * 60 * 1000)
+        
+        alarmManager.setRepeating(
+            android.app.AlarmManager.RTC_WAKEUP,
+            calendarArrosage.timeInMillis,
+            android.app.AlarmManager.INTERVAL_DAY,
+            pendingIntentArrosage
+        )
+        
+        // Notification d'opérations culturales à 8h00
+        val intentOperations = android.content.Intent(this, NotificationReceiver::class.java)
+        intentOperations.putExtra("type", "operations")
+        val pendingIntentOperations = android.app.PendingIntent.getBroadcast(
+            this,
+            2,
+            intentOperations,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val calendarOperations = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 8)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            if (before(java.util.Calendar.getInstance())) {
+                add(java.util.Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+        
+        alarmManager.setRepeating(
+            android.app.AlarmManager.RTC_WAKEUP,
+            calendarOperations.timeInMillis,
+            android.app.AlarmManager.INTERVAL_DAY,
+            pendingIntentOperations
+        )
     }
 }
 
