@@ -25,7 +25,6 @@ class LegumeRepository(context: Context) {
     
     private fun getLegumesPredefinis(): List<LegumeEntity> {
         return listOf(
-            // ===== LÉGUMES RACINES =====
             LegumeEntity(
                 nom = "Carotte",
                 categorie = "Racine",
@@ -44,7 +43,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aneth, persil",
                 conservation = "Conservation : En cave dans du sable sec (plusieurs mois). Congélation : blanchir 3 min puis congeler. Lactofermentation : râper et saler à 2%. Conserves : en rondelles dans saumure.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Pomme de terre",
@@ -64,7 +64,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Tomate, aubergine",
                 conservation = "Conservation : En cave sombre et fraîche (4-8°C) dans des cagettes aérées (plusieurs mois). Ne pas congeler crues. Séchage : en purée déshydratée. Conserves : en dés stérilisés.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Radis",
@@ -84,7 +85,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Chou",
                 conservation = "Conservation : Au réfrigérateur 1-2 semaines dans un linge humide. Lactofermentation : entiers ou en rondelles salés à 2%. Conserves : au vinaigre (pickles).",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Betterave",
@@ -104,7 +106,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Épinard",
                 conservation = "Conservation : En cave dans du sable (plusieurs mois). Cuites au réfrigérateur 1 semaine. Conserves : cuites et stérilisées entières ou en dés. Lactofermentation : râpées et salées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1593105544559-ecb03bf76f82?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Navet",
@@ -124,7 +127,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Chou",
                 conservation = "Conservation : En cave dans du sable (3-4 mois). Congélation : blanchir 3 min. Lactofermentation : en rondelles salées à 2%. Conserves : au vinaigre.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Panais",
@@ -144,7 +148,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aneth",
                 conservation = "Conservation : En terre tout l'hiver (résiste au gel). En cave dans du sable. Congélation : blanchir 3 min. Séchage : en chips déshydratées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Rutabaga",
@@ -164,7 +169,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Autre chou",
                 conservation = "Conservation : En cave dans du sable (plusieurs mois). Congélation : blanchir 3 min. Conserves : en dés stérilisés. Lactofermentation : râpé et salé.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Topinambour",
@@ -184,7 +190,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre",
                 conservation = "Conservation : En terre (récolter au fur et à mesure). Au réfrigérateur 1-2 semaines dans un sac perforé. Lactofermentation : en rondelles salées. Conserves : au vinaigre.",
                 estVivace = true,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Cerfeuil tubéreux",
@@ -204,10 +211,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Carotte",
                 conservation = "Conservation : En cave dans du sable (2-3 mois). Congélation : blanchir 2 min. Séchage : en rondelles déshydratées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&q=80"
             ),
-
-            // ===== LÉGUMES FRUITS =====
             LegumeEntity(
                 nom = "Tomate",
                 categorie = "Fruit",
@@ -226,7 +232,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre, concombre",
                 conservation = "Conservation : Conserves : coulis ou tomates pelées stérilisées. Séchage : en tranches au déshydrateur ou au four. Congélation : entières ou en coulis. Lactofermentation : cerises entières salées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Courgette",
@@ -246,7 +253,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre",
                 conservation = "Conservation : Congélation : en rondelles blanchies 3 min. Conserves : ratatouille stérilisée. Lactofermentation : en bâtonnets salés. Séchage : en chips déshydratées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1583416750470-965b2707b355?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Poivron",
@@ -266,7 +274,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Fenouil",
                 conservation = "Conservation : Congélation : en lanières crues. Séchage : en poudre (paprika). Conserves : grillés à l'huile. Lactofermentation : en lanières salées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Aubergine",
@@ -286,7 +295,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre",
                 conservation = "Conservation : Congélation : en tranches grillées. Conserves : caviar d'aubergine stérilisé. Séchage : en tranches fines. Lactofermentation : en dés salés.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1603129593810-746674197f04?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Concombre",
@@ -306,7 +316,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Tomate, pomme de terre",
                 conservation = "Conservation : Lactofermentation : en rondelles salées (pickles). Conserves : au vinaigre avec aromates. Congélation : en tranches pour smoothies. Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Potiron",
@@ -326,10 +337,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre",
                 conservation = "Conservation : Entier au sec et frais (3-6 mois). Congélation : en cubes blanchis. Conserves : purée stérilisée. Séchage : en lamelles déshydratées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1506917728037-b6af01a7d403?w=400&q=80"
             ),
-
-            // ===== LÉGUMES FEUILLES =====
             LegumeEntity(
                 nom = "Salade",
                 categorie = "Feuille",
@@ -348,7 +358,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Céleri, persil",
                 conservation = "Conservation : Au réfrigérateur 1 semaine dans un linge humide. Lactofermentation : feuilles entières salées. Conserves : pesto de salade. Congélation : déconseillée.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Épinard",
@@ -368,7 +379,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Betterave",
                 conservation = "Conservation : Congélation : blanchir 2 min puis congeler en portions. Conserves : purée stérilisée. Séchage : en poudre pour smoothies. Réfrigérateur : 3-5 jours.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Chou frisé (Kale)",
@@ -388,7 +400,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Fraise, tomate",
                 conservation = "Conservation : Congélation : feuilles blanchies 2 min. Séchage : chips de kale au déshydrateur. Lactofermentation : feuilles salées. Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1524179091875-bf99a9a6af57?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Cardon",
@@ -408,10 +421,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Pomme de terre",
                 conservation = "Conservation : En cave dans du sable (2-3 mois). Congélation : côtes blanchies 5 min. Conserves : côtes au naturel stérilisées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80"
             ),
-
-            // ===== LÉGUMINEUSES =====
             LegumeEntity(
                 nom = "Haricot vert",
                 categorie = "Légumineuse",
@@ -430,7 +442,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Ail, oignon, fenouil",
                 conservation = "Conservation : Congélation : blanchir 3 min puis congeler. Conserves : en bocaux stérilisés. Lactofermentation : en bâtonnets salés. Séchage : haricots secs (variétés à écosser).",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1567375698348-5d9d7ae7c362?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Petit pois",
@@ -450,10 +463,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Ail, oignon",
                 conservation = "Conservation : Congélation : écossés puis congelés crus. Conserves : en bocaux stérilisés. Séchage : pois secs (laisser sécher sur pied).",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&q=80"
             ),
-
-            // ===== ALLIACÉS =====
             LegumeEntity(
                 nom = "Oignon",
                 categorie = "Alliacé",
@@ -472,7 +484,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Haricot, pois",
                 conservation = "Conservation : Séchage : tresser et suspendre au sec (6-8 mois). Conserves : confit d'oignon stérilisé. Lactofermentation : en rondelles salées. Congélation : émincés crus.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Poireau",
@@ -492,7 +505,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Haricot, pois",
                 conservation = "Conservation : En terre tout l'hiver. Congélation : en rondelles blanchies 2 min. Séchage : en lamelles déshydratées. Réfrigérateur : 2 semaines.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Ail",
@@ -512,10 +526,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Haricot, pois",
                 conservation = "Conservation : Séchage : tresser et suspendre au sec (6-8 mois). Conserves : ail confit à l'huile. Lactofermentation : gousses entières salées. Congélation : gousses émincées.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1610147323479-a7fb11ffd5dd?w=400&q=80"
             ),
-
-            // ===== CHOUX =====
             LegumeEntity(
                 nom = "Brocoli",
                 categorie = "Chou",
@@ -534,7 +547,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Fraise, tomate",
                 conservation = "Conservation : Congélation : fleurettes blanchies 3 min. Lactofermentation : fleurettes salées. Conserves : au naturel stérilisé. Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Chou-fleur",
@@ -554,10 +568,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Fraise, tomate",
                 conservation = "Conservation : Congélation : fleurettes blanchies 3 min. Lactofermentation : fleurettes salées. Conserves : au vinaigre (pickles). Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1568584711075-3d021a7c3ca3?w=400&q=80"
             ),
-
-            // ===== HERBES AROMATIQUES =====
             LegumeEntity(
                 nom = "Basilic",
                 categorie = "Aromatique",
@@ -576,7 +589,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Rue",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles entières ou pesto. Conserves : pesto stérilisé. Réfrigérateur : 1 semaine dans l'eau.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Persil",
@@ -596,7 +610,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Salade",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles ciselées. Conserves : huile parfumée. Réfrigérateur : 1-2 semaines.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Menthe",
@@ -616,7 +631,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles entières. Conserves : sirop de menthe. Réfrigérateur : 1 semaine dans l'eau.",
                 estVivace = true,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1628557044797-21f14aa0dc0b?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Thym",
@@ -636,7 +652,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Conserves : huile parfumée au thym. Congélation : branches entières. Réfrigérateur : 2 semaines.",
                 estVivace = true,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164435735-413d3b066c9a?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Romarin",
@@ -656,7 +673,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Conserves : huile parfumée au romarin. Congélation : branches entières. Réfrigérateur : 2 semaines.",
                 estVivace = true,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Ciboulette",
@@ -676,7 +694,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Haricot, pois",
                 conservation = "Conservation : Congélation : ciseaux dans un sac. Séchage : à plat à l'ombre. Conserves : vinaigre parfumé. Réfrigérateur : 1-2 semaines.",
                 estVivace = true,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164435735-413d3b066c9a?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Coriandre",
@@ -696,7 +715,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Fenouil",
                 conservation = "Conservation : Congélation : feuilles ciselées. Séchage : graines (coriandre en grains). Conserves : pesto de coriandre. Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Aneth",
@@ -716,10 +736,9 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Carotte, tomate",
                 conservation = "Conservation : Séchage : suspendre à l'ombre (1-2 semaines). Congélation : feuilles ciselées. Conserves : vinaigre parfumé à l'aneth. Réfrigérateur : 1 semaine.",
                 estVivace = false,
-                estFleur = false
+                estFleur = false,
+                imageUrl = "https://images.unsplash.com/photo-1618164436241-4473940d1f5c?w=400&q=80"
             ),
-
-            // ===== FLEURS =====
             LegumeEntity(
                 nom = "Lavande",
                 categorie = "Fleur vivace",
@@ -738,7 +757,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Séchage : suspendre les bouquets à l'ombre. Conserves : huile parfumée à la lavande. Sachets parfumés.",
                 estVivace = true,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Capucine",
@@ -758,7 +778,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Fleurs au réfrigérateur 2-3 jours. Graines lactofermentées (câpres de capucine). Vinaigre parfumé.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Souci",
@@ -778,7 +799,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Fleurs séchées pour tisanes. Pétales au réfrigérateur 3 jours. Huile de souci.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Bourrache",
@@ -798,7 +820,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Fleurs au réfrigérateur 2 jours. Congélation dans glaçons. Séchage pour tisanes.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Phacélie",
@@ -818,7 +841,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Engrais vert à enfouir. Fleurs pour pollinisateurs. Miel de phacélie.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Cosmos",
@@ -838,7 +862,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Fleurs séchées décoratives. Bouquets frais 1 semaine.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             ),
             LegumeEntity(
                 nom = "Œillet d'Inde",
@@ -858,7 +883,8 @@ class LegumeRepository(context: Context) {
                 mauvaisesAssociations = "Aucune",
                 conservation = "Conservation : Fleurs séchées. Bouquets frais 1 semaine. Répulsif naturel contre nématodes.",
                 estVivace = false,
-                estFleur = true
+                estFleur = true,
+                imageUrl = "https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=400&q=80"
             )
         )
     }
