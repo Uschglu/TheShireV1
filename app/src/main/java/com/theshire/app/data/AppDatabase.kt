@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         LegumeEntity::class,
         PlancheEntity::class,
         CarreEntity::class,
-        VarieteEntity::class
+        VarieteEntity::class,
+        AdventiceEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
