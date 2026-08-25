@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.theshire.app.data.MeteoRepository
+import com.theshire.app.ui.JardinRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 class NotificationService(private val context: Context) {
     
     private val meteoRepository = MeteoRepository()
+    private val jardinRepository = JardinRepository(context)
     
     init {
         creerCanaux()
@@ -56,11 +58,9 @@ class NotificationService(private val context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             when (type) {
                 "arrosage" -> {
-                    // Notifications de 18h : arrosage + alerte météo pour demain
                     verifierArrosageEtMeteo()
                 }
                 "operations" -> {
-                    // Notifications de 8h : opérations culturales
                     envoyerRappelOperations()
                 }
             }
@@ -74,7 +74,6 @@ class NotificationService(private val context: Context) {
             val aujourdhui = previsions.first()
             val demain = previsions.getOrNull(1)
             
-            // Vérifier la pluie pour aujourd'hui et demain
             val pluieAujourdhui = aujourdhui.description.contains("pluie", ignoreCase = true)
             val pluieDemain = demain?.description?.contains("pluie", ignoreCase = true) ?: false
             
@@ -82,12 +81,10 @@ class NotificationService(private val context: Context) {
                 envoyerNotificationArrosage()
             }
             
-            // Alerte gel pour demain
             if (demain != null && demain.tempMin < 2) {
                 envoyerAlerteGel()
             }
             
-            // Alerte canicule pour demain
             if (demain != null && demain.tempMax > 32) {
                 envoyerAlerteCanicule()
             }
@@ -142,11 +139,49 @@ class NotificationService(private val context: Context) {
         }
     }
     
-    private fun envoyerRappelOperations() {
+    private suspend fun envoyerRappelOperations() {
+        // Récupérer les légumes plantés depuis la base de données
+        val legumesPlantes = jardinRepository.getLegumesPlantes()
+        
+        val operations = mutableListOf<String>()
+        
+        legumesPlantes.forEach { legume ->
+            when {
+                legume.contains("Pomme de terre", ignoreCase = true) -> {
+                    if ("Butter les pommes de terre" !in operations) operations.add("Butter les pommes de terre")
+                }
+                legume.contains("Tomate", ignoreCase = true) -> {
+                    if ("Tuteurer et effeuiller les tomates" !in operations) operations.add("Tuteurer et effeuiller les tomates")
+                }
+                legume.contains("Salade", ignoreCase = true) || legume.contains("Épinard", ignoreCase = true) -> {
+                    if ("Éclaircir les semis" !in operations) operations.add("Éclaircir les semis")
+                }
+                legume.contains("Haricot", ignoreCase = true) || legume.contains("Pois", ignoreCase = true) -> {
+                    if ("Butter les haricots/pois" !in operations) operations.add("Butter les haricots/pois")
+                }
+                legume.contains("Courgette", ignoreCase = true) || legume.contains("Potiron", ignoreCase = true) -> {
+                    if ("Pailler les cucurbitacées" !in operations) operations.add("Pailler les cucurbitacées")
+                }
+                legume.contains("Poireau", ignoreCase = true) -> {
+                    if ("Butter les poireaux" !in operations) operations.add("Butter les poireaux")
+                }
+            }
+        }
+        
+        // Opérations générales
+        operations.add("Vérifier le paillage")
+        operations.add("Désherber les planches")
+        
+        val message = if (operations.isNotEmpty()) {
+            operations.take(3).joinToString(" • ")
+        } else {
+            "Pensez au paillage et au désherbage de vos planches."
+        }
+        
         val notification = NotificationCompat.Builder(context, "operations")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentTitle("🌱 Entretien du potager")
-            .setContentText("Pensez au buttage, au paillage, au désherbage et à l'éclaircissement selon vos cultures.")
+            .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
