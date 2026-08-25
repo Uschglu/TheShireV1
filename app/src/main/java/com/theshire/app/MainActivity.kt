@@ -52,6 +52,7 @@ import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
+import com.theshire.app.data.AdventiceEntity
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
@@ -66,6 +67,7 @@ import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.VarieteEntity
+import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.VarieteRepository
@@ -104,7 +106,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ImageLoader pour la photo du jardin
 object ImageLoaderProvider {
     fun getImageLoader(context: android.content.Context): ImageLoader {
         return ImageLoader.Builder(context)
@@ -657,10 +658,52 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
     }
 }
 
-// ============== BIBLIOTHÈQUE ==============
+// ============== BIBLIOTHÈQUE (avec onglets Plantes / Mauvaises herbes) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
+    var selectedOnglet by remember { mutableStateOf("plantes") }
+    
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = if (selectedOnglet == "plantes") 0 else 1,
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Tab(
+                selected = selectedOnglet == "plantes",
+                onClick = { selectedOnglet = "plantes" },
+                text = { 
+                    Text(
+                        "🌱 Plantes",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedOnglet == "plantes") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedOnglet == "mauvaises",
+                onClick = { selectedOnglet = "mauvaises" },
+                text = { 
+                    Text(
+                        "🌿 Mauvaises herbes",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedOnglet == "mauvaises") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    )
+                }
+            )
+        }
+        
+        if (selectedOnglet == "plantes") {
+            BibliothequePlantesScreen(onBack = onBack)
+        } else {
+            AdventicesScreen(onBack = onBack)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BibliothequePlantesScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val repository = remember { LegumeRepository(context) }
     val legumes by repository.legumes.collectAsState(initial = emptyList())
@@ -767,23 +810,169 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LigneLegende(emoji: String, description: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = emoji,
-            style = MaterialTheme.typography.headlineMedium
+fun AdventicesScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val repository = remember { AdventiceRepository(context) }
+    val adventices by repository.adventices.collectAsState(initial = emptyList())
+    var selectedAdventice by remember { mutableStateOf<AdventiceEntity?>(null) }
+    
+    LaunchedEffect(Unit) {
+        repository.ajouterAdventicesPredefinies()
+    }
+    
+    if (selectedAdventice != null) {
+        AdventiceDetailScreen(
+            adventice = selectedAdventice!!,
+            onBack = { selectedAdventice = null }
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyMedium
-        )
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text("Mauvaises herbes 🌿", fontWeight = FontWeight.Bold)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Retour",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text(
+                        text = "${adventices.size} adventices courantes",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Ces plantes indiquent la nature de votre sol. Cliquez pour en savoir plus.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                items(adventices, key = { it.id }) { adventice ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedAdventice = adventice },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = adventice.emoji,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = adventice.nom,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = adventice.indicationSol,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 2
+                                )
+                            }
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = "Voir",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdventiceDetailScreen(
+    adventice: AdventiceEntity,
+    onBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(adventice.nom, fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = adventice.emoji,
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                }
+            }
+            item { InfoCard("Nom scientifique", adventice.nomScientifique) }
+            item { InfoCard("Description", adventice.description) }
+            item { InfoCard("Ce qu'elle indique", adventice.indicationSol) }
+            item { InfoCard("Type de sol", adventice.typeSol) }
+        }
     }
 }
 
@@ -2227,7 +2416,6 @@ fun LegumeDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Grand émoji
                 item {
                     Box(
                         modifier = Modifier
