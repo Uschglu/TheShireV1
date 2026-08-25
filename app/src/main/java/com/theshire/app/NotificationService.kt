@@ -7,7 +7,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.theshire.app.data.MeteoRepository
-import com.theshire.app.data.PrevisionJour
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,35 +52,45 @@ class NotificationService(private val context: Context) {
         }
     }
     
-    fun verifierEtNotifier() {
+    fun verifierEtNotifier(type: String = "arrosage") {
         CoroutineScope(Dispatchers.IO).launch {
-            // Récupérer la météo
-            val previsions = meteoRepository.getPrevisions7Jours()
-            
-            if (previsions.isNotEmpty()) {
-                val aujourdhui = previsions.first()
-                val demain = previsions.getOrNull(1)
-                
-                // Vérifier la pluie pour aujourd'hui et demain
-                val pluieAujourdhui = aujourdhui.description.contains("pluie", ignoreCase = true)
-                val pluieDemain = demain?.description?.contains("pluie", ignoreCase = true) ?: false
-                
-                if (!pluieAujourdhui && !pluieDemain) {
-                    // Pas de pluie prévue → envoyer notification d'arrosage
-                    envoyerNotificationArrosage()
+            when (type) {
+                "arrosage" -> {
+                    // Notifications de 18h : arrosage + alerte météo pour demain
+                    verifierArrosageEtMeteo()
                 }
-                
-                // Vérifier les alertes météo
-                if (aujourdhui.tempMin < 2) {
-                    envoyerAlerteGel()
-                }
-                if (aujourdhui.tempMax > 32) {
-                    envoyerAlerteCanicule()
+                "operations" -> {
+                    // Notifications de 8h : opérations culturales
+                    envoyerRappelOperations()
                 }
             }
+        }
+    }
+    
+    private suspend fun verifierArrosageEtMeteo() {
+        val previsions = meteoRepository.getPrevisions7Jours()
+        
+        if (previsions.isNotEmpty()) {
+            val aujourdhui = previsions.first()
+            val demain = previsions.getOrNull(1)
             
-            // Envoyer les rappels d'opérations culturales
-            envoyerRappelOperations()
+            // Vérifier la pluie pour aujourd'hui et demain
+            val pluieAujourdhui = aujourdhui.description.contains("pluie", ignoreCase = true)
+            val pluieDemain = demain?.description?.contains("pluie", ignoreCase = true) ?: false
+            
+            if (!pluieAujourdhui && !pluieDemain) {
+                envoyerNotificationArrosage()
+            }
+            
+            // Alerte gel pour demain
+            if (demain != null && demain.tempMin < 2) {
+                envoyerAlerteGel()
+            }
+            
+            // Alerte canicule pour demain
+            if (demain != null && demain.tempMax > 32) {
+                envoyerAlerteCanicule()
+            }
         }
     }
     
@@ -104,8 +113,8 @@ class NotificationService(private val context: Context) {
     private fun envoyerAlerteGel() {
         val notification = NotificationCompat.Builder(context, "meteo")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
-            .setContentTitle("❄️ Alerte gel !")
-            .setContentText("Des températures proches de 0°C sont prévues. Protégez vos plantes sensibles.")
+            .setContentTitle("❄️ Alerte gel pour demain !")
+            .setContentText("Des températures proches de 0°C sont prévues demain. Protégez vos plantes sensibles.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
@@ -120,8 +129,8 @@ class NotificationService(private val context: Context) {
     private fun envoyerAlerteCanicule() {
         val notification = NotificationCompat.Builder(context, "meteo")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
-            .setContentTitle("🔥 Alerte canicule !")
-            .setContentText("Températures élevées prévues. Arrosez abondamment le soir et paillez.")
+            .setContentTitle("🔥 Alerte canicule pour demain !")
+            .setContentText("Températures élevées prévues demain. Arrosez abondamment le soir et paillez.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
