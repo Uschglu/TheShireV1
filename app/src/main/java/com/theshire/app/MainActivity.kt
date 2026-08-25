@@ -53,16 +53,19 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
 import com.theshire.app.data.AdventiceEntity
+import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LocalisationRepository
 import com.theshire.app.data.LuneRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
+import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
+import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
@@ -1052,12 +1055,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     val planches by jardinRepository.planches.collectAsState(initial = emptyList())
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
+    val rotationRepository = remember { RotationRepository() }
     
     var showAddPlancheDialog by remember { mutableStateOf(false) }
     var expandedPlancheId by remember { mutableStateOf<Long?>(null) }
     var selectedCarre by remember { mutableStateOf<CarreEntity?>(null) }
     var selectedCaseNumero by remember { mutableStateOf(0) }
+    var selectedLegumeNom by remember { mutableStateOf<String?>(null) }
     var showLegumeSelection by remember { mutableStateOf(false) }
+    var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
+    var showAvertissement by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
@@ -1323,16 +1330,28 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            scope.launch {
-                                                jardinRepository.modifierCasePrecise(
-                                                    carre,
-                                                    caseNumero,
-                                                    legume.nom
-                                                )
+                                            val avertissementRotation = rotationRepository.getAvertissement(
+                                                legume.nom,
+                                                carre
+                                            )
+                                            
+                                            if (avertissementRotation != null) {
+                                                selectedLegumeNom = legume.nom
+                                                avertissement = avertissementRotation
+                                                showAvertissement = true
+                                                showLegumeSelection = false
+                                            } else {
+                                                scope.launch {
+                                                    jardinRepository.modifierCasePrecise(
+                                                        carre,
+                                                        caseNumero,
+                                                        legume.nom
+                                                    )
+                                                }
+                                                showLegumeSelection = false
+                                                selectedCarre = null
+                                                selectedCaseNumero = 0
                                             }
-                                            showLegumeSelection = false
-                                            selectedCarre = null
-                                            selectedCaseNumero = 0
                                         }
                                         .padding(16.dp),
                                     style = MaterialTheme.typography.bodyLarge
@@ -1348,6 +1367,81 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                     showLegumeSelection = false
                     selectedCarre = null
                     selectedCaseNumero = 0
+                }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+    
+    if (showAvertissement && avertissement != null) {
+        val av = avertissement!!
+        val carre = selectedCarre
+        val caseNumero = selectedCaseNumero
+        val legumeNom = selectedLegumeNom
+        
+        AlertDialog(
+            onDismissRequest = {
+                showAvertissement = false
+                avertissement = null
+                selectedLegumeNom = null
+            },
+            title = { 
+                Text(
+                    "Rotation des cultures",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = av.message,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (av.niveau == NiveauRisque.ELEVE || av.niveau == NiveauRisque.MOYEN) {
+                        Text(
+                            text = "Voulez-vous quand même planter ce légume ?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (carre != null && caseNumero > 0 && legumeNom != null) {
+                            scope.launch {
+                                jardinRepository.modifierCasePrecise(
+                                    carre,
+                                    caseNumero,
+                                    legumeNom
+                                )
+                            }
+                        }
+                        showAvertissement = false
+                        avertissement = null
+                        selectedCarre = null
+                        selectedCaseNumero = 0
+                        selectedLegumeNom = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (av.niveau == NiveauRisque.ELEVE) 
+                            MaterialTheme.colorScheme.error 
+                        else 
+                            MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Planter quand même")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAvertissement = false
+                    avertissement = null
+                    selectedLegumeNom = null
                 }) {
                     Text("Annuler")
                 }
