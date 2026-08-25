@@ -27,5 +27,7 @@ data class CarreEntity(
     val datePlantationCase6: Long? = null,
     val datePlantationCase7: Long? = null,
     val datePlantationCase8: Long? = null,
-    val datePlantationCase9: Long? = null
+    val datePlantationCase9: Long? = null,
+    val anneeCulture: Int = 0,
+    val famillesPlantees: String = ""
 )
