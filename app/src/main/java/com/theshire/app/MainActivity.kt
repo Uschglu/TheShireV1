@@ -53,19 +53,16 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
 import com.theshire.app.data.AdventiceEntity
-import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LocalisationRepository
 import com.theshire.app.data.LuneRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
-import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
-import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
@@ -806,6 +803,26 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
                     Text("Fermer")
                 }
             }
+        )
+    }
+}
+
+@Composable
+fun LigneLegende(emoji: String, description: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = emoji,
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
