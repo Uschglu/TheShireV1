@@ -74,6 +74,7 @@ import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -332,10 +333,10 @@ fun AccueilScreen(
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("") }
     
-    // ✅ CORRECTION : Utiliser SharedPreferences pour persister l'URI de la photo
+    // ✅ CORRECTION : Utiliser SharedPreferences pour persister le chemin de la photo
     val prefs = remember { context.getSharedPreferences("jardin_prefs", Context.MODE_PRIVATE) }
-    var imageUriString by remember { mutableStateOf(prefs.getString("photo_uri", null)) }
-    val imageUri = imageUriString?.let { Uri.parse(it) }
+    var imagePath by remember { mutableStateOf(prefs.getString("photo_path", null)) }
+    val imageFile = imagePath?.let { File(it) }
     
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
@@ -350,17 +351,21 @@ fun AccueilScreen(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
-            val bytes = java.io.ByteArrayOutputStream()
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, bytes)
-            val path = MediaStore.Images.Media.insertImage(
-                context.contentResolver,
-                bitmap,
-                "Photo_Jardin",
-                null
-            )
-            // ✅ CORRECTION : Sauvegarder l'URI dans SharedPreferences
-            prefs.edit().putString("photo_uri", path).apply()
-            imageUriString = path
+            try {
+                // ✅ CORRECTION : Sauvegarder le bitmap dans le stockage interne
+                val fileName = "photo_jardin_${System.currentTimeMillis()}.jpg"
+                val outputFile = File(context.filesDir, fileName)
+                
+                outputFile.outputStream().use { output ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
+                }
+                
+                val localPath = outputFile.absolutePath
+                prefs.edit().putString("photo_path", localPath).apply()
+                imagePath = localPath
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
@@ -368,9 +373,24 @@ fun AccueilScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            // ✅ CORRECTION : Sauvegarder l'URI dans SharedPreferences
-            prefs.edit().putString("photo_uri", uri.toString()).apply()
-            imageUriString = uri.toString()
+            try {
+                // ✅ CORRECTION : Copier l'image dans le stockage interne
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val fileName = "photo_jardin_${System.currentTimeMillis()}.jpg"
+                val outputFile = File(context.filesDir, fileName)
+                
+                inputStream?.use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                val localPath = outputFile.absolutePath
+                prefs.edit().putString("photo_path", localPath).apply()
+                imagePath = localPath
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
@@ -516,11 +536,11 @@ fun AccueilScreen(
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                if (imageUri != null) {
+                if (imageFile != null && imageFile.exists()) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
                         AsyncImage(
-                            model = imageUri,
+                            model = imageFile,
                             contentDescription = "Photo du jardin",
                             imageLoader = imageLoader,
                             modifier = Modifier
@@ -695,16 +715,21 @@ fun AccueilScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    if (imageUri != null) {
+                    if (imageFile != null && imageFile.exists()) {
                         HorizontalDivider()
                         Text(
                             text = "🗑️ Supprimer la photo",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    // ✅ CORRECTION : Supprimer l'URI des SharedPreferences
-                                    prefs.edit().remove("photo_uri").apply()
-                                    imageUriString = null
+                                    // ✅ CORRECTION : Supprimer le fichier et l'entrée dans SharedPreferences
+                                    try {
+                                        imageFile.delete()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                    prefs.edit().remove("photo_path").apply()
+                                    imagePath = null
                                     showPhotoDialog = false
                                 }
                                 .padding(16.dp),
