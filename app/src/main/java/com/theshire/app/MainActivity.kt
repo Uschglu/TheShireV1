@@ -1,6 +1,7 @@
 package com.theshire.app
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -330,7 +331,12 @@ fun AccueilScreen(
     
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // ✅ CORRECTION : Utiliser SharedPreferences pour persister l'URI de la photo
+    val prefs = remember { context.getSharedPreferences("jardin_prefs", Context.MODE_PRIVATE) }
+    var imageUriString by remember { mutableStateOf(prefs.getString("photo_uri", null)) }
+    val imageUri = imageUriString?.let { Uri.parse(it) }
+    
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
@@ -352,7 +358,9 @@ fun AccueilScreen(
                 "Photo_Jardin",
                 null
             )
-            imageUri = Uri.parse(path)
+            // ✅ CORRECTION : Sauvegarder l'URI dans SharedPreferences
+            prefs.edit().putString("photo_uri", path).apply()
+            imageUriString = path
         }
     }
     
@@ -360,7 +368,9 @@ fun AccueilScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            imageUri = uri
+            // ✅ CORRECTION : Sauvegarder l'URI dans SharedPreferences
+            prefs.edit().putString("photo_uri", uri.toString()).apply()
+            imageUriString = uri.toString()
         }
     }
     
@@ -692,7 +702,9 @@ fun AccueilScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    imageUri = null
+                                    // ✅ CORRECTION : Supprimer l'URI des SharedPreferences
+                                    prefs.edit().remove("photo_uri").apply()
+                                    imageUriString = null
                                     showPhotoDialog = false
                                 }
                                 .padding(16.dp),
