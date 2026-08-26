@@ -350,7 +350,6 @@ fun AccueilScreen(
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("") }
     
-    // ✅ CORRECTION : Utiliser SharedPreferences pour persister le chemin de la photo
     val prefs = remember { context.getSharedPreferences("jardin_prefs", Context.MODE_PRIVATE) }
     var imagePath by remember { mutableStateOf(prefs.getString("photo_path", null)) }
     val imageFile = imagePath?.let { File(it) }
@@ -385,7 +384,6 @@ fun AccueilScreen(
         }
     }
     
-    // ✅ Utiliser GetContent pour la galerie
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -1023,10 +1021,23 @@ fun AdventicesScreen(onBack: () -> Unit) {
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = adventice.emoji,
-                                style = MaterialTheme.typography.headlineMedium
-                            )
+                            // ✅ Afficher la miniature de l'image si disponible
+                            if (adventice.imageUrl.isNotEmpty()) {
+                                val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                                AsyncImage(
+                                    model = adventice.imageUrl,
+                                    contentDescription = adventice.nom,
+                                    imageLoader = imageLoader,
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            } else {
+                                Text(
+                                    text = adventice.emoji,
+                                    style = MaterialTheme.typography.headlineMedium
+                                )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -1061,6 +1072,8 @@ fun AdventiceDetailScreen(
     adventice: AdventiceEntity,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1094,15 +1107,26 @@ fun AdventiceDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = adventice.emoji,
-                        style = MaterialTheme.typography.displayLarge
-                    )
+                    // ✅ Afficher l'image si disponible, sinon l'emoji
+                    if (adventice.imageUrl.isNotEmpty()) {
+                        val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                        AsyncImage(
+                            model = adventice.imageUrl,
+                            contentDescription = adventice.nom,
+                            imageLoader = imageLoader,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            text = adventice.emoji,
+                            style = MaterialTheme.typography.displayLarge
+                        )
+                    }
                 }
             }
             item { InfoCard("Nom scientifique", adventice.nomScientifique) }
@@ -2730,16 +2754,27 @@ fun LegumeDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(200.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = getEmojiCategorie(legume.categorie),
-                            style = MaterialTheme.typography.displayLarge,
-                            modifier = Modifier.size(100.dp)
-                        )
+                        // ✅ Afficher l'image si disponible, sinon l'emoji
+                        if (legume.imageUrl.isNotEmpty()) {
+                            val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                            AsyncImage(
+                                model = legume.imageUrl,
+                                contentDescription = legume.nom,
+                                imageLoader = imageLoader,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Text(
+                                text = getEmojiCategorie(legume.categorie),
+                                style = MaterialTheme.typography.displayLarge,
+                                modifier = Modifier.size(100.dp)
+                            )
+                        }
                     }
                 }
                 
