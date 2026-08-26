@@ -392,8 +392,9 @@ fun AccueilScreen(
         }
     }
     
+    // ✅ CORRECTION : Utiliser GetContent au lieu de PickVisualMedia
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
+        contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             try {
@@ -728,11 +729,8 @@ fun AccueilScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showPhotoDialog = false
-                                galleryLauncher.launch(
-                                    PickVisualMediaRequest(
-                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                    )
-                                )
+                                // ✅ CORRECTION : Utiliser GetContent
+                                galleryLauncher.launch("image/*")
                             }
                             .padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge,
