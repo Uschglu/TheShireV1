@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,6 +65,8 @@ import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
+import com.theshire.app.data.PlantIdentification
+import com.theshire.app.data.PlantNetRepository
 import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
@@ -773,7 +776,7 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
     }
 }
 
-// ============== BIBLIOTHÈQUE (avec 3 onglets : Plantes / Mauvaises herbes / Reconnaissance) ==============
+// ============== BIBLIOTHÈQUE (avec 3 onglets) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -963,28 +966,47 @@ fun LigneLegende(emoji: String, description: String) {
     }
 }
 
-// ============== NOUVEL ÉCRAN : RECONNAISSANCE DE PLANTES ==============
+// ============== RECONNAISSANCE DE PLANTES ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReconnaissanceScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val plantNetRepository = remember { PlantNetRepository() }
+    
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var showResult by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
+    var identifications by remember { mutableStateOf<List<PlantIdentification>>(emptyList()) }
+    var showError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
     
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
-            // Sauvegarder le bitmap dans un fichier temporaire
             val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
             val outputFile = File(context.cacheDir, fileName)
             outputFile.outputStream().use { output ->
                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
             }
             imageUri = Uri.fromFile(outputFile)
-            isAnalyzing = true
-            showResult = false
+            identifications = emptyList()
+            showError = false
+            
+            scope.launch {
+                isAnalyzing = true
+                try {
+                    identifications = plantNetRepository.identifierPlante(outputFile)
+                    if (identifications.isEmpty()) {
+                        showError = true
+                        errorMessage = "Impossible d'identifier la plante. Essayez avec une photo plus nette."
+                    }
+                } catch (e: Exception) {
+                    showError = true
+                    errorMessage = "Erreur : ${e.message}"
+                }
+                isAnalyzing = false
+            }
         }
     }
     
@@ -992,9 +1014,38 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
-            imageUri = uri
-            isAnalyzing = true
-            showResult = false
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
+                val outputFile = File(context.cacheDir, fileName)
+                
+                inputStream?.use { input ->
+                    outputFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                imageUri = Uri.fromFile(outputFile)
+                identifications = emptyList()
+                showError = false
+                
+                scope.launch {
+                    isAnalyzing = true
+                    try {
+                        identifications = plantNetRepository.identifierPlante(outputFile)
+                        if (identifications.isEmpty()) {
+                            showError = true
+                            errorMessage = "Impossible d'identifier la plante. Essayez avec une photo plus nette."
+                        }
+                    } catch (e: Exception) {
+                        showError = true
+                        errorMessage = "Erreur : ${e.message}"
+                    }
+                    isAnalyzing = false
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
@@ -1076,7 +1127,6 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         if (imageUri != null) {
-                            // Afficher l'image sélectionnée
                             val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
                             AsyncImage(
                                 model = imageUri,
@@ -1148,6 +1198,83 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Galerie")
+                    }
+                }
+            }
+            
+            if (identifications.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "🔍 Résultats de l'identification :",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                identifications.forEach { identification ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (identification.imageUrl.isNotEmpty()) {
+                                    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                                    AsyncImage(
+                                        model = identification.imageUrl,
+                                        contentDescription = identification.nom,
+                                        imageLoader = imageLoader,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = identification.nom,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = identification.nomScientifique,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontStyle = FontStyle.Italic
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Confiance : ${(identification.probabilite * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (showError) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -1799,7 +1926,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     }
 }
 
-// ============== JARDIN - ANALYSE DU SOL (avec explications et conseils) ==============
+// ============== JARDIN - ANALYSE DU SOL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
