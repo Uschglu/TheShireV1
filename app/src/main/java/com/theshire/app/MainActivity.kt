@@ -773,7 +773,7 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
     }
 }
 
-// ============== BIBLIOTHÈQUE (avec onglets Plantes / Mauvaises herbes) ==============
+// ============== BIBLIOTHÈQUE (avec 3 onglets : Plantes / Mauvaises herbes / Reconnaissance) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -781,7 +781,11 @@ fun BibliothequeScreen(onBack: () -> Unit) {
     
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
-            selectedTabIndex = if (selectedOnglet == "plantes") 0 else 1,
+            selectedTabIndex = when(selectedOnglet) {
+                "plantes" -> 0
+                "mauvaises" -> 1
+                else -> 2
+            },
             containerColor = MaterialTheme.colorScheme.primary
         ) {
             Tab(
@@ -791,6 +795,7 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                     Text(
                         "🌱 Plantes",
                         fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
                         color = if (selectedOnglet == "plantes") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                     )
                 }
@@ -800,18 +805,31 @@ fun BibliothequeScreen(onBack: () -> Unit) {
                 onClick = { selectedOnglet = "mauvaises" },
                 text = { 
                     Text(
-                        "🌿 Mauvaises herbes",
+                        "🌿 Mauvaises",
                         fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
                         color = if (selectedOnglet == "mauvaises") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedOnglet == "reconnaissance",
+                onClick = { selectedOnglet = "reconnaissance" },
+                text = { 
+                    Text(
+                        "📸 Identifier",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedOnglet == "reconnaissance") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                     )
                 }
             )
         }
         
-        if (selectedOnglet == "plantes") {
-            BibliothequePlantesScreen(onBack = onBack)
-        } else {
-            AdventicesScreen(onBack = onBack)
+        when (selectedOnglet) {
+            "plantes" -> BibliothequePlantesScreen(onBack = onBack)
+            "mauvaises" -> AdventicesScreen(onBack = onBack)
+            else -> ReconnaissanceScreen(onBack = onBack)
         }
     }
 }
@@ -945,6 +963,222 @@ fun LigneLegende(emoji: String, description: String) {
     }
 }
 
+// ============== NOUVEL ÉCRAN : RECONNAISSANCE DE PLANTES ==============
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReconnaissanceScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var showResult by remember { mutableStateOf(false) }
+    var isAnalyzing by remember { mutableStateOf(false) }
+    
+    val photoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            // Sauvegarder le bitmap dans un fichier temporaire
+            val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
+            val outputFile = File(context.cacheDir, fileName)
+            outputFile.outputStream().use { output ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
+            }
+            imageUri = Uri.fromFile(outputFile)
+            isAnalyzing = true
+            showResult = false
+        }
+    }
+    
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            imageUri = uri
+            isAnalyzing = true
+            showResult = false
+        }
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text("Identifier une plante 📸", fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { innerPadding ->
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Science,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Reconnaissance de plantes",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Prenez une photo d'une plante inconnue et l'application l'identifiera automatiquement grâce à Pl@ntNet",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        if (imageUri != null) {
+                            // Afficher l'image sélectionnée
+                            val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                            AsyncImage(
+                                model = imageUri,
+                                contentDescription = "Plante à identifier",
+                                imageLoader = imageLoader,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (isAnalyzing) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Analyse en cours...",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        } else {
+                            Icon(
+                                Icons.Default.PhotoCamera,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Aucune photo sélectionnée",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { photoLauncher.launch(null) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Prendre photo")
+                    }
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Galerie")
+                    }
+                }
+            }
+            
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "💡 Astuce",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "• Prenez la photo en plein jour\n• Cadrez bien la feuille ou la fleur\n• Évitez le flou\n• Plus la photo est nette, meilleure est l'identification",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============== ADVENTICES ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdventicesScreen(onBack: () -> Unit) {
@@ -1021,23 +1255,10 @@ fun AdventicesScreen(onBack: () -> Unit) {
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // ✅ Afficher la miniature de l'image si disponible
-                            if (adventice.imageUrl.isNotEmpty()) {
-                                val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                                AsyncImage(
-                                    model = adventice.imageUrl,
-                                    contentDescription = adventice.nom,
-                                    imageLoader = imageLoader,
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                            } else {
-                                Text(
-                                    text = adventice.emoji,
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
-                            }
+                            Text(
+                                text = adventice.emoji,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -1072,8 +1293,6 @@ fun AdventiceDetailScreen(
     adventice: AdventiceEntity,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -1107,26 +1326,15 @@ fun AdventiceDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        .height(120.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    // ✅ Afficher l'image si disponible, sinon l'emoji
-                    if (adventice.imageUrl.isNotEmpty()) {
-                        val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                        AsyncImage(
-                            model = adventice.imageUrl,
-                            contentDescription = adventice.nom,
-                            imageLoader = imageLoader,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Text(
-                            text = adventice.emoji,
-                            style = MaterialTheme.typography.displayLarge
-                        )
-                    }
+                    Text(
+                        text = adventice.emoji,
+                        style = MaterialTheme.typography.displayLarge
+                    )
                 }
             }
             item { InfoCard("Nom scientifique", adventice.nomScientifique) }
@@ -2754,27 +2962,16 @@ fun LegumeDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(150.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        // ✅ Afficher l'image si disponible, sinon l'emoji
-                        if (legume.imageUrl.isNotEmpty()) {
-                            val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                            AsyncImage(
-                                model = legume.imageUrl,
-                                contentDescription = legume.nom,
-                                imageLoader = imageLoader,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Text(
-                                text = getEmojiCategorie(legume.categorie),
-                                style = MaterialTheme.typography.displayLarge,
-                                modifier = Modifier.size(100.dp)
-                            )
-                        }
+                        Text(
+                            text = getEmojiCategorie(legume.categorie),
+                            style = MaterialTheme.typography.displayLarge,
+                            modifier = Modifier.size(100.dp)
+                        )
                     }
                 }
                 
