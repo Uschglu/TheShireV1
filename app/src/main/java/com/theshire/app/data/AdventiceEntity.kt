@@ -12,5 +12,6 @@ data class AdventiceEntity(
     val description: String,
     val indicationSol: String,
     val typeSol: String,
-    val emoji: String
+    val emoji: String,
+    val imageUrl: String = ""
 )
