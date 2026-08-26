@@ -111,6 +111,29 @@ class MainActivity : ComponentActivity() {
             }
         }
         
+        // ✅ AJOUT : Demander la permission pour accéder aux images
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ : Nouvelle permission
+            if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != 
+                PackageManager.PERMISSION_GRANTED) {
+                
+                requestPermissions(
+                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
+                    300
+                )
+            }
+        } else {
+            // Android 12 et moins : Ancienne permission
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != 
+                PackageManager.PERMISSION_GRANTED) {
+                
+                requestPermissions(
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                    300
+                )
+            }
+        }
+        
         setContent {
             PotagerShireTheme {
                 MainScreen()
