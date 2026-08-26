@@ -84,54 +84,48 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // ✅ Regrouper toutes les permissions dans une liste
+        val permissions = mutableListOf<String>()
+        
+        // Localisation
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
-                PackageManager.PERMISSION_GRANTED &&
-                checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != 
                 PackageManager.PERMISSION_GRANTED) {
-                
-                requestPermissions(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ),
-                    100
-                )
+                permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != 
+                PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
             }
         }
         
+        // Notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 
                 PackageManager.PERMISSION_GRANTED) {
-                
-                requestPermissions(
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    200
-                )
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
         
-        // ✅ AJOUT : Demander la permission pour accéder aux images
+        // Accès aux images
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ : Nouvelle permission
             if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != 
                 PackageManager.PERMISSION_GRANTED) {
-                
-                requestPermissions(
-                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
-                    300
-                )
+                permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
             }
         } else {
-            // Android 12 et moins : Ancienne permission
             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != 
                 PackageManager.PERMISSION_GRANTED) {
-                
-                requestPermissions(
-                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                    300
-                )
+                permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
+        }
+        
+        // Demander toutes les permissions d'un coup
+        if (permissions.isNotEmpty()) {
+            requestPermissions(
+                permissions.toTypedArray(),
+                1000
+            )
         }
         
         setContent {
@@ -375,7 +369,6 @@ fun AccueilScreen(
     ) { bitmap ->
         if (bitmap != null) {
             try {
-                // ✅ CORRECTION : Sauvegarder le bitmap dans le stockage interne
                 val fileName = "photo_jardin_${System.currentTimeMillis()}.jpg"
                 val outputFile = File(context.filesDir, fileName)
                 
@@ -392,13 +385,12 @@ fun AccueilScreen(
         }
     }
     
-    // ✅ CORRECTION : Utiliser GetContent au lieu de PickVisualMedia
+    // ✅ Utiliser GetContent pour la galerie
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             try {
-                // ✅ CORRECTION : Copier l'image dans le stockage interne
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val fileName = "photo_jardin_${System.currentTimeMillis()}.jpg"
                 val outputFile = File(context.filesDir, fileName)
@@ -729,7 +721,6 @@ fun AccueilScreen(
                             .fillMaxWidth()
                             .clickable {
                                 showPhotoDialog = false
-                                // ✅ CORRECTION : Utiliser GetContent
                                 galleryLauncher.launch("image/*")
                             }
                             .padding(16.dp),
@@ -743,7 +734,6 @@ fun AccueilScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    // ✅ CORRECTION : Supprimer le fichier et l'entrée dans SharedPreferences
                                     try {
                                         imageFile.delete()
                                     } catch (e: Exception) {
