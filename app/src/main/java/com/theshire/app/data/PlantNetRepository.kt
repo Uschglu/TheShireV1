@@ -7,7 +7,6 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -16,7 +15,8 @@ data class PlantIdentification(
     val nom: String,
     val nomScientifique: String,
     val probabilite: Double,
-    val imageUrl: String
+    val imageUrl: String,
+    val messageErreur: String = ""
 )
 
 class PlantNetRepository {
@@ -29,7 +29,6 @@ class PlantNetRepository {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
             
-            // ✅ Format correct selon la doc Pl@ntNet
             val requestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart(
@@ -40,7 +39,6 @@ class PlantNetRepository {
                 .addFormDataPart("organs", "auto")
                 .build()
             
-            // ✅ Clé API dans le header (pas dans l'URL)
             val request = Request.Builder()
                 .url("https://my-api.plantnet.org/v2/identify/all")
                 .addHeader("Api-Key", "2b10GvkSWG8oUys4E2QLss3u")
@@ -51,11 +49,24 @@ class PlantNetRepository {
             
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: ""
+                
+                // ✅ Log pour debug
+                android.util.Log.d("PlantNet", "Réponse: ${responseBody.take(200)}")
+                
                 val json = JSONObject(responseBody)
                 val results = json.optJSONArray("results")
                 
                 if (results == null || results.length() == 0) {
-                    return@withContext emptyList()
+                    // ✅ Retourner une identification avec le message d'erreur
+                    return@withContext listOf(
+                        PlantIdentification(
+                            nom = "Erreur",
+                            nomScientifique = "Aucun résultat",
+                            probabilite = 0.0,
+                            imageUrl = "",
+                            messageErreur = "L'API a répondu mais sans résultats. Response: ${responseBody.take(100)}"
+                        )
+                    )
                 }
                 
                 val identifications = mutableListOf<PlantIdentification>()
@@ -94,11 +105,34 @@ class PlantNetRepository {
                 
                 identifications
             } else {
-                emptyList()
+                val errorBody = response.body?.string() ?: ""
+                android.util.Log.e("PlantNet", "Erreur ${response.code}: $errorBody")
+                
+                // ✅ Retourner l'erreur exacte
+                return@withContext listOf(
+                    PlantIdentification(
+                        nom = "Erreur ${response.code}",
+                        nomScientifique = response.message ?: "Inconnu",
+                        probabilite = 0.0,
+                        imageUrl = "",
+                        messageErreur = "Code: ${response.code} - $errorBody"
+                    )
+                )
             }
         } catch (e: Exception) {
+            android.util.Log.e("PlantNet", "Exception: ${e.message}")
             e.printStackTrace()
-            emptyList()
+            
+            // ✅ Retourner l'exception
+            return@withContext listOf(
+                PlantIdentification(
+                    nom = "Exception",
+                    nomScientifique = e.message ?: "Inconnu",
+                    probabilite = 0.0,
+                    imageUrl = "",
+                    messageErreur = "Exception: ${e.message}"
+                )
+            )
         }
     }
 }
