@@ -87,25 +87,36 @@ import java.util.Date
 import java.util.Locale
 
 // 🎨 Nouvelle palette chaleureuse
-val CouleurFond = Color(0xFFFAF6F0)      // Fond crème
-val CouleurCarte = Color(0xFFFFFDF9)      // Cartes blanc crème
-val CouleurVertSauge = Color(0xFF5B8C5A)  // Vert doux
-val CouleurTerracotta = Color(0xFFC67B4B) // Orange chaud
-val CouleurBrunDoux = Color(0xFF8B7355)   // Brun nature
-val CouleurTexte = Color(0xFF2D3A2D)      // Texte vert foncé
+object CouleursApp {
+    val Creme = Color(0xFFFAF6F0)          // Fond crème
+    val Blanc = Color(0xFFFFFDF9)          // Cartes blanc crème
+    val VertPrincipal = Color(0xFF5B8C5A)  // Vert sauge doux
+    val VertClair = Color(0xFF8BC34A)      // Vert clair
+    val VertPale = Color(0xFFE8EFE8)       // Vert très pâle
+    val TexteFonce = Color(0xFF2D3A2D)     // Texte vert foncé
+    val Terracotta = Color(0xFFC67B4B)     // Orange chaud
+    val BrunDoux = Color(0xFF8B7355)       // Brun nature
+}
+
+val CouleurFond = Color(0xFFFAF6F0)
+val CouleurCarte = Color(0xFFFFFDF9)
+val CouleurVertSauge = Color(0xFF5B8C5A)
+val CouleurTerracotta = Color(0xFFC67B4B)
+val CouleurBrunDoux = Color(0xFF8B7355)
+val CouleurTexte = Color(0xFF2D3A2D)
 
 val DegradeFond = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFFFAF6F0),  // Crème en haut
-        Color(0xFFF0F0E8),  // Vert pâle au centre
-        Color(0xFFE8EFE8)   // Vert plus marqué en bas
+        Color(0xFFFAF6F0),
+        Color(0xFFF0F0E8),
+        Color(0xFFE8EFE8)
     )
 )
 
 val DegradeCarte = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFFFFFDF9),  // Blanc crème
-        Color(0xFFF8F4EE)   // Légèrement plus foncé
+        Color(0xFFFFFDF9),
+        Color(0xFFF8F4EE)
     )
 )
 
@@ -290,7 +301,7 @@ fun MainScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CouleursApp.Creme)
+            .background(DegradeFond)
             .pointerInput(currentScreen) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -442,7 +453,6 @@ fun AccueilScreen(
                 .padding(innerPadding)
                 .padding(20.dp)
         ) {
-            // ✅ Carte météo avec dégradé et coins arrondis
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -517,7 +527,6 @@ fun AccueilScreen(
             
             Spacer(modifier = Modifier.height(20.dp))
             
-            // ✅ Carte photo avec coins très arrondis
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -748,7 +757,8 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
         else -> "🌤️"
     }
 }
-// ============== BIBLIOTHÈQUE (avec 3 onglets) ==============
+
+// ============== BIBLIOTHÈQUE ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
@@ -1292,6 +1302,7 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
         }
     }
 }
+
 // ============== ADVENTICES ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1464,7 +1475,7 @@ fun AdventiceDetailScreen(
     }
 }
 
-// ============== JARDIN (avec onglets) ==============
+// ============== JARDIN ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
@@ -1923,6 +1934,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
         )
     }
 }
+
 // ============== JARDIN - ANALYSE DU SOL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2676,7 +2688,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 MeteoCard(meteo, ville, estConnecte, phaseLune)
             }
             
-            // ✅ Calendrier mensuel
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -2685,7 +2696,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        // En-tête avec navigation mois
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2721,7 +2731,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        // Jours de la semaine
                         Row(modifier = Modifier.fillMaxWidth()) {
                             listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { jour ->
                                 Text(
@@ -2737,7 +2746,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Grille du calendrier
                         val cal = java.util.Calendar.getInstance()
                         cal.set(currentYear, currentMonth, 1)
                         val firstDayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
@@ -2788,7 +2796,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 }
             }
             
-            // ✅ Plantes plantées
             item {
                 Text(
                     text = "Plantes plantées (${legumesPlantes.size}) :",
