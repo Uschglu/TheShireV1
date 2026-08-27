@@ -86,15 +86,28 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// ✅ Couleurs personnalisées
-object CouleursApp {
-    val VertPrincipal = Color(0xFF2E7D32)
-    val VertClair = Color(0xFF81C784)
-    val VertPale = Color(0xFFC8E6C9)
-    val Creme = Color(0xFFFAFAF5)
-    val Blanc = Color(0xFFFFFFFF)
-    val TexteFonce = Color(0xFF1B5E20)
-}
+// 🎨 Nouvelle palette chaleureuse
+val CouleurFond = Color(0xFFFAF6F0)      // Fond crème
+val CouleurCarte = Color(0xFFFFFDF9)      // Cartes blanc crème
+val CouleurVertSauge = Color(0xFF5B8C5A)  // Vert doux
+val CouleurTerracotta = Color(0xFFC67B4B) // Orange chaud
+val CouleurBrunDoux = Color(0xFF8B7355)   // Brun nature
+val CouleurTexte = Color(0xFF2D3A2D)      // Texte vert foncé
+
+val DegradeFond = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFFAF6F0),  // Crème en haut
+        Color(0xFFF0F0E8),  // Vert pâle au centre
+        Color(0xFFE8EFE8)   // Vert plus marqué en bas
+    )
+)
+
+val DegradeCarte = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFFFFDF9),  // Blanc crème
+        Color(0xFFF8F4EE)   // Légèrement plus foncé
+    )
+)
 
 class MainActivity : ComponentActivity() {
     
