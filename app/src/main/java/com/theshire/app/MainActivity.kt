@@ -2808,7 +2808,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     }
 }
-}
 
 @Composable
 fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune: PhaseLune? = null) {
