@@ -1,13 +1,13 @@
 package com.theshire.app.data
 
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -25,23 +25,26 @@ class PlantNetRepository {
         try {
             val client = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(45, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
             
-            val imageBytes = imageFile.readBytes()
-            val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+            // ✅ Format correct selon la doc Pl@ntNet
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "images",
+                    imageFile.name,
+                    imageFile.asRequestBody("image/jpeg".toMediaType())
+                )
+                .addFormDataPart("organs", "auto")
+                .build()
             
-            val jsonBody = JSONObject()
-            jsonBody.put("images", JSONArray().put(base64Image))
-            jsonBody.put("organs", JSONArray().put("auto"))
-            
-            val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaTypeOrNull())
-            
+            // ✅ Clé API dans le header (pas dans l'URL)
             val request = Request.Builder()
-                .url("https://my-api.plantnet.org/v2/identify/all?api-key=2b10GvkSWG8oUys4E2QLss3u")
+                .url("https://my-api.plantnet.org/v2/identify/all")
+                .addHeader("Api-Key", "2b10GvkSWG8oUys4E2QLss3u")
                 .post(requestBody)
-                .header("Content-Type", "application/json")
                 .build()
             
             val response = client.newCall(request).execute()
@@ -56,7 +59,6 @@ class PlantNetRepository {
                 }
                 
                 val identifications = mutableListOf<PlantIdentification>()
-                
                 val nbResults: Int = if (results.length() > 5) 5 else results.length()
                 
                 for (i in 0 until nbResults) {
@@ -64,22 +66,18 @@ class PlantNetRepository {
                         val result = results.getJSONObject(i)
                         val species = result.getJSONObject("species")
                         
-                        // ✅ Utiliser getString() au lieu de optString()
-                        val scientificNameObj = species.optJSONObject("scientificNameWithoutAuthor")
-                        val nomScientifique: String = if (scientificNameObj != null) {
-                            scientificNameObj.optString("stringValue", "Inconnu")
-                        } else {
-                            "Inconnu"
-                        }
+                        val nomScientifique = species
+                            .getJSONObject("scientificNameWithoutAuthor")
+                            .optString("stringValue", "Inconnu")
                         
-                        val commonNamesObj = species.optJSONObject("commonNames")
-                        val nomCommun: String = if (commonNamesObj != null && commonNamesObj.length() > 0) {
-                            commonNamesObj.optString("stringValue", nomScientifique)
+                        val nomsCommuns = species.optJSONObject("commonNames")
+                        val nomCommun = if (nomsCommuns != null && nomsCommuns.length() > 0) {
+                            nomsCommuns.optString("stringValue", nomScientifique)
                         } else {
                             nomScientifique
                         }
                         
-                        val score: Double = result.optDouble("score", 0.0)
+                        val score = result.optDouble("score", 0.0)
                         
                         identifications.add(
                             PlantIdentification(
