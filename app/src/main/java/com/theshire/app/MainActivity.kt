@@ -87,10 +87,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // ✅ Regrouper toutes les permissions dans une liste
         val permissions = mutableListOf<String>()
         
-        // Localisation
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != 
                 PackageManager.PERMISSION_GRANTED) {
@@ -102,7 +100,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // Notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 
                 PackageManager.PERMISSION_GRANTED) {
@@ -110,7 +107,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // Accès aux images
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != 
                 PackageManager.PERMISSION_GRANTED) {
@@ -123,7 +119,6 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // Demander toutes les permissions d'un coup
         if (permissions.isNotEmpty()) {
             requestPermissions(
                 permissions.toTypedArray(),
@@ -143,7 +138,6 @@ class MainActivity : ComponentActivity() {
     private fun planifierNotifications() {
         val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
         
-        // Notification d'arrosage + météo à 18h00
         val intentArrosage = android.content.Intent(this, NotificationReceiver::class.java)
         intentArrosage.putExtra("type", "arrosage")
         val pendingIntentArrosage = android.app.PendingIntent.getBroadcast(
@@ -169,7 +163,6 @@ class MainActivity : ComponentActivity() {
             pendingIntentArrosage
         )
         
-        // Notification d'opérations culturales à 8h00
         val intentOperations = android.content.Intent(this, NotificationReceiver::class.java)
         intentOperations.putExtra("type", "operations")
         val pendingIntentOperations = android.app.PendingIntent.getBroadcast(
@@ -225,8 +218,31 @@ object ImageLoaderProvider {
 @Composable
 fun MainScreen() {
     var currentScreen by rememberSaveable { mutableStateOf("accueil") }
+    val context = LocalContext.current
+    var lastBackPressTime by remember { mutableStateOf(0L) }
     
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
+    
+    // ✅ Gestion du bouton retour avec double appui pour quitter
+    androidx.activity.compose.BackHandler {
+        val currentIndex = screens.indexOf(currentScreen)
+        
+        if (currentIndex > 0) {
+            currentScreen = screens[currentIndex - 1]
+        } else {
+            val now = System.currentTimeMillis()
+            if (now - lastBackPressTime < 2000) {
+                (context as? android.app.Activity)?.finish()
+            } else {
+                lastBackPressTime = now
+                android.widget.Toast.makeText(
+                    context,
+                    "Appuyez encore pour quitter",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
     
     fun goToNext() {
         val currentIndex = screens.indexOf(currentScreen)
@@ -1220,41 +1236,26 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                                 containerColor = MaterialTheme.colorScheme.primaryContainer
                             )
                         ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                if (identification.imageUrl.isNotEmpty()) {
-                                    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                                    AsyncImage(
-                                        model = identification.imageUrl,
-                                        contentDescription = identification.nom,
-                                        imageLoader = imageLoader,
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = identification.nom,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = identification.nomScientifique,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontStyle = FontStyle.Italic
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Confiance : ${(identification.probabilite * 100).toInt()}%",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                Text(
+                                    text = identification.nom,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = identification.nomScientifique,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontStyle = FontStyle.Italic
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Confiance : ${(identification.probabilite * 100).toInt()}%",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
