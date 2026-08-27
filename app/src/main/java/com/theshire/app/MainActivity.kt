@@ -460,37 +460,8 @@ fun AccueilScreen(
         }
     }
     
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToBibliotheque,
-                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Bibliothèque") },
-                    label = { Text("Biblio", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToJardin,
-                    icon = { Icon(Icons.Default.GridView, contentDescription = "Jardin") },
-                    label = { Text("Jardin", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToCalendrier,
-                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendrier") },
-                    label = { Text("Calend.", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToConservation,
-                    icon = { Icon(Icons.Default.Kitchen, contentDescription = "Conservation") },
-                    label = { Text("Conserv.", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
-                )
-            }
+    Scaffold()
+    
         }
     ) { innerPadding ->
         
