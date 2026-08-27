@@ -21,11 +21,6 @@ data class PlantIdentification(
 
 class PlantNetRepository {
     
-    companion object {
-        private const val API_KEY = "2b10GvkSWG8oUys4E2QLss3u"
-        private const val API_URL = "https://my-api.plantnet.org/v2/identify/all"
-    }
-    
     suspend fun identifierPlante(imageFile: File): List<PlantIdentification> = withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder()
@@ -34,7 +29,6 @@ class PlantNetRepository {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
             
-            // Envoi en Base64 (JSON)
             val imageBytes = imageFile.readBytes()
             val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
             
@@ -46,7 +40,7 @@ class PlantNetRepository {
             val requestBody = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
             
             val request = Request.Builder()
-                .url("$API_URL?api-key=$API_KEY")
+                .url("https://my-api.plantnet.org/v2/identify/all?api-key=2b10GvkSWG8oUys4E2QLss3u")
                 .post(requestBody)
                 .header("Content-Type", "application/json")
                 .build()
@@ -64,7 +58,10 @@ class PlantNetRepository {
                 
                 val identifications = mutableListOf<PlantIdentification>()
                 
-                for (i in 0 until minOf(results.length(), 5)) {
+                // ✅ CORRECTION : Utiliser une variable Int explicite
+                val nbResults: Int = if (results.length() > 5) 5 else results.length()
+                
+                for (i in 0 until nbResults) {
                     try {
                         val result = results.getJSONObject(i)
                         val species = result.getJSONObject("species")
