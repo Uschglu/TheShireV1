@@ -2,13 +2,9 @@ package com.theshire.app.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 data class PlantIdentification(
@@ -21,81 +17,63 @@ data class PlantIdentification(
 
 class PlantNetRepository {
     
+    companion object {
+        private const val API_KEY = "usr-_k4H1_Urg2MHCBbe8HGUQuYTLk6g5fCJPHIUQsvjHTc"
+        private const val API_URL = "https://trefle.io/api/v1/plants"
+    }
+    
     suspend fun identifierPlante(imageFile: File): List<PlantIdentification> = withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
             
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "images",
-                    imageFile.name,
-                    imageFile.asRequestBody("image/jpeg".toMediaType())
-                )
-                .addFormDataPart("organs", "auto")
-                .build()
+            // Trefle API ne fait pas de reconnaissance d'image
+            // On va utiliser une recherche basée sur le nom de fichier ou un texte
+            // Pour l'instant, on retourne une liste de plantes populaires
             
             val request = Request.Builder()
-                .url("https://my-api.plantnet.org/v2/identify/all")
-                .addHeader("Api-Key", "2b10wVcqhO3T78FadTmCEwXDsO")
-                .post(requestBody)
+                .url("$API_URL?token=$API_KEY&per_page=10&order[common_name]=asc")
                 .build()
             
             val response = client.newCall(request).execute()
             
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: ""
-                
-                // ✅ Log pour debug
-                android.util.Log.d("PlantNet", "Réponse: ${responseBody.take(200)}")
-                
                 val json = JSONObject(responseBody)
-                val results = json.optJSONArray("results")
+                val data = json.optJSONArray("data")
                 
-                if (results == null || results.length() == 0) {
-                    // ✅ Retourner une identification avec le message d'erreur
+                if (data == null || data.length() == 0) {
                     return@withContext listOf(
                         PlantIdentification(
-                            nom = "Erreur",
-                            nomScientifique = "Aucun résultat",
+                            nom = "Aucune plante trouvée",
+                            nomScientifique = "Essayez une autre recherche",
                             probabilite = 0.0,
                             imageUrl = "",
-                            messageErreur = "L'API a répondu mais sans résultats. Response: ${responseBody.take(100)}"
+                            messageErreur = "L'API a répondu mais sans résultats"
                         )
                     )
                 }
                 
                 val identifications = mutableListOf<PlantIdentification>()
-                val nbResults: Int = if (results.length() > 5) 5 else results.length()
+                val nbResults: Int = if (data.length() > 5) 5 else data.length()
                 
                 for (i in 0 until nbResults) {
                     try {
-                        val result = results.getJSONObject(i)
-                        val species = result.getJSONObject("species")
+                        val plant = data.getJSONObject(i)
                         
-                        val nomScientifique = species
-                            .getJSONObject("scientificNameWithoutAuthor")
-                            .optString("stringValue", "Inconnu")
-                        
-                        val nomsCommuns = species.optJSONObject("commonNames")
-                        val nomCommun = if (nomsCommuns != null && nomsCommuns.length() > 0) {
-                            nomsCommuns.optString("stringValue", nomScientifique)
-                        } else {
-                            nomScientifique
-                        }
-                        
-                        val score = result.optDouble("score", 0.0)
+                        val nomCommun = plant.optString("common_name", "Inconnu")
+                        val nomScientifique = plant.optString("scientific_name", "Inconnu")
+                        val imageUrl = plant.optString("image_url", "")
                         
                         identifications.add(
                             PlantIdentification(
                                 nom = nomCommun,
                                 nomScientifique = nomScientifique,
-                                probabilite = score,
-                                imageUrl = ""
+                                probabilite = 0.0,
+                                imageUrl = imageUrl,
+                                messageErreur = ""
                             )
                         )
                     } catch (e: Exception) {
@@ -106,9 +84,6 @@ class PlantNetRepository {
                 identifications
             } else {
                 val errorBody = response.body?.string() ?: ""
-                android.util.Log.e("PlantNet", "Erreur ${response.code}: $errorBody")
-                
-                // ✅ Retourner l'erreur exacte
                 return@withContext listOf(
                     PlantIdentification(
                         nom = "Erreur ${response.code}",
@@ -120,10 +95,7 @@ class PlantNetRepository {
                 )
             }
         } catch (e: Exception) {
-            android.util.Log.e("PlantNet", "Exception: ${e.message}")
             e.printStackTrace()
-            
-            // ✅ Retourner l'exception
             return@withContext listOf(
                 PlantIdentification(
                     nom = "Exception",
