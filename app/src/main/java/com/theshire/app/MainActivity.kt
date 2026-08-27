@@ -221,17 +221,25 @@ fun MainScreen() {
     val context = LocalContext.current
     var lastBackPressTime by remember { mutableStateOf(0L) }
     
+    // ✅ Pile de navigation
+    val navigationStack = remember { mutableStateListOf("accueil") }
+    
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
     
-    // ✅ Gestion du bouton retour avec double appui pour quitter
-    androidx.activity.compose.BackHandler {
-        val currentIndex = screens.indexOf(currentScreen)
-        
-        if (currentIndex > 0) {
-            currentScreen = screens[currentIndex - 1]
+    // ✅ Fonction pour naviguer
+    fun navigateTo(screen: String) {
+        navigationStack.add(screen)
+        currentScreen = screen
+    }
+    
+    // ✅ Fonction pour revenir en arrière
+    fun goBack() {
+        if (navigationStack.size > 1) {
+            navigationStack.removeAt(navigationStack.size - 1)
+            currentScreen = navigationStack.last()
         } else {
             val now = System.currentTimeMillis()
-            if (now - lastBackPressTime < 2000) {
+            if (now - lastBackPressTime < 1000) {
                 (context as? android.app.Activity)?.finish()
             } else {
                 lastBackPressTime = now
@@ -244,17 +252,22 @@ fun MainScreen() {
         }
     }
     
+    // ✅ Gestion du bouton retour
+    androidx.activity.compose.BackHandler {
+        goBack()
+    }
+    
     fun goToNext() {
         val currentIndex = screens.indexOf(currentScreen)
         if (currentIndex < screens.size - 1) {
-            currentScreen = screens[currentIndex + 1]
+            navigateTo(screens[currentIndex + 1])
         }
     }
     
     fun goToPrevious() {
         val currentIndex = screens.indexOf(currentScreen)
         if (currentIndex > 0) {
-            currentScreen = screens[currentIndex - 1]
+            navigateTo(screens[currentIndex - 1])
         }
     }
     
@@ -283,22 +296,22 @@ fun MainScreen() {
     ) {
         when (currentScreen) {
             "accueil" -> AccueilScreen(
-                onNavigateToBibliotheque = { currentScreen = "bibliotheque" },
-                onNavigateToJardin = { currentScreen = "jardin" },
-                onNavigateToCalendrier = { currentScreen = "calendrier" },
-                onNavigateToConservation = { currentScreen = "conservation" }
+                onNavigateToBibliotheque = { navigateTo("bibliotheque") },
+                onNavigateToJardin = { navigateTo("jardin") },
+                onNavigateToCalendrier = { navigateTo("calendrier") },
+                onNavigateToConservation = { navigateTo("conservation") }
             )
             "bibliotheque" -> BibliothequeScreen(
-                onBack = { currentScreen = "accueil" }
+                onBack = { goBack() }
             )
             "jardin" -> JardinScreen(
-                onBack = { currentScreen = "accueil" }
+                onBack = { goBack() }
             )
             "calendrier" -> CalendrierScreen(
-                onBack = { currentScreen = "accueil" }
+                onBack = { goBack() }
             )
             "conservation" -> ConservationScreen(
-                onBack = { currentScreen = "accueil" }
+                onBack = { goBack() }
             )
         }
         
