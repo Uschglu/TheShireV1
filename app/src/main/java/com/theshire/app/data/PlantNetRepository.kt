@@ -33,11 +33,10 @@ class PlantNetRepository {
             val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
             
             val jsonBody = JSONObject()
-                .put("images", JSONArray().put(base64Image))
-                .put("organs", JSONArray().put("auto"))
-                .toString()
+            jsonBody.put("images", JSONArray().put(base64Image))
+            jsonBody.put("organs", JSONArray().put("auto"))
             
-            val requestBody = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
+            val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaTypeOrNull())
             
             val request = Request.Builder()
                 .url("https://my-api.plantnet.org/v2/identify/all?api-key=2b10GvkSWG8oUys4E2QLss3u")
@@ -58,7 +57,6 @@ class PlantNetRepository {
                 
                 val identifications = mutableListOf<PlantIdentification>()
                 
-                // ✅ CORRECTION : Utiliser une variable Int explicite
                 val nbResults: Int = if (results.length() > 5) 5 else results.length()
                 
                 for (i in 0 until nbResults) {
@@ -66,18 +64,22 @@ class PlantNetRepository {
                         val result = results.getJSONObject(i)
                         val species = result.getJSONObject("species")
                         
-                        val nomScientifique = species
-                            .getJSONObject("scientificNameWithoutAuthor")
-                            .optString("stringValue", "Inconnu")
+                        // ✅ Utiliser getString() au lieu de optString()
+                        val scientificNameObj = species.optJSONObject("scientificNameWithoutAuthor")
+                        val nomScientifique: String = if (scientificNameObj != null) {
+                            scientificNameObj.optString("stringValue", "Inconnu")
+                        } else {
+                            "Inconnu"
+                        }
                         
-                        val nomsCommuns = species.optJSONObject("commonNames")
-                        val nomCommun = if (nomsCommuns != null && nomsCommuns.length() > 0) {
-                            nomsCommuns.getJSONObject(0).optString("stringValue", nomScientifique)
+                        val commonNamesObj = species.optJSONObject("commonNames")
+                        val nomCommun: String = if (commonNamesObj != null && commonNamesObj.length() > 0) {
+                            commonNamesObj.optString("stringValue", nomScientifique)
                         } else {
                             nomScientifique
                         }
                         
-                        val score = result.optDouble("score", 0.0)
+                        val score: Double = result.optDouble("score", 0.0)
                         
                         identifications.add(
                             PlantIdentification(
