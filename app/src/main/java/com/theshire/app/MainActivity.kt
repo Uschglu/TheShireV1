@@ -404,7 +404,7 @@ fun AccueilScreen(
                 val outputFile = File(context.filesDir, fileName)
                 
                 outputFile.outputStream().use { output ->
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, output)
                 }
                 
                 val localPath = outputFile.absolutePath
