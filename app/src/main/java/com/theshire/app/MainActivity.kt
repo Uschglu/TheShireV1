@@ -2663,6 +2663,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 MeteoCard(meteo, ville, estConnecte, phaseLune)
             }
             
+            // ✅ Calendrier mensuel
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -2670,10 +2671,111 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     shape = RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    // ... contenu du calendrier identique
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        // En-tête avec navigation mois
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = {
+                                if (currentMonth == 0) {
+                                    currentMonth = 11
+                                    currentYear--
+                                } else {
+                                    currentMonth--
+                                }
+                            }) {
+                                Text("◀", fontSize = MaterialTheme.typography.titleLarge.fontSize)
+                            }
+                            Text(
+                                text = "${moisNoms[currentMonth]} $currentYear",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.TexteFonce
+                            )
+                            TextButton(onClick = {
+                                if (currentMonth == 11) {
+                                    currentMonth = 0
+                                    currentYear++
+                                } else {
+                                    currentMonth++
+                                }
+                            }) {
+                                Text("▶", fontSize = MaterialTheme.typography.titleLarge.fontSize)
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Jours de la semaine
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { jour ->
+                                Text(
+                                    text = jour,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.VertPrincipal
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Grille du calendrier
+                        val cal = java.util.Calendar.getInstance()
+                        cal.set(currentYear, currentMonth, 1)
+                        val firstDayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
+                        val daysInMonth = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+                        val offset = if (firstDayOfWeek == java.util.Calendar.SUNDAY) 6 else firstDayOfWeek - 2
+                        
+                        val totalCells = offset + daysInMonth
+                        val rows = (totalCells + 6) / 7
+                        
+                        for (row in 0 until rows) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                for (col in 0..6) {
+                                    val dayNumber = row * 7 + col - offset + 1
+                                    if (dayNumber in 1..daysInMonth) {
+                                        val isSelected = dayNumber == selectedDay
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .background(
+                                                    if (isSelected) CouleursApp.VertPrincipal
+                                                    else Color.Transparent,
+                                                    RoundedCornerShape(8.dp)
+                                                )
+                                                .clickable { selectedDay = dayNumber }
+                                                .padding(4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "$dayNumber",
+                                                color = if (isSelected) CouleursApp.Blanc
+                                                        else CouleursApp.TexteFonce,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             
+            // ✅ Plantes plantées
             item {
                 Text(
                     text = "Plantes plantées (${legumesPlantes.size}) :",
@@ -2705,6 +2807,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             }
         }
     }
+}
 }
 
 @Composable
