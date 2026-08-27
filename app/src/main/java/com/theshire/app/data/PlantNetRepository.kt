@@ -41,7 +41,7 @@ class PlantNetRepository {
             
             val request = Request.Builder()
                 .url("https://my-api.plantnet.org/v2/identify/all")
-                .addHeader("Api-Key", "2b10GvkSWG8oUys4E2QLss3u")
+                .addHeader("Api-Key", "2b10wVcqhO3T78FadTmCEwXDsO")
                 .post(requestBody)
                 .build()
             
