@@ -51,22 +51,16 @@ class PlantNetRepository {
                 .header("Content-Type", "application/json")
                 .build()
             
-            println("Envoi a Pl@ntNet...")
             val response = client.newCall(request).execute()
             
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: ""
-                println("Reponse recue (${responseBody.length} caracteres)")
-                
                 val json = JSONObject(responseBody)
                 val results = json.optJSONArray("results")
                 
                 if (results == null || results.length() == 0) {
-                    println("Aucun resultat")
                     return@withContext emptyList()
                 }
-                
-                println("${results.length()} resultats trouves")
                 
                 val identifications = mutableListOf<PlantIdentification>()
                 
@@ -88,8 +82,6 @@ class PlantNetRepository {
                         
                         val score = result.optDouble("score", 0.0)
                         
-                        println("Resultat $i: $nomCommun ($nomScientifique) - ${(score * 100).toInt()}%")
-                        
                         identifications.add(
                             PlantIdentification(
                                 nom = nomCommun,
@@ -99,21 +91,15 @@ class PlantNetRepository {
                             )
                         )
                     } catch (e: Exception) {
-                        println("Erreur parsing resultat $i: ${e.message}")
                         e.printStackTrace()
                     }
                 }
                 
                 identifications
             } else {
-                val errorBody = response.body?.string() ?: ""
-                // ✅ CORRECTION : Utiliser toString() pour éviter le problème de type
-                println("Erreur Pl@ntNet: ${response.code} - ${response.message ?: "Inconnu"}")
-                println("Detail: ${errorBody.take(500)}")
                 emptyList()
             }
         } catch (e: Exception) {
-            println("Exception: ${e.message}")
             e.printStackTrace()
             emptyList()
         }
