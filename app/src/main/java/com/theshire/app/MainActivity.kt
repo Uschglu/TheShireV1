@@ -221,18 +221,15 @@ fun MainScreen() {
     val context = LocalContext.current
     var lastBackPressTime by remember { mutableStateOf(0L) }
     
-    // ✅ Pile de navigation
     val navigationStack = remember { mutableStateListOf("accueil") }
     
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
     
-    // ✅ Fonction pour naviguer
     fun navigateTo(screen: String) {
         navigationStack.add(screen)
         currentScreen = screen
     }
     
-    // ✅ Fonction pour revenir en arrière
     fun goBack() {
         if (navigationStack.size > 1) {
             navigationStack.removeAt(navigationStack.size - 1)
@@ -252,7 +249,6 @@ fun MainScreen() {
         }
     }
     
-    // ✅ Gestion du bouton retour
     androidx.activity.compose.BackHandler {
         goBack()
     }
@@ -404,7 +400,7 @@ fun AccueilScreen(
                 val outputFile = File(context.filesDir, fileName)
                 
                 outputFile.outputStream().use { output ->
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, output)
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
                 }
                 
                 val localPath = outputFile.absolutePath
@@ -995,7 +991,7 @@ fun LigneLegende(emoji: String, description: String) {
     }
 }
 
-// ============== RECONNAISSANCE DE PLANTES ==============
+// ============== RECONNAISSANCE DE PLANTES (iNaturalist) ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReconnaissanceScreen(onBack: () -> Unit) {
@@ -1016,7 +1012,7 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
             val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
             val outputFile = File(context.cacheDir, fileName)
             outputFile.outputStream().use { output ->
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, output)
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, output)
             }
             imageUri = Uri.fromFile(outputFile)
             identifications = emptyList()
@@ -1135,7 +1131,7 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Prenez une photo d'une plante inconnue et l'application l'identifiera automatiquement grâce à Pl@ntNet",
+                            text = "Prenez une photo d'une plante inconnue et l'application l'identifiera automatiquement",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1246,12 +1242,13 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = if (identification.messageErreur.isNotEmpty()) 
+                                    MaterialTheme.colorScheme.errorContainer 
+                                else 
+                                    MaterialTheme.colorScheme.primaryContainer
                             )
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
-                            ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     text = identification.nom,
                                     style = MaterialTheme.typography.titleMedium,
@@ -1262,13 +1259,39 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Confiance : ${(identification.probabilite * 100).toInt()}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                
+                                if (identification.messageErreur.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = identification.messageErreur,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                
+                                if (identification.probabilite > 0) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Confiance : ${(identification.probabilite * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
+                                if (identification.imageUrl.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                                    AsyncImage(
+                                        model = identification.imageUrl,
+                                        contentDescription = identification.nom,
+                                        imageLoader = imageLoader,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(150.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                }
                             }
                         }
                     }
