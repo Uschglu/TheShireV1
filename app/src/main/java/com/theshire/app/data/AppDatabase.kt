@@ -11,15 +11,17 @@ import androidx.room.RoomDatabase
         PlancheEntity::class,
         CarreEntity::class,
         VarieteEntity::class,
-        AdventiceEntity::class
+        AdventiceEntity::class,
+        RappelEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     
     abstract fun legumeDao(): LegumeDao
     abstract fun plancheDao(): PlancheDao
+    abstract fun rappelDao(): RappelDao
     
     companion object {
         @Volatile
