@@ -279,6 +279,12 @@ fun MainScreen() {
         }
     }
     
+    fun goToAccueil() {
+        navigationStack.clear()
+        navigationStack.add("accueil")
+        currentScreen = "accueil"
+    }
+    
     androidx.activity.compose.BackHandler { goBack() }
     
     fun goToNext() {
@@ -329,16 +335,11 @@ fun MainScreen() {
             }
         ) { screen ->
             when (screen) {
-                "accueil" -> AccueilScreen(
-                    onNavigateToBibliotheque = { navigateTo("bibliotheque") },
-                    onNavigateToJardin = { navigateTo("jardin") },
-                    onNavigateToCalendrier = { navigateTo("calendrier") },
-                    onNavigateToConservation = { navigateTo("conservation") }
-                )
-                "bibliotheque" -> BibliothequeScreen(onBack = { goBack() })
-                "jardin" -> JardinScreen(onBack = { goBack() })
-                "calendrier" -> CalendrierScreen(onBack = { goBack() })
-                "conservation" -> ConservationScreen(onBack = { goBack() })
+                "accueil" -> AccueilScreen()
+                "bibliotheque" -> BibliothequeScreen(onBack = { goToAccueil() })
+                "jardin" -> JardinScreen(onBack = { goToAccueil() })
+                "calendrier" -> CalendrierScreen(onBack = { goToAccueil() })
+                "conservation" -> ConservationScreen(onBack = { goToAccueil() })
             }
         }
     }
@@ -347,12 +348,7 @@ fun MainScreen() {
 // ============== ACCUEIL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccueilScreen(
-    onNavigateToBibliotheque: () -> Unit,
-    onNavigateToJardin: () -> Unit,
-    onNavigateToCalendrier: () -> Unit,
-    onNavigateToConservation: () -> Unit
-) {
+fun AccueilScreen() {
     val context = LocalContext.current
     val meteoRepository = remember { MeteoRepository() }
     val localisationRepository = remember { LocalisationRepository(context) }
