@@ -72,12 +72,14 @@ import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PlantIdentification
 import com.theshire.app.data.PlantNetRepository
 import com.theshire.app.data.PrevisionJour
+import com.theshire.app.data.RappelEntity
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
@@ -2609,6 +2611,13 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var currentYear by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) }
     var selectedDay by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)) }
     
+    // Nouveaux états pour les rappels
+    var showRappelDialog by remember { mutableStateOf(false) }
+    var selectedTimestamp by remember { mutableStateOf(0L) }
+    val rappelRepository = remember { RappelRepository(context) }
+    var rappelActif by remember { mutableStateOf(false) }
+    var rappelNote by remember { mutableStateOf("") }
+    
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
         isLoading = false
@@ -2766,7 +2775,17 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                                     else Color.Transparent,
                                                     RoundedCornerShape(8.dp)
                                                 )
-                                                .clickable { selectedDay = dayNumber }
+                                                .clickable { 
+                                                    selectedDay = dayNumber
+                                                    val calJour = java.util.Calendar.getInstance()
+                                                    calJour.set(currentYear, currentMonth, dayNumber, 9, 0, 0)
+                                                    calJour.set(java.util.Calendar.MILLISECOND, 0)
+                                                    selectedTimestamp = calJour.timeInMillis
+                                                    val rappel = rappelRepository.getRappelSync(selectedTimestamp)
+                                                    rappelActif = rappel?.estActif ?: false
+                                                    rappelNote = rappel?.note ?: ""
+                                                    showRappelDialog = true
+                                                }
                                                 .padding(4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -2822,6 +2841,93 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+    
+    // Dialog de rappel
+    if (showRappelDialog) {
+        val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
+        val dateRappel = Date(selectedTimestamp)
+        val scope = rememberCoroutineScope()
+        
+        AlertDialog(
+            onDismissRequest = { showRappelDialog = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📅 ${dateFormat.format(dateRappel)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                rappelRepository.toggleRappel(
+                                    selectedTimestamp,
+                                    "Rappel du ${dateFormat.format(dateRappel)}"
+                                )
+                                rappelActif = !rappelActif
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = if (rappelActif) "🔔" else "🔕",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = if (rappelActif) "Rappel activé" else "Rappel désactivé",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = rappelNote,
+                        onValueChange = { rappelNote = it },
+                        label = { Text("Note (optionnel)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        minLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val rappel = rappelRepository.getRappel(selectedTimestamp)
+                                if (rappel != null) {
+                                    rappelRepository.mettreAJourNote(selectedTimestamp, rappelNote)
+                                } else {
+                                    rappelRepository.ajouterRappel(
+                                        selectedTimestamp,
+                                        "Rappel du ${dateFormat.format(dateRappel)}",
+                                        rappelNote
+                                    )
+                                }
+                            }
+                            showRappelDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                    ) {
+                        Text("Enregistrer")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showRappelDialog = false }) {
+                    Text("Fermer", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
     }
 }
 
