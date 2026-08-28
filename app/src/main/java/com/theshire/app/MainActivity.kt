@@ -369,6 +369,7 @@ fun AccueilScreen() {
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
     var isLoadingPrevisions by remember { mutableStateOf(false) }
+    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu", false) == false) }
     
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val dateDuJour = remember { dateFormat.format(Date()) }
@@ -444,7 +445,20 @@ fun AccueilScreen() {
     }
     
     Scaffold(
-        containerColor = CouleursApp.Creme
+        containerColor = CouleursApp.Creme,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showTuto = true },
+                containerColor = CouleursApp.Terracotta,
+                contentColor = CouleursApp.Blanc,
+                shape = CircleShape
+            ) {
+                Text(
+                    text = "❓",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        }
     ) { innerPadding ->
         
         Column(
@@ -737,6 +751,83 @@ fun AccueilScreen() {
             confirmButton = {
                 TextButton(onClick = { showPhotoDialog = false }) {
                     Text("Annuler")
+                }
+            }
+        )
+    }
+    
+    if (showTuto) {
+        AlertDialog(
+            onDismissRequest = {
+                showTuto = false
+                prefs.edit().putBoolean("tuto_vu", true).apply()
+            },
+            title = {
+                Text(
+                    text = "🌱 Bienvenue dans Potager Shire !",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        Column {
+                            Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("Météo, phase de lune et photo de votre jardin. Cliquez sur la météo pour voir les prévisions 7 jours.")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("3 onglets : Plantes (fiches détaillées), Mauvaises herbes (indications du sol), Identifier (reconnaissance photo).")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("Créez des planches de culture avec des carrés d'1m². Chaque carré est divisé en 9 cases pour les associations de plantes.")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("Cliquez sur un jour pour ajouter un rappel avec notification. Activez la cloche 🔔 pour être notifié.")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("Filtrez les légumes par méthode de conservation : séchage, lactofermentation, conserves, congélation.")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("• Balayez gauche/droite pour changer de page\n• Bouton retour du téléphone : page précédente\n• Flèche retour dans l'app : retour à l'accueil\n• Double retour sur l'accueil : quitter l'app")
+                        }
+                    }
+                    item {
+                        Column {
+                            Text("💡 Astuce", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
+                            Text("Cliquez sur ❓ en bas à droite de l'accueil pour revoir ce tutoriel à tout moment.")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showTuto = false
+                        prefs.edit().putBoolean("tuto_vu", true).apply()
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                ) {
+                    Text("Commencer 🌱")
                 }
             }
         )
