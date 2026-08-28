@@ -56,4 +56,13 @@ class RappelRepository(context: Context) {
     fun getRappelSync(timestamp: Long): RappelEntity? {
         return rappelDao.getRappelByTimestampSync(timestamp)
     }
+    
+    suspend fun mettreAJourNote(timestamp: Long, note: String) {
+        val existant = rappelDao.getRappelByTimestamp(timestamp)
+        if (existant != null) {
+            rappelDao.mettreAJour(
+                existant.copy(note = note)
+            )
+        }
+    }
 }
