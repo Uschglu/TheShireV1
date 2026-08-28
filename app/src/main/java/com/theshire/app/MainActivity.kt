@@ -1,6 +1,7 @@
 package com.theshire.app
 
 import android.Manifest
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -85,6 +86,7 @@ import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -2611,12 +2613,14 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var currentYear by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)) }
     var selectedDay by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)) }
     
-    // Nouveaux états pour les rappels
+    // États pour les rappels
     var showRappelDialog by remember { mutableStateOf(false) }
     var selectedTimestamp by remember { mutableStateOf(0L) }
     val rappelRepository = remember { RappelRepository(context) }
     var rappelActif by remember { mutableStateOf(false) }
     var rappelNote by remember { mutableStateOf("") }
+    var rappelHeure by remember { mutableStateOf(9) }
+    var rappelMinute by remember { mutableStateOf(0) }
     
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
@@ -2778,7 +2782,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                                 .clickable { 
                                                     selectedDay = dayNumber
                                                     val calJour = java.util.Calendar.getInstance()
-                                                    calJour.set(currentYear, currentMonth, dayNumber, 9, 0, 0)
+                                                    calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0)
                                                     calJour.set(java.util.Calendar.MILLISECOND, 0)
                                                     selectedTimestamp = calJour.timeInMillis
                                                     val rappel = rappelRepository.getRappelSync(selectedTimestamp)
@@ -2843,7 +2847,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
         }
     }
     
-    // Dialog de rappel
+    // Dialog de rappel avec sélecteur d'heure
     if (showRappelDialog) {
         val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
         val dateRappel = Date(selectedTimestamp)
@@ -2865,9 +2869,14 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     IconButton(
                         onClick = {
                             scope.launch {
+                                val cal = java.util.Calendar.getInstance()
+                                cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0)
+                                cal.set(java.util.Calendar.MILLISECOND, 0)
+                                val timestampAvecHeure = cal.timeInMillis
+                                
                                 rappelRepository.toggleRappel(
-                                    selectedTimestamp,
-                                    "Rappel du ${dateFormat.format(dateRappel)}"
+                                    timestampAvecHeure,
+                                    "Rappel du ${dateFormat.format(dateRappel)} à ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}"
                                 )
                                 rappelActif = !rappelActif
                             }
@@ -2889,6 +2898,55 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Sélecteur d'heure
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val timePicker = TimePickerDialog(
+                                    context,
+                                    { _, hourOfDay, minute ->
+                                        rappelHeure = hourOfDay
+                                        rappelMinute = minute
+                                    },
+                                    rappelHeure,
+                                    rappelMinute,
+                                    true
+                                )
+                                timePicker.show()
+                            },
+                        colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⏰",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Heure du rappel",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.VertPrincipal,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CouleursApp.TexteFonce
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     OutlinedTextField(
                         value = rappelNote,
                         onValueChange = { rappelNote = it },
@@ -2901,13 +2959,18 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     Button(
                         onClick = {
                             scope.launch {
-                                val rappel = rappelRepository.getRappel(selectedTimestamp)
+                                val cal = java.util.Calendar.getInstance()
+                                cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0)
+                                cal.set(java.util.Calendar.MILLISECOND, 0)
+                                val timestampAvecHeure = cal.timeInMillis
+                                
+                                val rappel = rappelRepository.getRappel(timestampAvecHeure)
                                 if (rappel != null) {
-                                    rappelRepository.mettreAJourNote(selectedTimestamp, rappelNote)
+                                    rappelRepository.mettreAJourNote(timestampAvecHeure, rappelNote)
                                 } else {
                                     rappelRepository.ajouterRappel(
-                                        selectedTimestamp,
-                                        "Rappel du ${dateFormat.format(dateRappel)}",
+                                        timestampAvecHeure,
+                                        "Rappel du ${dateFormat.format(dateRappel)} à ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}",
                                         rappelNote
                                     )
                                 }
