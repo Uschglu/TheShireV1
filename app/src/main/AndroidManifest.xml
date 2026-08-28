@@ -29,6 +29,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Receiver pour les notifications d'arrosage et opérations -->
+        <receiver
+            android:name=".NotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Receiver pour les rappels du calendrier -->
+        <receiver
+            android:name=".RappelReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
     </application>
 
 </manifest>
