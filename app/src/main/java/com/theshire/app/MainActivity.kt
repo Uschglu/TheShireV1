@@ -346,6 +346,42 @@ fun MainScreen() {
                 "conservation" -> ConservationScreen(onBack = { goToAccueil() })
             }
         }
+        
+        // 🟢⚪ Indicateurs de page (billes)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+                .background(
+                    CouleursApp.Blanc.copy(alpha = 0.85f),
+                    RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            screens.forEach { screen ->
+                val isCurrent = screen == currentScreen
+                Box(
+                    modifier = Modifier
+                        .size(if (isCurrent) 12.dp else 10.dp)
+                        .background(
+                            color = if (isCurrent) CouleursApp.VertPrincipal else CouleursApp.Blanc,
+                            shape = CircleShape
+                        )
+                        .border(
+                            width = if (isCurrent) 0.dp else 1.dp,
+                            color = CouleursApp.VertPrincipal.copy(alpha = 0.3f),
+                            shape = CircleShape
+                        )
+                        .clickable { 
+                            currentScreen = screen
+                            navigationStack.clear()
+                            navigationStack.add(screen)
+                        }
+                )
+            }
+        }
     }
 }
 
@@ -807,7 +843,7 @@ fun AccueilScreen() {
                     item {
                         Column {
                             Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("• Balayez gauche/droite pour changer de page\n• Bouton retour du téléphone : page précédente\n• Flèche retour dans l'app : retour à l'accueil\n• Double retour sur l'accueil : quitter l'app")
+                            Text("• Balayez gauche/droite pour changer de page\n• Bouton retour du téléphone : page précédente\n• Flèche retour dans l'app : retour à l'accueil\n• Double retour sur l'accueil : quitter l'app\n• Les billes en bas indiquent votre position")
                         }
                     }
                     item {
