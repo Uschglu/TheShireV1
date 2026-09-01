@@ -839,7 +839,7 @@ fun AccueilScreen() {
                     item {
                         Column {
                             Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Filtrez les légumes par méthode de conservation : séchage, lactofermentation, conserves, congélation.")
+                            Text("Filtrez les légumes par méthode de conservation : séchage, lactofermentation, conserves, congélation. Cliquez sur ? pour le guide détaillé.")
                         }
                     }
                     item {
@@ -3289,6 +3289,7 @@ fun ConservationScreen(onBack: () -> Unit) {
     val legumes by repository.legumes.collectAsState(initial = emptyList())
     
     var filtre by remember { mutableStateOf("Tous") }
+    var showAide by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         repository.ajouterLegumesPredefinis()
@@ -3308,6 +3309,15 @@ fun ConservationScreen(onBack: () -> Unit) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Retour",
+                            tint = CouleursApp.Blanc
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showAide = true }) {
+                        Icon(
+                            Icons.Default.Help,
+                            contentDescription = "Aide conservation",
                             tint = CouleursApp.Blanc
                         )
                     }
@@ -3367,6 +3377,140 @@ fun ConservationScreen(onBack: () -> Unit) {
             }
         }
     }
+    
+    // Dialog d'aide avec onglets
+    if (showAide) {
+        AideConservationDialog(onDismiss = { showAide = false })
+    }
+}
+
+@Composable
+fun AideConservationDialog(onDismiss: () -> Unit) {
+    var selectedOnglet by remember { mutableStateOf("sechage") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "📖 Guide de conservation",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TabRow(
+                    selectedTabIndex = when(selectedOnglet) {
+                        "sechage" -> 0
+                        "lacto" -> 1
+                        "conserves" -> 2
+                        "congelation" -> 3
+                        else -> 0
+                    },
+                    containerColor = CouleursApp.VertPale,
+                    contentColor = CouleursApp.VertPrincipal
+                ) {
+                    Tab(
+                        selected = selectedOnglet == "sechage",
+                        onClick = { selectedOnglet = "sechage" },
+                        text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedOnglet == "lacto",
+                        onClick = { selectedOnglet = "lacto" },
+                        text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedOnglet == "conserves",
+                        onClick = { selectedOnglet = "conserves" },
+                        text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedOnglet == "congelation",
+                        onClick = { selectedOnglet = "congelation" },
+                        text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) }
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    when (selectedOnglet) {
+                        "sechage" -> {
+                            item {
+                                Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium)
+                            }
+                            item {
+                                Text("• Choisissez des légumes frais et sains\n• Lavez et séchez soigneusement\n• Coupez en tranches fines et régulières (3-5mm)\n• Blanchissez les légumes durs (carottes, haricots) 2-3 min\n• Disposez sans chevauchement sur les plateaux\n• Température idéale : 50-60°C\n• Durée : 6-12h selon l'épaisseur\n• Les légumes doivent être cassants et croquants\n• Stockez dans des bocaux hermétiques à l'abri de la lumière\n• Conservation : 6-12 mois")
+                            }
+                            item {
+                                Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
+                            }
+                            item {
+                                Text("Tomates, champignons, carottes, courgettes, oignons, poivrons, herbes aromatiques, haricots verts")
+                            }
+                        }
+                        "lacto" -> {
+                            item {
+                                Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium)
+                            }
+                            item {
+                                Text("• Utilisez du sel sans iode (sel de mer)\n• Proportion : 2-3% de sel (20-30g par litre d'eau)\n• Coupez les légumes en morceaux réguliers\n• Tassez bien pour éliminer les bulles d'air\n• Les légumes doivent être immergés sous la saumure\n• Utilisez un poids pour maintenir sous l'eau\n• Laissez fermenter à température ambiante (18-22°C)\n• Durée : 1-4 semaines selon le goût\n• Goûtez régulièrement\n• Une fois ouvert, conservez au réfrigérateur")
+                            }
+                            item {
+                                Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
+                            }
+                            item {
+                                Text("Choux (choucroute), carottes, radis, concombres (pickles), haricots verts, betteraves, navets")
+                            }
+                        }
+                        "conserves" -> {
+                            item {
+                                Text("🫙 Conserves (stérilisation)", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium)
+                            }
+                            item {
+                                Text("• Stérilisez les bocaux et couvercles à l'eau bouillante\n• Utilisez des légumes très frais\n• Remplissez les bocaux en laissant 2cm de vide\n• Ajoutez de l'eau salée bouillante (20g sel/litre)\n• Fermez hermétiquement\n• Stérilisez à 100°C pendant 1h-1h30\n• Vérifiez l'étanchéité après refroidissement\n• Le couvercle doit être bombé vers l'intérieur\n• Stockez dans un endroit frais et sombre\n• Conservation : 1-2 ans")
+                            }
+                            item {
+                                Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
+                            }
+                            item {
+                                Text("Tomates, haricots verts, petits pois, carottes, betteraves, ratatouille, coulis de tomate")
+                            }
+                        }
+                        "congelation" -> {
+                            item {
+                                Text("❄️ Congélation optimale", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium)
+                            }
+                            item {
+                                Text("• Choisissez des légumes très frais\n• Lavez et séchez soigneusement\n• Blanchissez la plupart des légumes 2-3 min\n• Refroidissez immédiatement dans l'eau glacée\n• Égouttez bien avant de congeler\n• Disposez à plat pour éviter les blocs\n• Utilisez des sacs de congélation sans air\n• Étiquetez avec le nom et la date\n• Température idéale : -18°C ou moins\n• Ne recongelez jamais un produit décongelé\n• Conservation : 8-12 mois")
+                            }
+                            item {
+                                Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
+                            }
+                            item {
+                                Text("Haricots verts, petits pois, carottes, courgettes, poivrons, épinards, brocolis, choux-fleurs")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+            ) {
+                Text("Fermer")
+            }
+        }
+    )
 }
 
 @Composable
