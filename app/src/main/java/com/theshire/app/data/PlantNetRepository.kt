@@ -22,6 +22,11 @@ data class PlantIdentification(
 
 class PlantNetRepository {
     
+    companion object {
+        private const val API_KEY = "fmkoylfOyLghY2QAsbxvU8miS1Vtn72z5Vp9PfRYo7Qch4MipG"
+        private const val BASE_URL = "https://api.plant.id/v2"
+    }
+    
     suspend fun identifierPlante(imageFile: File): List<PlantIdentification> = withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder()
@@ -30,20 +35,21 @@ class PlantNetRepository {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
             
-            // Utiliser l'API iNaturalist observations avec multipart
+            // Préparer le corps multipart avec l'image
             val requestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart(
-                    "file",
+                    "images",
                     imageFile.name,
                     imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
                 )
                 .build()
             
-            // Utiliser l'endpoint d'observation avec l'image en multipart
+            // Créer la requête vers Plant.id
             val request = Request.Builder()
-                .url("https://api.inaturalist.org/v1/observations")
+                .url("$BASE_URL/identify")
                 .post(requestBody)
+                .header("Api-Key", API_KEY)
                 .build()
             
             val response = client.newCall(request).execute()
@@ -52,34 +58,44 @@ class PlantNetRepository {
                 val responseBody = response.body?.string() ?: ""
                 val json = JSONObject(responseBody)
                 
-                // Analyser la réponse pour extraire les taxons suggérés
-                val results = json.optJSONArray("results")
                 val identifications = mutableListOf<PlantIdentification>()
                 
-                if (results != null && results.length() > 0) {
-                    for (i in 0 until minOf(results.length(), 5)) {
+                // Plant.id retourne "suggestions" avec les résultats
+                val suggestions = json.optJSONArray("suggestions")
+                
+                if (suggestions != null && suggestions.length() > 0) {
+                    val nbResults = minOf(suggestions.length(), 5)
+                    
+                    for (i in 0 until nbResults) {
                         try {
-                            val result = results.getJSONObject(i)
-                            val taxon = result.optJSONObject("taxon")
+                            val suggestion = suggestions.getJSONObject(i)
                             
-                            if (taxon != null) {
-                                val nomScientifique = taxon.optString("name", "Inconnu")
-                                val nomCommun = taxon.optString("preferred_common_name", nomScientifique)
-                                val score = result.optDouble("score", 0.0)
-                                
-                                val imageUrl = taxon.optJSONObject("default_photo")
-                                    ?.optString("medium_url", "") ?: ""
-                                
-                                identifications.add(
-                                    PlantIdentification(
-                                        nom = nomCommun,
-                                        nomScientifique = nomScientifique,
-                                        probabilite = score,
-                                        imageUrl = imageUrl,
-                                        messageErreur = ""
-                                    )
+                            val nomCommun = suggestion.optString("plant_name", "Inconnu")
+                            val nomScientifique = suggestion.optString("plant_details", "")
+                                ?.let { 
+                                    try {
+                                        JSONObject(it).optJSONObject("scientific_name")
+                                            ?.optString("name", nomCommun) ?: nomCommun
+                                    } catch (e: Exception) {
+                                        nomCommun
+                                    }
+                                } ?: nomCommun
+                            
+                            val probabilite = suggestion.optDouble("probability", 0.0)
+                            
+                            val imageUrl = suggestion.optJSONArray("similar_images")
+                                ?.optJSONObject(0)
+                                ?.optString("url", "") ?: ""
+                            
+                            identifications.add(
+                                PlantIdentification(
+                                    nom = nomCommun,
+                                    nomScientifique = nomScientifique,
+                                    probabilite = probabilite,
+                                    imageUrl = imageUrl,
+                                    messageErreur = ""
                                 )
-                            }
+                            )
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
