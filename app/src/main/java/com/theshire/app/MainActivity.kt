@@ -23,8 +23,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -955,6 +957,7 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
     val legumes by repository.legumes.collectAsState(initial = emptyList())
     var selectedLegume by remember { mutableStateOf<LegumeEntity?>(null) }
     var showLegende by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
@@ -1007,15 +1010,27 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("🔍 Rechercher une plante...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${legumes.size} plantes dans votre bibliothèque",
+                        text = "${legumes.filter { it.nom.contains(searchQuery, ignoreCase = true) }.size} plantes trouvées",
                         style = MaterialTheme.typography.bodyMedium,
                         color = CouleursApp.TexteFonce
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 
-                items(legumes, key = { it.id }) { legume ->
+                items(
+                    legumes.filter { it.nom.contains(searchQuery, ignoreCase = true) },
+                    key = { it.id }
+                ) { legume ->
                     LegumeCard(
                         legume = legume,
                         onClick = { selectedLegume = legume },
@@ -1871,6 +1886,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
         var selectedCategorie by remember { mutableStateOf<String?>(null) }
+        var searchQueryPlante by remember { mutableStateOf("") }
         
         val categories = legumes.groupBy { it.categorie }.keys.toList()
         
@@ -1913,30 +1929,56 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(categories) { categorie ->
-                            FilterChip(
-                                selected = selectedCategorie == categorie,
-                                onClick = { 
-                                    selectedCategorie = if (selectedCategorie == categorie) null else categorie
-                                },
-                                label = { 
-                                    Text(
-                                        text = "${getEmojiCategorie(categorie)} ${categorie}",
-                                        fontSize = MaterialTheme.typography.bodySmall.fontSize
-                                    )
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            )
+                    // Barre de recherche
+                    OutlinedTextField(
+                        value = searchQueryPlante,
+                        onValueChange = { searchQueryPlante = it },
+                        label = { Text("🔍 Rechercher...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Catégories en menu vertical
+                    if (searchQueryPlante.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            categories.forEach { categorie ->
+                                FilterChip(
+                                    selected = selectedCategorie == categorie,
+                                    onClick = { 
+                                        selectedCategorie = if (selectedCategorie == categorie) null else categorie
+                                    },
+                                    label = { 
+                                        Text(
+                                            text = "${getEmojiCategorie(categorie)} ${categorie}",
+                                            fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    if (selectedCategorie != null) {
-                        val plantes = legumes.filter { it.categorie == selectedCategorie }
+                    if (searchQueryPlante.isNotEmpty() || selectedCategorie != null) {
+                        val plantes = legumes.filter { legume ->
+                            val matchRecherche = searchQueryPlante.isEmpty() || 
+                                legume.nom.contains(searchQueryPlante, ignoreCase = true)
+                            val matchCategorie = selectedCategorie == null || 
+                                legume.categorie == selectedCategorie
+                            matchRecherche && matchCategorie
+                        }
                         LazyColumn {
                             items(plantes) { legume ->
                                 Text(
