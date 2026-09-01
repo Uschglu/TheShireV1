@@ -61,4 +61,27 @@ interface LegumeDao {
     
     @Query("DELETE FROM varietes WHERE id = :id")
     suspend fun deleteVarieteById(id: Long)
+    
+    // ===== ADVENTICES (Mauvaises herbes) =====
+    
+    @Insert
+    suspend fun insertAdventice(adventice: AdventiceEntity)
+    
+    @Update
+    suspend fun updateAdventice(adventice: AdventiceEntity)
+    
+    @Delete
+    suspend fun deleteAdventice(adventice: AdventiceEntity)
+    
+    @Query("SELECT * FROM adventices ORDER BY nom ASC")
+    fun getAllAdventices(): Flow<List<AdventiceEntity>>
+    
+    @Query("SELECT * FROM adventices WHERE id = :id")
+    suspend fun getAdventiceById(id: Long): AdventiceEntity?
+    
+    @Query("SELECT COUNT(*) FROM adventices")
+    suspend fun countAdventices(): Int
+    
+    @Query("DELETE FROM adventices WHERE id = :id")
+    suspend fun deleteAdventiceById(id: Long)
 }
