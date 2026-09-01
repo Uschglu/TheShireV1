@@ -427,9 +427,7 @@ fun AccueilScreen() {
                 val localPath = outputFile.absolutePath
                 prefs.edit().putString("photo_path", localPath).apply()
                 imagePath = localPath
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
     
@@ -441,40 +439,27 @@ fun AccueilScreen() {
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val fileName = "photo_jardin_${System.currentTimeMillis()}.jpg"
                 val outputFile = File(context.filesDir, fileName)
-                inputStream?.use { input ->
-                    outputFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
+                inputStream?.use { input -> outputFile.outputStream().use { output -> input.copyTo(output) } }
                 val localPath = outputFile.absolutePath
                 prefs.edit().putString("photo_path", localPath).apply()
                 imagePath = localPath
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
     
     LaunchedEffect(Unit) {
         try {
             val villeDetectee = localisationRepository.getVille()
-            if (villeDetectee != null) {
-                ville = villeDetectee
-            }
+            if (villeDetectee != null) ville = villeDetectee
             meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" })
-        } catch (e: Exception) {
-            meteo = null
-        }
+        } catch (e: Exception) { meteo = null }
     }
     
     LaunchedEffect(showPrevisions) {
         if (showPrevisions && previsions.isEmpty()) {
             isLoadingPrevisions = true
-            try {
-                previsions = meteoRepository.getPrevisions7Jours(ville.ifEmpty { "Paris" })
-            } catch (e: Exception) {
-                previsions = emptyList()
-            }
+            try { previsions = meteoRepository.getPrevisions7Jours(ville.ifEmpty { "Paris" }) }
+            catch (e: Exception) { previsions = emptyList() }
             isLoadingPrevisions = false
         }
     }
@@ -487,35 +472,17 @@ fun AccueilScreen() {
                 containerColor = CouleursApp.Terracotta,
                 contentColor = CouleursApp.Blanc,
                 shape = CircleShape
-            ) {
-                Text("❓", style = MaterialTheme.typography.titleLarge)
-            }
+            ) { Text("❓", style = MaterialTheme.typography.titleLarge) }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(20.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(28.dp))
-                    .clip(RoundedCornerShape(28.dp))
-                    .clickable { showPrevisions = true },
+                modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(28.dp)).clip(RoundedCornerShape(28.dp)).clickable { showPrevisions = true },
                 colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Box(
-                    modifier = Modifier.background(
-                        Brush.linearGradient(listOf(CouleursApp.VertPale, CouleursApp.Blanc))
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Box(modifier = Modifier.background(Brush.linearGradient(listOf(CouleursApp.VertPale, CouleursApp.Blanc)))) {
+                    Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(getEmojiMeteo(meteo), style = MaterialTheme.typography.displayLarge)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
@@ -529,9 +496,7 @@ fun AccueilScreen() {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(dateDuJour, style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                             Text("${phaseLune.emoji} ${phaseLune.nom}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
-                            if (ville.isNotEmpty()) {
-                                Text("📍 $ville", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
-                            }
+                            if (ville.isNotEmpty()) Text("📍 $ville", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                         }
                     }
                 }
@@ -540,54 +505,30 @@ fun AccueilScreen() {
             Spacer(modifier = Modifier.height(20.dp))
             
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .shadow(4.dp, RoundedCornerShape(32.dp))
-                    .clip(RoundedCornerShape(32.dp)),
+                modifier = Modifier.fillMaxWidth().weight(1f).shadow(4.dp, RoundedCornerShape(32.dp)).clip(RoundedCornerShape(32.dp)),
                 colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 if (imageFile != null && imageFile.exists()) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                        AsyncImage(
-                            model = imageFile,
-                            contentDescription = "Photo du jardin",
-                            imageLoader = imageLoader,
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(32.dp))
-                        )
-                        IconButton(
-                            onClick = { showPhotoDialog = true },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                                .background(CouleursApp.VertPrincipal.copy(alpha = 0.8f), CircleShape)
-                        ) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = "Changer la photo", tint = CouleursApp.Blanc)
+                        AsyncImage(model = imageFile, contentDescription = "Photo du jardin", imageLoader = imageLoader, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(32.dp)))
+                        IconButton(onClick = { showPhotoDialog = true }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).background(CouleursApp.VertPrincipal.copy(alpha = 0.8f), CircleShape)) {
+                            Icon(Icons.Default.CameraAlt, "Changer la photo", tint = CouleursApp.Blanc)
                         }
                     }
                 } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = "Photo du jardin", modifier = Modifier.size(80.dp), tint = CouleursApp.VertClair)
+                    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(Icons.Default.PhotoCamera, "Photo du jardin", modifier = Modifier.size(80.dp), tint = CouleursApp.VertClair)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("📸 Photo de mon jardin", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = CouleursApp.TexteFonce)
+                        Text("📸 Photo de mon jardin", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Prenez une photo ou choisissez une image", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                        Text("Prenez une photo ou choisissez une image", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { showPhotoDialog = true },
-                            shape = RoundedCornerShape(28.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
-                            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
-                        ) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Button(onClick = { showPhotoDialog = true }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal), contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)) {
+                            Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Ajouter une photo", fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                            Text("Ajouter une photo")
                         }
                     }
                 }
@@ -600,41 +541,21 @@ fun AccueilScreen() {
             onDismissRequest = { showPrevisions = false },
             title = { Text("📅 Prévisions 7 jours", fontWeight = FontWeight.Bold) },
             text = {
-                if (isLoadingPrevisions) {
-                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = CouleursApp.VertPrincipal)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Chargement...")
-                    }
-                } else if (previsions.isEmpty()) {
-                    Text("Impossible de récupérer les prévisions")
-                } else {
-                    Column {
-                        previsions.forEach { prevision ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = CouleursApp.Creme)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(prevision.date, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                    Text(prevision.emoji, style = MaterialTheme.typography.titleMedium)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("${prevision.tempMin.toInt()}° / ${prevision.tempMax.toInt()}°", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                }
+                if (isLoadingPrevisions) { CircularProgressIndicator(color = CouleursApp.VertPrincipal) }
+                else if (previsions.isEmpty()) { Text("Impossible de récupérer les prévisions") }
+                else {
+                    Column { previsions.forEach { prevision ->
+                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = CouleursApp.Creme)) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(prevision.date, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                Text(prevision.emoji)
+                                Text("${prevision.tempMin.toInt()}° / ${prevision.tempMax.toInt()}°", fontWeight = FontWeight.Bold)
                             }
                         }
-                    }
+                    } }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { showPrevisions = false }) {
-                    Text("Fermer", color = CouleursApp.VertPrincipal)
-                }
-            }
+            confirmButton = { TextButton(onClick = { showPrevisions = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } }
         )
     }
     
@@ -644,40 +565,34 @@ fun AccueilScreen() {
             title = { Text("Ajouter une photo", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("📸 Prendre une photo", modifier = Modifier.fillMaxWidth().clickable { showPhotoDialog = false; photoLauncher.launch(null) }.padding(16.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("📸 Prendre une photo", modifier = Modifier.fillMaxWidth().clickable { showPhotoDialog = false; photoLauncher.launch(null) }.padding(16.dp), fontWeight = FontWeight.Bold)
                     HorizontalDivider()
-                    Text("🖼️ Choisir depuis la galerie", modifier = Modifier.fillMaxWidth().clickable { showPhotoDialog = false; galleryLauncher.launch("image/*") }.padding(16.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("🖼️ Choisir depuis la galerie", modifier = Modifier.fillMaxWidth().clickable { showPhotoDialog = false; galleryLauncher.launch("image/*") }.padding(16.dp), fontWeight = FontWeight.Bold)
                     if (imageFile != null && imageFile.exists()) {
                         HorizontalDivider()
-                        Text("🗑️ Supprimer la photo", modifier = Modifier.fillMaxWidth().clickable { try { imageFile.delete() } catch (e: Exception) {}; prefs.edit().remove("photo_path").apply(); imagePath = null; showPhotoDialog = false }.padding(16.dp), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                        Text("🗑️ Supprimer la photo", modifier = Modifier.fillMaxWidth().clickable { try { imageFile.delete() } catch (e: Exception) {}; prefs.edit().remove("photo_path").apply(); imagePath = null; showPhotoDialog = false }.padding(16.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                     }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { showPhotoDialog = false }) { Text("Annuler") }
-            }
+            confirmButton = { TextButton(onClick = { showPhotoDialog = false }) { Text("Annuler") } }
         )
     }
     
     if (showTuto) {
         AlertDialog(
             onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() },
-            title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
+            title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                    item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Cliquez sur la météo pour voir les prévisions 7 jours.") } }
-                    item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("3 onglets : Plantes, Mauvaises herbes, Identifier. Utilisez la barre de recherche pour trouver rapidement une plante.") } }
-                    item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches, choisissez vos plantes et variétés. Les plantes volumineuses (tomates, courges...) ont besoin d'espace !") } }
-                    item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Cliquez sur un jour pour ajouter un rappel avec cloche 🔔 et heure personnalisable.") } }
-                    item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Filtrez par méthode et consultez le guide détaillé avec le bouton ?.") } }
-                    item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("• Swipe gauche/droite pour changer de page\n• Back téléphone : page précédente\n• Flèche retour : accueil\n• Billes en bas : indicateur de position") } }
+                    item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, lune et photo du jardin.") } }
+                    item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, mauvaises herbes et reconnaissance photo.") } }
+                    item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Planches, associations et variétés. Les plantes volumineuses ont besoin d'espace !") } }
+                    item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
+                    item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
+                    item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page. Billes en bas pour naviguer.") } }
                 }
             },
-            confirmButton = {
-                Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) {
-                    Text("Commencer 🌱")
-                }
-            }
+            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
     }
 }
@@ -700,18 +615,12 @@ fun getEmojiMeteo(meteo: MeteoData?): String {
 @Composable
 fun BibliothequeScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("plantes") }
-    
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = when(selectedOnglet) { "plantes" -> 0; "mauvaises" -> 1; else -> 2 },
-            containerColor = CouleursApp.VertPrincipal,
-            contentColor = CouleursApp.Blanc
-        ) {
+        TabRow(selectedTabIndex = when(selectedOnglet) { "plantes" -> 0; "mauvaises" -> 1; else -> 2 }, containerColor = CouleursApp.VertPrincipal, contentColor = CouleursApp.Blanc) {
             Tab(selected = selectedOnglet == "plantes", onClick = { selectedOnglet = "plantes" }, text = { Text("🌱 Plantes", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "plantes") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
             Tab(selected = selectedOnglet == "mauvaises", onClick = { selectedOnglet = "mauvaises" }, text = { Text("🌿 Mauvaises", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "mauvaises") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
             Tab(selected = selectedOnglet == "reconnaissance", onClick = { selectedOnglet = "reconnaissance" }, text = { Text("📸 Identifier", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "reconnaissance") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
         }
-        
         when (selectedOnglet) {
             "plantes" -> BibliothequePlantesScreen(onBack = onBack)
             "mauvaises" -> AdventicesScreen(onBack = onBack)
@@ -741,30 +650,19 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
             topBar = {
                 TopAppBar(
                     title = { Text("Bibliothèque 📚", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                    actions = { IconButton(onClick = { showLegende = true }) { Icon(Icons.Default.Help, contentDescription = "Légende", tint = CouleursApp.Blanc) } },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } },
+                    actions = { IconButton(onClick = { showLegende = true }) { Icon(Icons.Default.Help, "Légende", tint = CouleursApp.Blanc) } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
                 )
             }
         ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("🔍 Rechercher une plante...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
-                    )
+                    OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher une plante...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("${legumes.filter { it.nom.contains(searchQuery, ignoreCase = true) }.size} plantes trouvées", style = MaterialTheme.typography.bodyMedium, color = CouleursApp.TexteFonce)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                
                 items(legumes.filter { it.nom.contains(searchQuery, ignoreCase = true) }, key = { it.id }) { legume ->
                     LegumeCard(legume = legume, onClick = { selectedLegume = legume }, onDelete = { scope.launch { repository.supprimerLegume(legume) } })
                 }
@@ -776,21 +674,12 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { showLegende = false },
             title = { Text("Légende des catégories", fontWeight = FontWeight.Bold) },
-            text = {
-                LazyColumn {
-                    item { LigneLegende("🥕", "Racines (carotte, panais, navet...)") }
-                    item { LigneLegende("🥔", "Tubercules (pomme de terre, topinambour...)") }
-                    item { LigneLegende("🍅", "Fruits (tomate, courgette, poivron...)") }
-                    item { LigneLegende("🥬", "Feuilles (salade, épinard, chou frisé...)") }
-                    item { LigneLegende("🫘", "Légumineuses (haricot, pois...)") }
-                    item { LigneLegende("🧅", "Alliacés (oignon, ail, poireau...)") }
-                    item { LigneLegende("🥦", "Choux (brocoli, chou-fleur...)") }
-                    item { LigneLegende("🎃", "Cucurbitacées (potiron, courge...)") }
-                    item { LigneLegende("🌿", "Aromatiques (basilic, thym, romarin...)") }
-                    item { LigneLegende("💐", "Fleurs vivaces (lavande...)") }
-                    item { LigneLegende("🌸", "Fleurs annuelles (capucine, souci...)") }
-                }
-            },
+            text = { LazyColumn {
+                item { LigneLegende("🥕", "Racines") }; item { LigneLegende("🥔", "Tubercules") }; item { LigneLegende("🍅", "Fruits") }
+                item { LigneLegende("🥬", "Feuilles") }; item { LigneLegende("🫘", "Légumineuses") }; item { LigneLegende("🧅", "Alliacés") }
+                item { LigneLegende("🥦", "Choux") }; item { LigneLegende("🎃", "Cucurbitacées") }; item { LigneLegende("🌿", "Aromatiques") }
+                item { LigneLegende("💐", "Fleurs vivaces") }; item { LigneLegende("🌸", "Fleurs annuelles") }
+            } },
             confirmButton = { TextButton(onClick = { showLegende = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } }
         )
     }
@@ -812,7 +701,6 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val plantNetRepository = remember { PlantNetRepository() }
-    
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var isAnalyzing by remember { mutableStateOf(false) }
     var identifications by remember { mutableStateOf<List<PlantIdentification>>(emptyList()) }
@@ -821,18 +709,14 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
     
     val photoLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) { bitmap ->
         if (bitmap != null) {
-            val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
-            val outputFile = File(context.cacheDir, fileName)
-            outputFile.outputStream().use { output -> bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, output) }
+            val outputFile = File(context.cacheDir, "plante_${System.currentTimeMillis()}.jpg")
+            outputFile.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 100, it) }
             imageUri = Uri.fromFile(outputFile)
-            identifications = emptyList()
-            showError = false
+            identifications = emptyList(); showError = false
             scope.launch {
                 isAnalyzing = true
-                try {
-                    identifications = plantNetRepository.identifierPlante(outputFile)
-                    if (identifications.isEmpty()) { showError = true; errorMessage = "Impossible d'identifier la plante." }
-                } catch (e: Exception) { showError = true; errorMessage = "Erreur : ${e.message}" }
+                try { identifications = plantNetRepository.identifierPlante(outputFile); if (identifications.isEmpty()) { showError = true; errorMessage = "Impossible d'identifier." } }
+                catch (e: Exception) { showError = true; errorMessage = "Erreur : ${e.message}" }
                 isAnalyzing = false
             }
         }
@@ -842,18 +726,13 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
         if (uri != null) {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
-                val fileName = "plante_a_identifier_${System.currentTimeMillis()}.jpg"
-                val outputFile = File(context.cacheDir, fileName)
+                val outputFile = File(context.cacheDir, "plante_${System.currentTimeMillis()}.jpg")
                 inputStream?.use { input -> outputFile.outputStream().use { output -> input.copyTo(output) } }
-                imageUri = Uri.fromFile(outputFile)
-                identifications = emptyList()
-                showError = false
+                imageUri = Uri.fromFile(outputFile); identifications = emptyList(); showError = false
                 scope.launch {
                     isAnalyzing = true
-                    try {
-                        identifications = plantNetRepository.identifierPlante(outputFile)
-                        if (identifications.isEmpty()) { showError = true; errorMessage = "Impossible d'identifier la plante." }
-                    } catch (e: Exception) { showError = true; errorMessage = "Erreur : ${e.message}" }
+                    try { identifications = plantNetRepository.identifierPlante(outputFile); if (identifications.isEmpty()) { showError = true; errorMessage = "Impossible d'identifier." } }
+                    catch (e: Exception) { showError = true; errorMessage = "Erreur : ${e.message}" }
                     isAnalyzing = false
                 }
             } catch (e: Exception) { e.printStackTrace() }
@@ -862,89 +741,58 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = {
-            TopAppBar(
-                title = { Text("Identifier une plante 📸", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Identifier 📸", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
                     Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(64.dp), tint = CouleursApp.VertPrincipal)
+                        Icon(Icons.Default.Science, null, modifier = Modifier.size(64.dp), tint = CouleursApp.VertPrincipal)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Reconnaissance de plantes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = CouleursApp.TexteFonce)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Prenez une photo d'une plante inconnue et l'application l'identifiera automatiquement", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                        Text("Reconnaissance de plantes", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        Text("Prenez une photo et l'app l'identifiera", textAlign = TextAlign.Center)
                     }
                 }
             }
-            
             item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
                     Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         if (imageUri != null) {
                             val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
-                            AsyncImage(model = imageUri, contentDescription = "Plante à identifier", imageLoader = imageLoader, modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp)))
-                            Spacer(modifier = Modifier.height(16.dp))
-                            if (isAnalyzing) { CircularProgressIndicator(color = CouleursApp.VertPrincipal); Spacer(modifier = Modifier.height(8.dp)); Text("Analyse en cours...", style = MaterialTheme.typography.bodyMedium) }
+                            AsyncImage(model = imageUri, contentDescription = "Plante", imageLoader = imageLoader, modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp)))
+                            if (isAnalyzing) { CircularProgressIndicator(color = CouleursApp.VertPrincipal); Text("Analyse en cours...") }
                         } else {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(80.dp), tint = CouleursApp.VertClair)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Aucune photo sélectionnée", style = MaterialTheme.typography.bodyMedium)
+                            Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(80.dp), tint = CouleursApp.VertClair)
+                            Text("Aucune photo sélectionnée")
                         }
                     }
                 }
             }
-            
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { photoLauncher.launch(null) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(modifier = Modifier.width(8.dp)); Text("Prendre photo")
-                    }
-                    Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(20.dp)); Spacer(modifier = Modifier.width(8.dp)); Text("Galerie")
-                    }
+                    Button(onClick = { photoLauncher.launch(null) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("📸 Photo") }
+                    Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)) { Text("🖼️ Galerie") }
                 }
             }
-            
             if (identifications.isNotEmpty()) {
-                item { Text("🔍 Résultats de l'identification :", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
+                item { Text("🔍 Résultats :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
                 identifications.forEach { identification ->
                     item {
                         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (identification.messageErreur.isNotEmpty()) MaterialTheme.colorScheme.errorContainer else CouleursApp.VertPale), shape = RoundedCornerShape(20.dp)) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(identification.nom, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                                Text(identification.nomScientifique, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
-                                if (identification.messageErreur.isNotEmpty()) { Spacer(modifier = Modifier.height(8.dp)); Text(identification.messageErreur, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                                if (identification.probabilite > 0) { Spacer(modifier = Modifier.height(4.dp)); Text("Confiance : ${(identification.probabilite * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
-                                if (identification.imageUrl.isNotEmpty()) { Spacer(modifier = Modifier.height(8.dp)); val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }; AsyncImage(model = identification.imageUrl, contentDescription = identification.nom, imageLoader = imageLoader, modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(12.dp))) }
+                                Text(identification.nom, fontWeight = FontWeight.Bold)
+                                Text(identification.nomScientifique, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodySmall)
+                                if (identification.probabilite > 0) Text("Confiance : ${(identification.probabilite * 100).toInt()}%", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                                if (identification.imageUrl.isNotEmpty()) {
+                                    val imageLoader = remember { ImageLoaderProvider.getImageLoader(context) }
+                                    AsyncImage(model = identification.imageUrl, contentDescription = identification.nom, imageLoader = imageLoader, modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(12.dp)))
+                                }
                             }
                         }
                     }
                 }
             }
-            
-            if (showError) {
-                item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer), shape = RoundedCornerShape(16.dp)) { Text(errorMessage, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium) } }
-            }
-            
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(20.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("💡 Astuce", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("• Prenez la photo en plein jour\n• Cadrez bien la feuille ou la fleur\n• Évitez le flou\n• Plus la photo est nette, meilleure est l'identification", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
+            if (showError) { item { Text(errorMessage, color = MaterialTheme.colorScheme.error) } }
         }
     }
 }
@@ -960,28 +808,21 @@ fun AdventicesScreen(onBack: () -> Unit) {
     
     LaunchedEffect(Unit) { repository.ajouterAdventicesPredefinies() }
     
-    if (selectedAdventice != null) {
-        AdventiceDetailScreen(adventice = selectedAdventice!!, onBack = { selectedAdventice = null })
-    } else {
+    if (selectedAdventice != null) { AdventiceDetailScreen(adventice = selectedAdventice!!, onBack = { selectedAdventice = null }) }
+    else {
         Scaffold(
             containerColor = CouleursApp.Creme,
-            topBar = {
-                TopAppBar(
-                    title = { Text("Mauvaises herbes 🌿", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
-                )
-            }
+            topBar = { TopAppBar(title = { Text("Mauvaises herbes 🌿", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { Text("${adventices.size} adventices courantes", style = MaterialTheme.typography.bodyMedium, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Text("Ces plantes indiquent la nature de votre sol.", style = MaterialTheme.typography.bodySmall); Spacer(modifier = Modifier.height(8.dp)) }
+                item { Text("${adventices.size} adventices courantes", color = CouleursApp.TexteFonce) }
                 items(adventices, key = { it.id }) { adventice ->
-                    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).clickable { selectedAdventice = adventice }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
+                    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable { selectedAdventice = adventice }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(adventice.emoji, style = MaterialTheme.typography.headlineMedium)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) { Text(adventice.nom, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(adventice.indicationSol, style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, maxLines = 2) }
-                            Icon(Icons.Default.ArrowForward, contentDescription = "Voir", tint = CouleursApp.VertPrincipal, modifier = Modifier.size(20.dp))
+                            Column(modifier = Modifier.weight(1f)) { Text(adventice.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(adventice.indicationSol, style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, maxLines = 2) }
+                            Icon(Icons.Default.ArrowForward, "Voir", tint = CouleursApp.VertPrincipal, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -995,16 +836,10 @@ fun AdventicesScreen(onBack: () -> Unit) {
 fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = {
-            TopAppBar(
-                title = { Text(adventice.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
-            )
-        }
+        topBar = { TopAppBar(title = { Text(adventice.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Box(modifier = Modifier.fillMaxWidth().height(120.dp).shadow(2.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(adventice.emoji, style = MaterialTheme.typography.displayLarge) } }
+            item { Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(20.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(adventice.emoji, style = MaterialTheme.typography.displayLarge) } }
             item { InfoCard("Nom scientifique", adventice.nomScientifique) }
             item { InfoCard("Description", adventice.description) }
             item { InfoCard("Ce qu'elle indique", adventice.indicationSol) }
@@ -1020,11 +855,11 @@ fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("planches") }
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = if (selectedOnglet == "planches") 0 else 1, containerColor = CouleursApp.VertPrincipal, contentColor = CouleursApp.Blanc) {
-            Tab(selected = selectedOnglet == "planches", onClick = { selectedOnglet = "planches" }, text = { Text("🌱 Planches", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "planches") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
-            Tab(selected = selectedOnglet == "analyse", onClick = { selectedOnglet = "analyse" }, text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "analyse") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
+            Tab(selected = selectedOnglet == "planches", onClick = { selectedOnglet = "planches" }, text = { Text("🌱 Planches", fontWeight = FontWeight.Bold) })
+            Tab(selected = selectedOnglet == "analyse", onClick = { selectedOnglet = "analyse" }, text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold) })
         }
-        if (selectedOnglet == "planches") { JardinPlanchesScreen(onBack = onBack, onNavigateToAnalyse = { selectedOnglet = "analyse" }) }
-        else { AnalyseSolScreen(onBack = onBack, onNavigateToPlanches = { selectedOnglet = "planches" }) }
+        if (selectedOnglet == "planches") JardinPlanchesScreen(onBack = onBack, onNavigateToAnalyse = { selectedOnglet = "analyse" })
+        else AnalyseSolScreen(onBack = onBack, onNavigateToPlanches = { selectedOnglet = "planches" })
     }
 }
 
@@ -1051,28 +886,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
     
-    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
+    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis(); varieteRepository.ajouterVarietesPredefinies() }
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = {
-            TopAppBar(
-                title = { Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAddPlancheDialog = true }, containerColor = CouleursApp.VertClair, contentColor = CouleursApp.Blanc, shape = CircleShape) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter une planche")
-            }
-        }
+        topBar = { TopAppBar(title = { Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) },
+        floatingActionButton = { FloatingActionButton(onClick = { showAddPlancheDialog = true }, containerColor = CouleursApp.VertClair, shape = CircleShape) { Icon(Icons.Default.Add, "Ajouter") } }
     ) { innerPadding ->
         if (planches.isEmpty()) {
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text("🏡", style = MaterialTheme.typography.displayLarge); Spacer(modifier = Modifier.height(16.dp))
-                Text("Aucune planche de culture", style = MaterialTheme.typography.titleLarge, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp))
-                Text("Cliquez sur + pour créer votre première planche", style = MaterialTheme.typography.bodyMedium)
+                Text("🏡", style = MaterialTheme.typography.displayLarge); Text("Aucune planche", style = MaterialTheme.typography.titleLarge); Text("Cliquez sur +")
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -1085,35 +908,26 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     }
     
     if (showAddPlancheDialog) {
-        var nomPlanche by remember { mutableStateOf("") }
-        var largeur by remember { mutableStateOf("3") }
-        var longueur by remember { mutableStateOf("4") }
+        var nomPlanche by remember { mutableStateOf("") }; var largeur by remember { mutableStateOf("3") }; var longueur by remember { mutableStateOf("4") }
         AlertDialog(
             onDismissRequest = { showAddPlancheDialog = false },
             title = { Text("Nouvelle planche", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    LegendeCompacte(); Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(value = nomPlanche, onValueChange = { nomPlanche = it }, label = { Text("Nom de la planche") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
-                    Spacer(modifier = Modifier.height(12.dp)); Text("Dimensions (largeur × longueur en mètres)", style = MaterialTheme.typography.bodySmall); Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(value = largeur, onValueChange = { largeur = it }, label = { Text("Largeur (m)") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(16.dp))
-                        Text("×", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.align(Alignment.CenterVertically))
-                        OutlinedTextField(value = longueur, onValueChange = { longueur = it }, label = { Text("Longueur (m)") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(16.dp))
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val totalCarres = (largeur.toIntOrNull() ?: 0) * (longueur.toIntOrNull() ?: 0)
-                    if (totalCarres > 0) { Text("= $totalCarres carrés d'1m²", style = MaterialTheme.typography.bodyMedium, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
+            text = { Column {
+                OutlinedTextField(value = nomPlanche, onValueChange = { nomPlanche = it }, label = { Text("Nom") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = largeur, onValueChange = { largeur = it }, label = { Text("Largeur (m)") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp))
+                    Text("×", style = MaterialTheme.typography.headlineMedium)
+                    OutlinedTextField(value = longueur, onValueChange = { longueur = it }, label = { Text("Longueur (m)") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp))
                 }
-            },
-            confirmButton = { Button(onClick = { val l = largeur.toIntOrNull() ?: 1; val L = longueur.toIntOrNull() ?: 1; if (l > 0 && L > 0 && nomPlanche.isNotBlank()) { scope.launch { jardinRepository.ajouterPlanche(nomPlanche, l, L) }; showAddPlancheDialog = false } }, enabled = nomPlanche.isNotBlank() && (largeur.toIntOrNull() ?: 0) > 0 && (longueur.toIntOrNull() ?: 0) > 0, shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Créer") } },
+            } },
+            confirmButton = { Button(onClick = { val l = largeur.toIntOrNull() ?: 1; val L = longueur.toIntOrNull() ?: 1; if (l > 0 && L > 0 && nomPlanche.isNotBlank()) { scope.launch { jardinRepository.ajouterPlanche(nomPlanche, l, L) }; showAddPlancheDialog = false } }, shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Créer") } },
             dismissButton = { TextButton(onClick = { showAddPlancheDialog = false }) { Text("Annuler") } }
         )
     }
     
     if (showLegumeSelection && selectedCarre != null) {
-        val carre = selectedCarre!!
-        val caseNumero = selectedCaseNumero
+        val carre = selectedCarre!!; val caseNumero = selectedCaseNumero
         var selectedCategorie by remember { mutableStateOf<String?>(null) }
         var searchQueryPlante by remember { mutableStateOf("") }
         val categories = legumes.groupBy { it.categorie }.keys.toList()
@@ -1121,42 +935,36 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
         AlertDialog(
             onDismissRequest = { showLegumeSelection = false; selectedCarre = null; selectedCaseNumero = 0 },
             title = { Text("Choisissez une plante", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text("Case ${caseNumero} du carré", style = MaterialTheme.typography.bodySmall); Spacer(modifier = Modifier.height(8.dp))
-                    Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false; selectedCarre = null; selectedCaseNumero = 0 }.padding(16.dp), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                    HorizontalDivider(); Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = searchQueryPlante, onValueChange = { searchQueryPlante = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (searchQueryPlante.isEmpty()) {
-                        Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            categories.forEach { categorie ->
-                                FilterChip(selected = selectedCategorie == categorie, onClick = { selectedCategorie = if (selectedCategorie == categorie) null else categorie }, label = { Text("${getEmojiCategorie(categorie)} ${categorie}", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
-                            }
-                        }
+            text = { Column {
+                Text("Case ${caseNumero} du carré", style = MaterialTheme.typography.bodySmall)
+                Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false }.padding(16.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                HorizontalDivider()
+                OutlinedTextField(value = searchQueryPlante, onValueChange = { searchQueryPlante = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
+                if (searchQueryPlante.isEmpty()) {
+                    Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState())) {
+                        categories.forEach { categorie -> FilterChip(selected = selectedCategorie == categorie, onClick = { selectedCategorie = if (selectedCategorie == categorie) null else categorie }, label = { Text("${getEmojiCategorie(categorie)} ${categorie}", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, modifier = Modifier.fillMaxWidth()) }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (searchQueryPlante.isNotEmpty() || selectedCategorie != null) {
-                        val plantes = legumes.filter { legume -> val matchRecherche = searchQueryPlante.isEmpty() || legume.nom.contains(searchQueryPlante, ignoreCase = true); val matchCategorie = selectedCategorie == null || legume.categorie == selectedCategorie; matchRecherche && matchCategorie }
-                        LazyColumn {
-                            items(plantes) { legume ->
-                                Text(legume.nom, modifier = Modifier.fillMaxWidth().clickable {
-                                    if (!peutPlanterIci(carre, caseNumero, legume.nom)) {
-                                        android.widget.Toast.makeText(context, "${legume.nom} est une plante volumineuse qui a besoin d'espace. Choisissez une case plus éloignée.", android.widget.Toast.LENGTH_LONG).show()
-                                        showLegumeSelection = false; selectedCarre = null; selectedCaseNumero = 0
-                                    } else {
-                                        val avertissementRotation = rotationRepository.getAvertissement(legume.nom, carre)
-                                        if (avertissementRotation != null) { selectedLegumeNom = legume.nom; avertissement = avertissementRotation; showAvertissement = true; showLegumeSelection = false }
-                                        else { selectedLegumeNom = legume.nom; showVarieteSelection = true; showLegumeSelection = false }
-                                    }
-                                }.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
-                                HorizontalDivider()
-                            }
+                }
+                if (searchQueryPlante.isNotEmpty() || selectedCategorie != null) {
+                    val plantes = legumes.filter { legume -> (searchQueryPlante.isEmpty() || legume.nom.contains(searchQueryPlante, ignoreCase = true)) && (selectedCategorie == null || legume.categorie == selectedCategorie) }
+                    LazyColumn {
+                        items(plantes) { legume ->
+                            Text(legume.nom, modifier = Modifier.fillMaxWidth().clickable {
+                                if (!peutPlanterIci(carre, caseNumero, legume.nom)) {
+                                    android.widget.Toast.makeText(context, "${legume.nom} est volumineux, espace insuffisant.", android.widget.Toast.LENGTH_LONG).show()
+                                    showLegumeSelection = false
+                                } else {
+                                    val av = rotationRepository.getAvertissement(legume.nom, carre)
+                                    if (av != null) { selectedLegumeNom = legume.nom; avertissement = av; showAvertissement = true; showLegumeSelection = false }
+                                    else { selectedLegumeNom = legume.nom; showVarieteSelection = true; showLegumeSelection = false }
+                                }
+                            }.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
+                            HorizontalDivider()
                         }
                     }
                 }
-            },
-            confirmButton = { TextButton(onClick = { showLegumeSelection = false; selectedCarre = null; selectedCaseNumero = 0 }) { Text("Annuler") } }
+            } },
+            confirmButton = { TextButton(onClick = { showLegumeSelection = false }) { Text("Annuler") } }
         )
     }
     
@@ -1173,16 +981,13 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
     }
     
     if (showAvertissement && avertissement != null) {
-        val av = avertissement!!
-        val carre = selectedCarre
-        val caseNumero = selectedCaseNumero
-        val legumeNom = selectedLegumeNom
+        val av = avertissement!!; val carre = selectedCarre; val caseNumero = selectedCaseNumero; val legumeNom = selectedLegumeNom
         AlertDialog(
-            onDismissRequest = { showAvertissement = false; avertissement = null; selectedLegumeNom = null },
+            onDismissRequest = { showAvertissement = false; avertissement = null },
             title = { Text("Rotation des cultures", fontWeight = FontWeight.Bold) },
-            text = { Column { Text(av.message, style = MaterialTheme.typography.bodyMedium); Spacer(modifier = Modifier.height(8.dp)); if (av.niveau == NiveauRisque.ELEVE || av.niveau == NiveauRisque.MOYEN) { Text("Voulez-vous quand même planter ce légume ?", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) } } },
-            confirmButton = { Button(onClick = { if (carre != null && caseNumero > 0 && legumeNom != null) { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom) } }; showAvertissement = false; avertissement = null; selectedCarre = null; selectedCaseNumero = 0; selectedLegumeNom = null }, colors = ButtonDefaults.buttonColors(containerColor = if (av.niveau == NiveauRisque.ELEVE) MaterialTheme.colorScheme.error else CouleursApp.VertPrincipal), shape = RoundedCornerShape(16.dp)) { Text("Planter quand même") } },
-            dismissButton = { TextButton(onClick = { showAvertissement = false; avertissement = null; selectedLegumeNom = null }) { Text("Annuler") } }
+            text = { Text(av.message) },
+            confirmButton = { Button(onClick = { if (carre != null && caseNumero > 0 && legumeNom != null) scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom) }; showAvertissement = false; avertissement = null; selectedLegumeNom = null }, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Planter quand même") } },
+            dismissButton = { TextButton(onClick = { showAvertissement = false; avertissement = null }) { Text("Annuler") } }
         )
     }
 }
@@ -1191,118 +996,255 @@ fun JardinPlanchesScreen(onBack: () -> Unit, onNavigateToAnalyse: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyseSolScreen(onBack: () -> Unit, onNavigateToPlanches: () -> Unit) {
-    var argile by remember { mutableStateOf("") }
-    var sable by remember { mutableStateOf("") }
-    var limon by remember { mutableStateOf("") }
-    var showAide by remember { mutableStateOf(false) }
-    var typeSol by remember { mutableStateOf("") }
-    var explicationSol by remember { mutableStateOf("") }
-    var conseilSol by remember { mutableStateOf("") }
+    var argile by remember { mutableStateOf("") }; var sable by remember { mutableStateOf("") }; var limon by remember { mutableStateOf("") }
+    var showAide by remember { mutableStateOf(false) }; var typeSol by remember { mutableStateOf("") }
     
     fun calculerTypeSol() {
         val a = argile.toIntOrNull() ?: 0; val s = sable.toIntOrNull() ?: 0; val l = limon.toIntOrNull() ?: 0; val total = a + s + l
         if (total == 100) {
             when {
-                a > 40 -> { typeSol = "Sol argileux"; explicationSol = "Sol lourd et compact, retient bien l'eau mais se réchauffe lentement."; conseilSol = "• Ajouter du compost et du sable\n• Pailler\n• Éviter de travailler le sol mouillé" }
-                s > 70 -> { typeSol = "Sol sableux"; explicationSol = "Sol léger, se réchauffe vite mais retient mal l'eau."; conseilSol = "• Ajouter beaucoup de compost\n• Pailler abondamment\n• Arroser plus souvent" }
-                l > 50 -> { typeSol = "Sol limoneux"; explicationSol = "Sol fertile, bonne rétention d'eau. Idéal pour la plupart des cultures."; conseilSol = "• Ajouter du compost\n• Pailler\n• Éviter le tassement" }
-                a in 20..35 && s in 35..50 -> { typeSol = "Sol équilibré (idéal)"; explicationSol = "Sol parfaitement équilibré, idéal pour toutes les cultures."; conseilSol = "• Maintenir avec du compost annuel\n• Pailler\n• Rotation des cultures" }
-                a > 35 -> { typeSol = "Sol argilo-limoneux"; explicationSol = "Sol riche, bonne rétention mais peut être lourd."; conseilSol = "• Ajouter compost et sable\n• Pailler" }
-                s > 50 -> { typeSol = "Sol sablo-limoneux"; explicationSol = "Sol léger, bien drainé."; conseilSol = "• Ajouter compost\n• Pailler\n• Arroser régulièrement" }
-                else -> { typeSol = "Sol limono-argileux"; explicationSol = "Sol fertile et équilibré."; conseilSol = "• Compost annuel\n• Pailler\n• Rotation" }
+                a > 40 -> typeSol = "Sol argileux - lourd, retient l'eau"
+                s > 70 -> typeSol = "Sol sableux - léger, se réchauffe vite"
+                l > 50 -> typeSol = "Sol limoneux - fertile, idéal"
+                a in 20..35 && s in 35..50 -> typeSol = "Sol équilibré (idéal)"
+                else -> typeSol = "Sol mixte"
             }
-        } else { typeSol = "Le total doit faire 100% (actuellement ${total}%)"; explicationSol = ""; conseilSol = "" }
+        } else typeSol = "Le total doit faire 100% (actuellement ${total}%)"
     }
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = {
-            TopAppBar(
-                title = { Text("Analyse du sol 🔬", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = CouleursApp.Blanc) } },
-                actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, contentDescription = "Aide", tint = CouleursApp.Blanc) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Analyse du sol 🔬", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) { Column(modifier = Modifier.padding(20.dp)) { Text("Composition du sol", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Text("Renseignez les pourcentages d'argile, de sable et de limon.", style = MaterialTheme.typography.bodyMedium) } } }
-            item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) { Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = argile, onValueChange = { argile = it }, label = { Text("Argile (%)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(16.dp))
-                OutlinedTextField(value = sable, onValueChange = { sable = it }, label = { Text("Sable (%)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(16.dp))
-                OutlinedTextField(value = limon, onValueChange = { limon = it }, label = { Text("Limon (%)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(16.dp))
-                Button(onClick = { calculerTypeSol() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Analyser") }
-            } } }
-            if (typeSol.isNotEmpty()) { item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(24.dp)) { Column(modifier = Modifier.padding(20.dp)) { Text("Résultat", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text(typeSol, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) } } } }
-            if (explicationSol.isNotEmpty()) { item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) { Column(modifier = Modifier.padding(20.dp)) { Text("📋 Caractéristiques", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Spacer(modifier = Modifier.height(8.dp)); Text(explicationSol) } } } }
-            if (conseilSol.isNotEmpty()) { item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) { Column(modifier = Modifier.padding(20.dp)) { Text("💡 Conseils", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Spacer(modifier = Modifier.height(8.dp)); Text(conseilSol) } } } }
+            item { OutlinedTextField(value = argile, onValueChange = { argile = it }, label = { Text("Argile (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
+            item { OutlinedTextField(value = sable, onValueChange = { sable = it }, label = { Text("Sable (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
+            item { OutlinedTextField(value = limon, onValueChange = { limon = it }, label = { Text("Limon (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
+            item { Button(onClick = { calculerTypeSol() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Analyser") } }
+            if (typeSol.isNotEmpty()) { item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Text(typeSol, modifier = Modifier.padding(20.dp), fontWeight = FontWeight.Bold) } } }
         }
     }
     
     if (showAide) {
         AlertDialog(
             onDismissRequest = { showAide = false },
-            title = { Text("Méthodes d'analyse du sol", fontWeight = FontWeight.Bold) },
-            text = { LazyColumn { item { Text("Méthode I : Test tactile\n\n1. Prélevez une poignée de terre humide.\n2. Roulez-la entre vos doigts.\n3. Écrasez-la.\n\n• Rugueuse et se désagrège : sol sableux\n• Douce comme du talc : sol limoneux\n• Colle et se lisse : sol argileux") } } },
-            confirmButton = { TextButton(onClick = { showAide = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } }
+            title = { Text("Analyse du sol", fontWeight = FontWeight.Bold) },
+            text = { Text("Test tactile : roulez une boule de terre humide.\n\n• Rugueuse = sableux\n• Douce = limoneux\n• Collante = argileux") },
+            confirmButton = { TextButton(onClick = { showAide = false }) { Text("Fermer") } }
         )
     }
 }
 
-// Légende des couleurs pour le jardin
+// ============== CALENDRIER ==============
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LegendeCouleurs() {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Légende", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(8.dp)); Text("Bonne association", style = MaterialTheme.typography.bodySmall) }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(8.dp)); Text("Association neutre", style = MaterialTheme.typography.bodySmall) }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(8.dp)); Text("Mauvaise association", style = MaterialTheme.typography.bodySmall) }
-        }
-    }
-}
-
-@Composable
-fun LegendeCompacte() {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Creme)) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text("Légende des couleurs :", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold); Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(16.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(4.dp)); Text("Bonne", style = MaterialTheme.typography.bodySmall) }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(16.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(4.dp)); Text("Neutre", style = MaterialTheme.typography.bodySmall) }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(16.dp).background(Color(0xFFF44336).copy(alpha = 0.5f), RoundedCornerShape(4.dp))); Spacer(modifier = Modifier.width(4.dp)); Text("Mauvaise", style = MaterialTheme.typography.bodySmall) }
-        }
-    }
-}
-
-fun getPremiereCaseVide(carre: CarreEntity): Int {
-    if (carre.case1 == null) return 1; if (carre.case2 == null) return 2; if (carre.case3 == null) return 3
-    if (carre.case4 == null) return 4; if (carre.case5 == null) return 5; if (carre.case6 == null) return 6
-    if (carre.case7 == null) return 7; if (carre.case8 == null) return 8; if (carre.case9 == null) return 9
-    return 0
-}
-
-@Composable
-fun PlancheCard(planche: PlancheEntity, isExpanded: Boolean, onToggleExpand: () -> Unit, onDelete: () -> Unit, jardinRepository: JardinRepository, onSousCarreClick: (CarreEntity, Int) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggleExpand), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) { Text(planche.nom, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("${planche.largeur}m × ${planche.longueur}m = ${planche.largeur * planche.longueur} carrés", style = MaterialTheme.typography.bodySmall) }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = MaterialTheme.colorScheme.error) }
-            }
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(16.dp))
-                val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (y in 0 until planche.longueur) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            for (x in 0 until planche.largeur) {
-                                val carre = carres.find { it.positionX == x && it.positionY == y }
-                                if (carre != null) { Grille3x3(carre = carre, onSousCarreClick = { caseNumero -> onSousCarreClick(carre, caseNumero) }, modifier = Modifier.weight(1f)) }
+fun CalendrierScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val jardinRepository = remember { JardinRepository(context) }
+    val legumeRepository = remember { LegumeRepository(context) }
+    val meteoRepository = remember { MeteoRepository() }
+    val luneRepository = remember { LuneRepository() }
+    val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
+    var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var datesPlantation by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+    var meteo by remember { mutableStateOf<MeteoData?>(null) }
+    var ville by remember { mutableStateOf("Paris") }
+    var estConnecte by remember { mutableStateOf(true) }
+    val phaseLune = remember { luneRepository.getPhaseLune() }
+    var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
+    var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    var selectedDay by remember { mutableStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) }
+    var showRappelDialog by remember { mutableStateOf(false) }
+    var selectedTimestamp by remember { mutableStateOf(0L) }
+    val rappelRepository = remember { RappelRepository(context) }
+    var rappelActif by remember { mutableStateOf(false) }
+    var rappelNote by remember { mutableStateOf("") }
+    var rappelHeure by remember { mutableStateOf(9) }
+    var rappelMinute by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis(); try { legumesPlantes = jardinRepository.getLegumesPlantes(); datesPlantation = jardinRepository.getDatesPlantation() } catch (e: Exception) {} }
+    LaunchedEffect(Unit) { val reseauRepository = ReseauRepository(context); estConnecte = reseauRepository.estConnecte(); if (estConnecte) { try { val localisationRepository = LocalisationRepository(context); ville = localisationRepository.getVille() ?: "Paris"; meteo = meteoRepository.getMeteo(ville) } catch (e: Exception) {} } }
+    
+    val moisNoms = listOf("Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre")
+    
+    Scaffold(
+        containerColor = CouleursApp.Creme,
+        topBar = { TopAppBar(title = { Text("Calendrier 📅", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+    ) { innerPadding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            item { MeteoCard(meteo, ville, estConnecte, phaseLune) }
+            item {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
+                            Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold)
+                            TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) { listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = CouleursApp.VertPrincipal) } }
+                        val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, 1)
+                        val firstDay = cal.get(Calendar.DAY_OF_WEEK); val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        val offset = if (firstDay == Calendar.SUNDAY) 6 else firstDay - 2
+                        for (row in 0 until ((offset + daysInMonth + 6) / 7)) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                for (col in 0..6) {
+                                    val dayNumber = row * 7 + col - offset + 1
+                                    if (dayNumber in 1..daysInMonth) {
+                                        val isSelected = dayNumber == selectedDay
+                                        Box(modifier = Modifier.weight(1f).aspectRatio(1f).background(if (isSelected) CouleursApp.VertPrincipal else Color.Transparent, RoundedCornerShape(8.dp)).clickable { selectedDay = dayNumber; val calJour = Calendar.getInstance(); calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0); selectedTimestamp = calJour.timeInMillis; val rappel = rappelRepository.getRappelSync(selectedTimestamp); rappelActif = rappel?.estActif ?: false; rappelNote = rappel?.note ?: ""; showRappelDialog = true }.padding(4.dp), contentAlignment = Alignment.Center) { Text("$dayNumber", color = if (isSelected) CouleursApp.Blanc else CouleursApp.TexteFonce) }
+                                    } else Box(modifier = Modifier.weight(1f).aspectRatio(1f))
+                                }
                             }
+                        }
+                    }
+                }
+            }
+            item { Text("Plantes plantées (${legumesPlantes.size}) :", fontWeight = FontWeight.Bold) }
+            legumesPlantes.forEach { legumeNom -> val legume = legumes.find { it.nom == legumeNom }; if (legume != null) item { CalendrierLegumeCard(legume, datesPlantation[legume.nom]) } }
+        }
+    }
+    
+    if (showRappelDialog) {
+        val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
+        val dateRappel = Date(selectedTimestamp)
+        val scope = rememberCoroutineScope()
+        AlertDialog(
+            onDismissRequest = { showRappelDialog = false },
+            title = { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("📅 ${dateFormat.format(dateRappel)}", fontWeight = FontWeight.Bold); IconButton(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); rappelRepository.toggleRappel(cal.timeInMillis, "Rappel"); rappelActif = !rappelActif } }) { Text(if (rappelActif) "🔔" else "🔕", style = MaterialTheme.typography.titleLarge) } } },
+            text = { Column {
+                Text(if (rappelActif) "Rappel activé" else "Rappel désactivé", color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error)
+                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Row(modifier = Modifier.padding(16.dp)) { Text("⏰ Heure : ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold) } }
+                OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
+                Button(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); val ts = cal.timeInMillis; val rappel = rappelRepository.getRappel(ts); if (rappel != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel", rappelNote) }; showRappelDialog = false }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Enregistrer") }
+            } },
+            confirmButton = { TextButton(onClick = { showRappelDialog = false }) { Text("Fermer") } }
+        )
+    }
+}
+
+@Composable
+fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune: PhaseLune? = null) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("🌦️ Météo à $ville", fontWeight = FontWeight.Bold)
+            if (phaseLune != null) Text("${phaseLune.emoji} ${phaseLune.nom}", color = CouleursApp.VertPrincipal)
+            if (!estConnecte) Text("📡 Hors-ligne")
+            else if (meteo == null) Text("Météo indisponible")
+            else { Text("🌡️ ${meteo.temperature}°C"); Text("☁️ ${meteo.description}"); Text("💧 ${meteo.humidite}%"); Text("🌬️ ${meteo.vent} m/s") }
+        }
+    }
+}
+
+@Composable
+fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+            if (datePlantation != null) { val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE); Text("🌱 Planté le ${df.format(Date(datePlantation))}") }
+            Text("📅 Semis : ${legume.semis}"); Text("🌱 Plantation : ${legume.plantation}"); Text("🧺 Récolte : ${legume.recolte}")
+        }
+    }
+}
+
+// ============== CONSERVATION ==============
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConservationScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val repository = remember { LegumeRepository(context) }
+    val legumes by repository.legumes.collectAsState(initial = emptyList())
+    var filtre by remember { mutableStateOf("Tous") }
+    var showAide by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { repository.ajouterLegumesPredefinis() }
+    val methodes = listOf("Tous", "Séchage", "Lactofermentation", "Conserves", "Congélation")
+    
+    Scaffold(
+        containerColor = CouleursApp.Creme,
+        topBar = { TopAppBar(title = { Text("Conservation 🥫", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+    ) { innerPadding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold); Column { methodes.forEach { m -> FilterChip(selected = filtre == m, onClick = { filtre = m }, label = { Text(m) }, modifier = Modifier.padding(vertical = 4.dp)) } } }
+            item { Text("${legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, ignoreCase = true) }.size} plantes") }
+            legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, ignoreCase = true) }.forEach { legume -> item { ConservationCard(legume) } }
+        }
+    }
+    if (showAide) AideConservationDialog(onDismiss = { showAide = false })
+}
+
+@Composable
+fun AideConservationDialog(onDismiss: () -> Unit) {
+    var selectedOnglet by remember { mutableStateOf("sechage") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("📖 Guide de conservation", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; else -> 3 }, containerColor = CouleursApp.VertPale) {
+                    Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
+                    Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
+                    Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
+                    Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(modifier = Modifier.height(300.dp)) {
+                    when (selectedOnglet) {
+                        "sechage" -> { item { Text("🌬️ Séchage", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Tranches fines (3-5mm)\n• 50-60°C\n• 6-12h\n• Bocaux hermétiques\n• 6-12 mois") }; item { Text("🥕 Tomates, carottes, courgettes, oignons, herbes") } }
+                        "lacto" -> { item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Sel sans iode : 20-30g/L\n• Légumes immergés\n• 18-22°C\n• 1-4 semaines") }; item { Text("🥕 Choux, carottes, radis, concombres") } }
+                        "conserves" -> { item { Text("🫙 Conserves", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Stériliser bocaux\n• 2cm de vide\n• Eau salée 20g/L\n• 100°C pendant 1h-1h30") }; item { Text("🥕 Tomates, haricots, petits pois") } }
+                        "congelation" -> { item { Text("❄️ Congélation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Blanchir 2-3 min\n• Eau glacée\n• À plat\n• -18°C\n• 8-12 mois") }; item { Text("🥕 Haricots, petits pois, épinards") } }
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
+    )
+}
+
+@Composable
+fun ConservationCard(legume: LegumeEntity) {
+    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+            Text(legume.conservation)
+        }
+    }
+}
+
+// ============== FICHE DÉTAILLÉE ==============
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val varieteRepository = remember { VarieteRepository(context) }
+    val varietes by varieteRepository.getVarietesForLegume(legume.nom).collectAsState(initial = emptyList())
+    var selectedVariete by remember { mutableStateOf<VarieteEntity?>(null) }
+    LaunchedEffect(Unit) { varieteRepository.ajouterVarietesPredefinies() }
+    
+    if (selectedVariete != null) VarieteDetailScreen(variete = selectedVariete!!, onBack = { selectedVariete = null })
+    else {
+        Scaffold(
+            containerColor = CouleursApp.Creme,
+            topBar = { TopAppBar(title = { Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        ) { innerPadding ->
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayLarge) } }
+                item { InfoCard("Catégorie", legume.categorie) }
+                item { InfoCard("Difficulté", legume.difficulte) }
+                item { InfoCard("Exposition", legume.exposition) }
+                item { InfoCard("Sol", legume.sol) }
+                item { InfoCard("Arrosage", legume.arrosage) }
+                item { InfoCard("Semis", legume.semis) }
+                item { InfoCard("Plantation", legume.plantation) }
+                item { InfoCard("Récolte", legume.recolte) }
+                item { InfoCard("Entretien", legume.entretien) }
+                item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
+                item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
+                item { InfoCard("Conservation", legume.conservation) }
+                if (varietes.isNotEmpty()) {
+                    item { Text("🌱 Variétés (${varietes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
+                    items(varietes) { variete ->
+                        Card(modifier = Modifier.fillMaxWidth().clickable { selectedVariete = variete }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+                            Row(modifier = Modifier.padding(16.dp)) { Text("🌿 ${variete.nom}", fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
@@ -1311,31 +1253,79 @@ fun PlancheCard(planche: PlancheEntity, isExpanded: Boolean, onToggleExpand: () 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Grille3x3(carre: CarreEntity, onSousCarreClick: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
-    val toutesMemePlante = legumes.size == 9 && legumes.distinct().size == 1
-    
-    if (toutesMemePlante) {
-        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal, RoundedCornerShape(8.dp)).clickable(onClick = { onSousCarreClick(1) }), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(legumes[0], style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold); Spacer(modifier = Modifier.height(4.dp)); Text("✅", style = MaterialTheme.typography.titleLarge) }
-        }
-    } else {
-        Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
-            for (row in 0..2) {
-                Row(modifier = Modifier.weight(1f)) {
-                    for (col in 0..2) {
-                        val caseNumero = row * 3 + col + 1
-                        val legume = when (caseNumero) { 1 -> carre.case1; 2 -> carre.case2; 3 -> carre.case3; 4 -> carre.case4; 5 -> carre.case5; 6 -> carre.case6; 7 -> carre.case7; 8 -> carre.case8; 9 -> carre.case9; else -> null }
-                        val couleurFond = if (legume != null) { val autresLegumes = legumes.filter { it != legume }; if (autresLegumes.isEmpty()) { Color(0xFF4CAF50).copy(alpha = 0.3f) } else { val estMauvaise = autresLegumes.any { voisin -> estMauvaiseAssociation(legume, voisin) }; val estBonne = autresLegumes.any { voisin -> estBonneAssociation(legume, voisin) }; when { estMauvaise -> Color(0xFFF44336).copy(alpha = 0.3f); estBonne -> Color(0xFF4CAF50).copy(alpha = 0.3f); else -> Color(0xFFFF9800).copy(alpha = 0.3f) } } } else { CouleursApp.Blanc }
-                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(couleurFond).border(width = if (legume != null && estVivace(legume)) 3.dp else 1.dp, color = CouleursApp.VertPrincipal, shape = RoundedCornerShape(2.dp)).clickable(onClick = { onSousCarreClick(caseNumero) }), contentAlignment = Alignment.Center) { Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center) }
-                    }
-                }
-            }
+fun VarieteDetailScreen(variete: VarieteEntity, onBack: () -> Unit) {
+    Scaffold(
+        containerColor = CouleursApp.Creme,
+        topBar = { TopAppBar(title = { Text(variete.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+    ) { innerPadding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { InfoCard("Description", variete.description) }
+            item { InfoCard("Semis", variete.semis) }
+            item { InfoCard("Plantation", variete.plantation) }
+            item { InfoCard("Récolte", variete.recolte) }
+            item { InfoCard("Particularités", variete.particularites) }
         }
     }
 }
 
+// ============== CARTE LÉGUME ==============
+@Composable
+fun LegumeCard(legume: LegumeEntity, onClick: () -> Unit, onDelete: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayMedium)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                Text("${legume.categorie} - ${legume.difficulte}", style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
+        }
+    }
+}
+
+// ============== DIALOG SÉLECTION VARIÉTÉ ==============
+@Composable
+fun VarieteSelectionDialog(
+    legumeNom: String,
+    varieteRepository: VarieteRepository,
+    onVarieteChoisie: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val varietes by varieteRepository.getVarietesForLegume(legumeNom).collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(Unit) {
+        scope.launch { varieteRepository.ajouterVarietesPredefinies() }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Variétés de $legumeNom", fontWeight = FontWeight.Bold) },
+        text = {
+            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                item {
+                    Text("🌱 Variété standard", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie(legumeNom) }.padding(16.dp), fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                    HorizontalDivider()
+                }
+                if (varietes.isEmpty()) {
+                    item { Text("Chargement des variétés...", modifier = Modifier.padding(16.dp), color = CouleursApp.TexteFonce) }
+                } else {
+                    items(varietes) { variete ->
+                        Text("🌿 ${variete.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${variete.nom})") }.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
+                        Text(variete.description, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
+                        HorizontalDivider()
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
+    )
+}
+
+// ============== FONCTIONS PLANTES ==============
 fun estVivace(nomLegume: String): Boolean {
     val vivaces = listOf("Lavande", "Menthe", "Thym", "Romarin", "Ciboulette", "Topinambour")
     return nomLegume in vivaces
@@ -1359,362 +1349,80 @@ fun peutPlanterIci(carre: CarreEntity, caseNumero: Int, legumeNom: String): Bool
 }
 
 fun estBonneAssociation(legume1: String, legume2: String): Boolean {
-    val bonnesAssociations = mapOf(
-        "Carotte" to listOf("Tomate", "Salade", "Oignon", "Poireau"),
-        "Tomate" to listOf("Carotte", "Basilic", "Oignon"),
-        "Salade" to listOf("Carotte", "Radis", "Concombre"),
-        "Oignon" to listOf("Carotte", "Tomate", "Betterave"),
-        "Poireau" to listOf("Carotte", "Céleri"),
-        "Basilic" to listOf("Tomate", "Poivron"),
-        "Radis" to listOf("Salade", "Carotte"),
-        "Concombre" to listOf("Salade", "Haricot"),
-        "Haricot" to listOf("Concombre", "Maïs", "Courge"),
-        "Courge" to listOf("Haricot", "Maïs"),
-        "Lavande" to listOf("Tomate", "Chou"),
-        "Capucine" to listOf("Tomate", "Chou", "Courgette"),
-        "Souci" to listOf("Tomate", "Chou", "Carotte"),
-        "Bourrache" to listOf("Fraisier", "Tomate", "Courgette"),
-        "Phacélie" to listOf("Tous les légumes"),
-        "Cosmos" to listOf("Tous les légumes"),
-        "Œillet d'Inde" to listOf("Tomate", "Pomme de terre", "Chou")
-    )
-    return bonnesAssociations[legume1]?.contains(legume2) == true || bonnesAssociations[legume2]?.contains(legume1) == true
+    val bonnes = mapOf("Carotte" to listOf("Tomate", "Salade"), "Tomate" to listOf("Carotte", "Basilic"), "Basilic" to listOf("Tomate"))
+    return bonnes[legume1]?.contains(legume2) == true || bonnes[legume2]?.contains(legume1) == true
 }
 
 fun estMauvaiseAssociation(legume1: String, legume2: String): Boolean {
-    val mauvaisesAssociations = mapOf(
-        "Carotte" to listOf("Aneth", "Persil"),
-        "Tomate" to listOf("Pomme de terre", "Concombre"),
-        "Pomme de terre" to listOf("Tomate", "Aubergine"),
-        "Oignon" to listOf("Haricot", "Pois"),
-        "Poireau" to listOf("Haricot", "Pois"),
-        "Haricot" to listOf("Ail", "Oignon"),
-        "Salade" to listOf("Persil", "Céleri"),
-        "Concombre" to listOf("Tomate", "Pomme de terre")
-    )
-    return mauvaisesAssociations[legume1]?.contains(legume2) == true || mauvaisesAssociations[legume2]?.contains(legume1) == true
+    val mauvaises = mapOf("Tomate" to listOf("Pomme de terre"), "Oignon" to listOf("Haricot", "Pois"))
+    return mauvaises[legume1]?.contains(legume2) == true || mauvaises[legume2]?.contains(legume1) == true
 }
 
-// ============== CALENDRIER ==============
-@OptIn(ExperimentalMaterial3Api::class)
+// Légende des couleurs
 @Composable
-fun CalendrierScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val jardinRepository = remember { JardinRepository(context) }
-    val legumeRepository = remember { LegumeRepository(context) }
-    val meteoRepository = remember { MeteoRepository() }
-    val luneRepository = remember { LuneRepository() }
-    val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
-    
-    var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
-    var datesPlantation by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
-    var meteo by remember { mutableStateOf<MeteoData?>(null) }
-    var ville by remember { mutableStateOf("Paris") }
-    var estConnecte by remember { mutableStateOf(true) }
-    val phaseLune = remember { luneRepository.getPhaseLune() }
-    var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
-    var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    var selectedDay by remember { mutableStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) }
-    var showRappelDialog by remember { mutableStateOf(false) }
-    var selectedTimestamp by remember { mutableStateOf(0L) }
-    val rappelRepository = remember { RappelRepository(context) }
-    var rappelActif by remember { mutableStateOf(false) }
-    var rappelNote by remember { mutableStateOf("") }
-    var rappelHeure by remember { mutableStateOf(9) }
-    var rappelMinute by remember { mutableStateOf(0) }
-    
-    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis(); try { legumesPlantes = jardinRepository.getLegumesPlantes(); datesPlantation = jardinRepository.getDatesPlantation() } catch (e: Exception) {} }
-    LaunchedEffect(Unit) { val reseauRepository = ReseauRepository(context); estConnecte = reseauRepository.estConnecte(); if (estConnecte) { try { val localisationRepository = LocalisationRepository(context); val villeDetectee = localisationRepository.getVille(); if (villeDetectee != null) ville = villeDetectee; meteo = meteoRepository.getMeteo(ville) } catch (e: Exception) {} } }
-    
-    val moisNoms = listOf("Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre")
-    
-    Scaffold(
-        containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Calendrier 📅", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
-    ) { innerPadding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item { MeteoCard(meteo, ville, estConnecte, phaseLune) }
-            item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
-                            Text("${moisNoms[currentMonth]} $currentYear", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                            TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(modifier = Modifier.fillMaxWidth()) { listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { jour -> Text(jour, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal) } }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, 1)
-                        val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK); val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-                        val offset = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
-                        val totalCells = offset + daysInMonth; val rows = (totalCells + 6) / 7
-                        for (row in 0 until rows) {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                for (col in 0..6) {
-                                    val dayNumber = row * 7 + col - offset + 1
-                                    if (dayNumber in 1..daysInMonth) {
-                                        val isSelected = dayNumber == selectedDay
-                                        Box(modifier = Modifier.weight(1f).aspectRatio(1f).background(if (isSelected) CouleursApp.VertPrincipal else Color.Transparent, RoundedCornerShape(8.dp)).clickable { selectedDay = dayNumber; val calJour = Calendar.getInstance(); calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0); calJour.set(Calendar.MILLISECOND, 0); selectedTimestamp = calJour.timeInMillis; val rappel = rappelRepository.getRappelSync(selectedTimestamp); rappelActif = rappel?.estActif ?: false; rappelNote = rappel?.note ?: ""; showRappelDialog = true }.padding(4.dp), contentAlignment = Alignment.Center) { Text("$dayNumber", color = if (isSelected) CouleursApp.Blanc else CouleursApp.TexteFonce, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = MaterialTheme.typography.bodySmall.fontSize) }
-                                    } else { Box(modifier = Modifier.weight(1f).aspectRatio(1f)) }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            item { Text("Plantes plantées (${legumesPlantes.size}) :", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) }
-            if (legumesPlantes.isEmpty()) { item { Text("Aucune plante plantée.", style = MaterialTheme.typography.bodyMedium) } }
-            else { legumesPlantes.forEach { legumeNom -> val legume = legumes.find { it.nom == legumeNom }; if (legume != null) { item { CalendrierLegumeCard(legume = legume, datePlantation = datesPlantation[legume.nom]) } } } }
-        }
-    }
-    
-    if (showRappelDialog) {
-        val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
-        val dateRappel = Date(selectedTimestamp)
-        val scope = rememberCoroutineScope()
-        AlertDialog(
-            onDismissRequest = { showRappelDialog = false },
-            title = { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("📅 ${dateFormat.format(dateRappel)}", fontWeight = FontWeight.Bold); IconButton(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); rappelRepository.toggleRappel(cal.timeInMillis, "Rappel du ${dateFormat.format(dateRappel)} à ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}"); rappelActif = !rappelActif } }) { Text(if (rappelActif) "🔔" else "🔕", style = MaterialTheme.typography.titleLarge) } } },
-            text = { Column {
-                Text(if (rappelActif) "Rappel activé" else "Rappel désactivé", color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth().clickable { val timePicker = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); timePicker.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Text("⏰", style = MaterialTheme.typography.titleLarge); Spacer(modifier = Modifier.width(12.dp)); Column { Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) } } }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note (optionnel)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); val ts = cal.timeInMillis; val rappel = rappelRepository.getRappel(ts); if (rappel != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel du ${dateFormat.format(dateRappel)}", rappelNote) }; showRappelDialog = false }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Enregistrer") }
-            } },
-            confirmButton = { TextButton(onClick = { showRappelDialog = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } }
-        )
-    }
-}
-
-@Composable
-fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune: PhaseLune? = null) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text("🌦️ Météo à $ville", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-            if (phaseLune != null) { Text("${phaseLune.emoji} ${phaseLune.nom}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (!estConnecte) { Text("📡 Mode hors-ligne", color = MaterialTheme.colorScheme.error) }
-            else if (meteo == null) { Text("Impossible de récupérer la météo") }
-            else { Text("🌡️ Température : ${meteo.temperature}°C"); Text("☁️ Conditions : ${meteo.description}"); Text("💧 Humidité : ${meteo.humidite}%"); Text("🌬️ Vent : ${meteo.vent} m/s") }
-        }
-    }
-}
-
-@Composable
-fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) {
+fun LegendeCouleurs() {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(legume.nom, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-            if (datePlantation != null) { val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE); Text("🌱 Planté le : ${df.format(Date(datePlantation))}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
-            Text("📅 Semis : ${legume.semis}"); Text("🌱 Plantation : ${legume.plantation}"); Text("🧺 Récolte : ${legume.recolte}")
+            Text("Légende", fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f))); Text(" Bonne association", style = MaterialTheme.typography.bodySmall) }
+            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Neutre", style = MaterialTheme.typography.bodySmall) }
+            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
         }
     }
 }
 
-// ============== CONSERVATION ==============
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConservationScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val repository = remember { LegumeRepository(context) }
-    val legumes by repository.legumes.collectAsState(initial = emptyList())
-    var filtre by remember { mutableStateOf("Tous") }
-    var showAide by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { repository.ajouterLegumesPredefinis() }
-    val methodes = listOf("Tous", "Séchage", "Lactofermentation", "Conserves", "Congélation")
+fun LegendeCompacte() {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Creme)) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Box(modifier = Modifier.size(16.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f))); Text(" Bonne", style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.size(16.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Neutre", style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.size(16.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun Grille3x3(carre: CarreEntity, onSousCarreClick: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
+    val toutesMemePlante = legumes.size == 9 && legumes.distinct().size == 1
     
-    Scaffold(
-        containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Conservation 🥫", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
-    ) { innerPadding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Column { methodes.forEach { methode -> FilterChip(selected = filtre == methode, onClick = { filtre = methode }, label = { Text(methode) }, modifier = Modifier.padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) } } }
-            item { Text("${legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, ignoreCase = true) }.size} plantes") }
-            legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, ignoreCase = true) }.forEach { legume -> item { ConservationCard(legume) } }
+    if (toutesMemePlante) {
+        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(legumes[0], fontWeight = FontWeight.Bold); Text("✅") }
         }
-    }
-    if (showAide) { AideConservationDialog(onDismiss = { showAide = false }) }
-}
-
-@Composable
-fun AideConservationDialog(onDismiss: () -> Unit) {
-    var selectedOnglet by remember { mutableStateOf("sechage") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("📖 Guide de conservation", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; "congelation" -> 3; else -> 0 }, containerColor = CouleursApp.VertPale, contentColor = CouleursApp.VertPrincipal) {
-                    Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
-                    Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
-                    Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
-                    Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize) })
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(modifier = Modifier.fillMaxWidth().height(300.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    when (selectedOnglet) {
-                        "sechage" -> { item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Coupez en tranches fines (3-5mm)\n• Température : 50-60°C\n• Durée : 6-12h\n• Stockez en bocaux hermétiques\n• Conservation : 6-12 mois") }; item { Text("🥕 Légumes adaptés : tomates, carottes, courgettes, oignons, herbes") } }
-                        "lacto" -> { item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Sel sans iode : 2-3% (20-30g/L)\n• Légumes immergés sous la saumure\n• Température : 18-22°C\n• Durée : 1-4 semaines\n• Réfrigérateur après ouverture") }; item { Text("🥕 Légumes adaptés : choux, carottes, radis, concombres") } }
-                        "conserves" -> { item { Text("🫙 Conserves", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Stérilisez bocaux et couvercles\n• Remplissez en laissant 2cm de vide\n• Ajoutez eau salée bouillante (20g/L)\n• Stérilisez à 100°C pendant 1h-1h30\n• Conservation : 1-2 ans") }; item { Text("🥕 Légumes adaptés : tomates, haricots, petits pois, carottes") } }
-                        "congelation" -> { item { Text("❄️ Congélation optimale", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Blanchissez 2-3 min\n• Refroidissez dans eau glacée\n• Égouttez bien\n• Disposez à plat\n• Température : -18°C ou moins\n• Conservation : 8-12 mois") }; item { Text("🥕 Légumes adaptés : haricots, petits pois, carottes, épinards") } }
-                    }
-                }
-            }
-        },
-        confirmButton = { Button(onClick = onDismiss, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
-    )
-}
-
-@Composable
-fun ConservationCard(legume: LegumeEntity) {
-    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(legume.nom, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-            Text(legume.conservation, style = MaterialTheme.typography.bodyMedium, color = CouleursApp.TexteFonce)
-        }
-    }
-}
-
-// ============== FICHE DÉTAILLÉE ==============
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val varieteRepository = remember { VarieteRepository(context) }
-    val varietes by varieteRepository.getVarietesForLegume(legume.nom).collectAsState(initial = emptyList())
-    var selectedVariete by remember { mutableStateOf<VarieteEntity?>(null) }
-    LaunchedEffect(Unit) { varieteRepository.ajouterVarietesPredefinies() }
-    
-    if (selectedVariete != null) { VarieteDetailScreen(variete = selectedVariete!!, onBack = { selectedVariete = null }) }
-    else {
-        Scaffold(
-            containerColor = CouleursApp.Creme,
-            topBar = { TopAppBar(title = { Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
-        ) { innerPadding ->
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayLarge) } }
-                item { InfoCard("Catégorie", legume.categorie) }
-                if (legume.estVivace) item { InfoCard("Type", "🌿 Plante vivace") }
-                if (legume.estFleur) item { InfoCard("Type", "🌸 Fleur") }
-                item { InfoCard("Difficulté", legume.difficulte) }
-                item { InfoCard("Exposition", legume.exposition) }
-                item { InfoCard("Sol", legume.sol) }
-                item { InfoCard("Arrosage", legume.arrosage) }
-                item { InfoCard("Température", legume.temperature) }
-                item { InfoCard("Semis", legume.semis) }
-                item { InfoCard("Plantation", legume.plantation) }
-                item { InfoCard("Récolte", legume.recolte) }
-                item { InfoCard("Entretien", legume.entretien) }
-                item { InfoCard("Maladies", legume.maladies) }
-                item { InfoCard("Prévention naturelle", legume.prevention) }
-                item { InfoCard("Bonnes associations", legume.bonnesAssociations) }
-                item { InfoCard("Mauvaises associations", legume.mauvaisesAssociations) }
-                item { InfoCard("Conservation", legume.conservation) }
-                if (varietes.isNotEmpty()) {
-                    item { Text("🌱 Variétés populaires (${varietes.size}) :", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
-                    items(varietes) { variete ->
-                        Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { selectedVariete = variete }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("🌱"); Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) { Text(variete.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(variete.description, style = MaterialTheme.typography.bodySmall, maxLines = 2) }
-                                Icon(Icons.Default.ArrowForward, "Voir", tint = CouleursApp.VertPrincipal, modifier = Modifier.size(20.dp))
-                            }
-                        }
+    } else {
+        Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
+            for (row in 0..2) {
+                Row(modifier = Modifier.weight(1f)) {
+                    for (col in 0..2) {
+                        val caseNumero = row * 3 + col + 1
+                        val legume = when (caseNumero) { 1 -> carre.case1; 2 -> carre.case2; 3 -> carre.case3; 4 -> carre.case4; 5 -> carre.case5; 6 -> carre.case6; 7 -> carre.case7; 8 -> carre.case8; 9 -> carre.case9; else -> null }
+                        val couleurFond = if (legume != null) {
+                            val autres = legumes.filter { it != legume }
+                            if (autres.isEmpty()) Color(0xFF4CAF50).copy(alpha = 0.3f)
+                            else { val mauvaise = autres.any { estMauvaiseAssociation(legume, it) }; val bonne = autres.any { estBonneAssociation(legume, it) }; when { mauvaise -> Color(0xFFF44336).copy(alpha = 0.3f); bonne -> Color(0xFF4CAF50).copy(alpha = 0.3f); else -> Color(0xFFFF9800).copy(alpha = 0.3f) } }
+                        } else CouleursApp.Blanc
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight().background(couleurFond).border(1.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(caseNumero) }, contentAlignment = Alignment.Center) { Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
                     }
                 }
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun VarieteDetailScreen(variete: VarieteEntity, onBack: () -> Unit) {
-    Scaffold(
-        containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text(variete.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
-    ) { innerPadding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { InfoCard("Description", variete.description) }
-            item { InfoCard("Semis", variete.semis) }
-            item { InfoCard("Plantation", variete.plantation) }
-            item { InfoCard("Récolte", variete.recolte) }
-            item { InfoCard("Entretien", variete.entretien) }
-            item { InfoCard("Particularités", variete.particularites) }
-        }
-    }
-}
-
-// ============== CARTE LÉGUME ==============
-@Composable
-fun LegumeCard(legume: LegumeEntity, onClick: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayMedium, modifier = Modifier.size(60.dp))
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(legume.nom, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                Text("Catégorie : ${legume.categorie}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
-                Text("Difficulté : ${legume.difficulte}", style = MaterialTheme.typography.bodySmall)
-            }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
-        }
-    }
-}
-
-// ============== DIALOG SÉLECTION VARIÉTÉ ==============
-@Composable
-fun VarieteSelectionDialog(
-    legumeNom: String,
-    varieteRepository: VarieteRepository,
-    onVarieteChoisie: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    var varietes by remember { mutableStateOf<List<VarieteEntity>>(emptyList()) }
-    
-    LaunchedEffect(legumeNom) {
-        varietes = AppDatabase.getDatabase(context).legumeDao().getVarietesForLegumeSync(legumeNom)
-    }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Variétés de $legumeNom", fontWeight = FontWeight.Bold) },
-        text = {
-            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                item {
-                    Text("🌱 Variété standard", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie(legumeNom) }.padding(16.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                    HorizontalDivider()
-                }
-                items(varietes) { variete ->
-                    Text("🌿 ${variete.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${variete.nom})") }.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
-                    Text(variete.description, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
-                    HorizontalDivider()
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
-    )
 }
 
 fun getEmojiCategorie(categorie: String): String {
     return when {
-        categorie.contains("Racine ancienne", ignoreCase = true) -> "🥕"
-        categorie.contains("Tubercule ancien", ignoreCase = true) -> "🥔"
         categorie.contains("Racine", ignoreCase = true) -> "🥕"
         categorie.contains("Tubercule", ignoreCase = true) -> "🥔"
         categorie.contains("Fruit", ignoreCase = true) -> "🍅"
-        categorie.contains("Feuille ancienne", ignoreCase = true) -> "🥬"
         categorie.contains("Feuille", ignoreCase = true) -> "🥬"
         categorie.contains("Légumineuse", ignoreCase = true) -> "🫘"
         categorie.contains("Alliacé", ignoreCase = true) -> "🧅"
         categorie.contains("Chou", ignoreCase = true) -> "🥦"
         categorie.contains("Cucurbitacée", ignoreCase = true) -> "🎃"
-        categorie.contains("Fleur vivace", ignoreCase = true) -> "💐"
         categorie.contains("Fleur", ignoreCase = true) -> "🌸"
         categorie.contains("Aromatique", ignoreCase = true) -> "🌿"
         else -> "🌱"
@@ -1723,11 +1431,11 @@ fun getEmojiCategorie(categorie: String): String {
 
 @Composable
 fun InfoCard(titre: String, contenu: String) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(16.dp)) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(titre, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+            Text(titre, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(contenu, style = MaterialTheme.typography.bodyMedium, color = CouleursApp.TexteFonce)
+            Text(contenu)
         }
     }
 }
