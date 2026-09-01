@@ -1,11 +1,12 @@
 package com.theshire.app.data
 
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
@@ -29,21 +30,20 @@ class PlantNetRepository {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
             
-            // Lire le fichier et convertir en Base64
-            val imageBytes = imageFile.readBytes()
-            val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
+            // Utiliser l'API iNaturalist observations avec multipart
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "file",
+                    imageFile.name,
+                    imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                )
+                .build()
             
-            // Construire le JSON pour l'API iNaturalist
-            val jsonBody = JSONObject()
-            jsonBody.put("image", base64Image)
-            
-            val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaTypeOrNull())
-            
-            // URL corrigée pour l'API iNaturalist
+            // Utiliser l'endpoint d'observation avec l'image en multipart
             val request = Request.Builder()
-                .url("https://api.inaturalist.org/v1/identifications/suggestions")
+                .url("https://api.inaturalist.org/v1/observations")
                 .post(requestBody)
-                .header("Content-Type", "application/json")
                 .build()
             
             val response = client.newCall(request).execute()
@@ -51,50 +51,38 @@ class PlantNetRepository {
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: ""
                 val json = JSONObject(responseBody)
+                
+                // Analyser la réponse pour extraire les taxons suggérés
                 val results = json.optJSONArray("results")
-                
-                if (results == null || results.length() == 0) {
-                    return@withContext listOf(
-                        PlantIdentification(
-                            nom = "Aucune plante identifiée",
-                            nomScientifique = "Essayez avec une photo plus nette",
-                            probabilite = 0.0,
-                            imageUrl = "",
-                            messageErreur = "L'API n'a pas reconnu la plante. Prenez une photo plus nette en plein jour."
-                        )
-                    )
-                }
-                
                 val identifications = mutableListOf<PlantIdentification>()
-                val nbResults: Int = if (results.length() > 5) 5 else results.length()
                 
-                for (i in 0 until nbResults) {
-                    try {
-                        val result = results.getJSONObject(i)
-                        val taxon = result.getJSONObject("taxon")
-                        
-                        val nomScientifique = taxon.optString("name", "Inconnu")
-                        val nomCommun = taxon.optString("preferred_common_name", nomScientifique)
-                        
-                        // Le score est parfois dans "score" ou "combined_score"
-                        val score = result.optDouble("score", 
-                            result.optDouble("combined_score", 0.0)
-                        )
-                        
-                        val imageUrl = taxon.optJSONObject("default_photo")
-                            ?.optString("medium_url", "") ?: ""
-                        
-                        identifications.add(
-                            PlantIdentification(
-                                nom = nomCommun,
-                                nomScientifique = nomScientifique,
-                                probabilite = score,
-                                imageUrl = imageUrl,
-                                messageErreur = ""
-                            )
-                        )
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                if (results != null && results.length() > 0) {
+                    for (i in 0 until minOf(results.length(), 5)) {
+                        try {
+                            val result = results.getJSONObject(i)
+                            val taxon = result.optJSONObject("taxon")
+                            
+                            if (taxon != null) {
+                                val nomScientifique = taxon.optString("name", "Inconnu")
+                                val nomCommun = taxon.optString("preferred_common_name", nomScientifique)
+                                val score = result.optDouble("score", 0.0)
+                                
+                                val imageUrl = taxon.optJSONObject("default_photo")
+                                    ?.optString("medium_url", "") ?: ""
+                                
+                                identifications.add(
+                                    PlantIdentification(
+                                        nom = nomCommun,
+                                        nomScientifique = nomScientifique,
+                                        probabilite = score,
+                                        imageUrl = imageUrl,
+                                        messageErreur = ""
+                                    )
+                                )
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
                 
