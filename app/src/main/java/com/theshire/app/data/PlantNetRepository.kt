@@ -33,16 +33,15 @@ class PlantNetRepository {
             val imageBytes = imageFile.readBytes()
             val base64Image = Base64.encodeToString(imageBytes, Base64.NO_WRAP)
             
-            // Construire le JSON pour l'API de reconnaissance iNaturalist
+            // Construire le JSON pour l'API iNaturalist
             val jsonBody = JSONObject()
             jsonBody.put("image", base64Image)
-            jsonBody.put("taxa_filter", "plantae")
             
             val requestBody = jsonBody.toString().toRequestBody("application/json".toMediaTypeOrNull())
             
-            // Utiliser l'API de vision par ordinateur iNaturalist
+            // URL corrigée pour l'API iNaturalist
             val request = Request.Builder()
-                .url("https://api.inaturalist.org/v1/computervision_score")
+                .url("https://api.inaturalist.org/v1/identifications/suggestions")
                 .post(requestBody)
                 .header("Content-Type", "application/json")
                 .build()
@@ -77,7 +76,10 @@ class PlantNetRepository {
                         val nomScientifique = taxon.optString("name", "Inconnu")
                         val nomCommun = taxon.optString("preferred_common_name", nomScientifique)
                         
-                        val score = result.optDouble("combined_score", 0.0)
+                        // Le score est parfois dans "score" ou "combined_score"
+                        val score = result.optDouble("score", 
+                            result.optDouble("combined_score", 0.0)
+                        )
                         
                         val imageUrl = taxon.optJSONObject("default_photo")
                             ?.optString("medium_url", "") ?: ""
@@ -96,6 +98,18 @@ class PlantNetRepository {
                     }
                 }
                 
+                if (identifications.isEmpty()) {
+                    return@withContext listOf(
+                        PlantIdentification(
+                            nom = "Aucune plante identifiée",
+                            nomScientifique = "Essayez avec une photo plus nette",
+                            probabilite = 0.0,
+                            imageUrl = "",
+                            messageErreur = "L'API n'a pas reconnu la plante. Prenez une photo plus nette en plein jour."
+                        )
+                    )
+                }
+                
                 identifications
             } else {
                 val errorBody = response.body?.string() ?: ""
@@ -105,7 +119,7 @@ class PlantNetRepository {
                         nomScientifique = response.message ?: "Inconnu",
                         probabilite = 0.0,
                         imageUrl = "",
-                        messageErreur = "Code: ${response.code} - $errorBody"
+                        messageErreur = "Code: ${response.code} - ${response.message}"
                     )
                 )
             }
@@ -113,7 +127,7 @@ class PlantNetRepository {
             e.printStackTrace()
             return@withContext listOf(
                 PlantIdentification(
-                    nom = "Exception",
+                    nom = "Erreur",
                     nomScientifique = e.message ?: "Inconnu",
                     probabilite = 0.0,
                     imageUrl = "",
