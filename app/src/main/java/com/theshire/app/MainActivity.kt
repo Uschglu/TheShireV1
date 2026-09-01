@@ -53,7 +53,6 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import okhttp3.OkHttpClient
 import com.theshire.app.data.AdventiceEntity
-import com.theshire.app.data.AppDatabase
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
@@ -83,7 +82,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// 🎨 Nouvelle palette chaleureuse
 object CouleursApp {
     val Creme = Color(0xFFFAF6F0)
     val Blanc = Color(0xFFFFFDF9)
@@ -95,13 +93,8 @@ object CouleursApp {
     val BrunDoux = Color(0xFF8B7355)
 }
 
-val DegradeFond = Brush.verticalGradient(
-    colors = listOf(Color(0xFFFAF6F0), Color(0xFFF0F0E8), Color(0xFFE8EFE8))
-)
-
-val DegradeCarte = Brush.verticalGradient(
-    colors = listOf(Color(0xFFFFFDF9), Color(0xFFF8F4EE))
-)
+val DegradeFond = Brush.verticalGradient(colors = listOf(Color(0xFFFAF6F0), Color(0xFFF0F0E8), Color(0xFFE8EFE8)))
+val DegradeCarte = Brush.verticalGradient(colors = listOf(Color(0xFFFFFDF9), Color(0xFFF8F4EE)))
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,7 +143,6 @@ fun MainScreen() {
     var lastBackPressTime by remember { mutableStateOf(0L) }
     val navigationStack = remember { mutableStateListOf("accueil") }
     val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
-    
     fun navigateTo(screen: String) { navigationStack.add(screen); currentScreen = screen }
     fun goBack() {
         if (navigationStack.size > 1) { navigationStack.removeAt(navigationStack.size - 1); currentScreen = navigationStack.last() }
@@ -280,13 +272,13 @@ fun AccueilScreen() {
             onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Cliquez sur la météo pour les prévisions 7 jours.") } }
-                item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("3 onglets : Plantes (fiches détaillées), Adventices (indications du sol), Identifier (reconnaissance photo).") } }
-                item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices sont des plantes sauvages qui poussent spontanément. Elles indiquent la nature de votre sol.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches, choisissez plantes et variétés. Les plantes volumineuses (tomates, courges...) ont besoin d'espace !") } }
-                item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Cliquez sur un jour pour ajouter un rappel avec cloche 🔔 et heure personnalisable.") } }
-                item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Filtrez par méthode et consultez le guide détaillé avec le bouton ?.") } }
-                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("• Swipe gauche/droite\n• Back téléphone : page précédente\n• Flèche retour : accueil\n• Billes en bas : position") } }
+                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
+                item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices (mauvaises herbes), Reconnaissance photo.") } }
+                item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Planches, variétés, plantes volumineuses bloquées.") } }
+                item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
+                item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
+                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
             } },
             confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
@@ -341,14 +333,7 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = { Text("🔍 Rechercher une plante...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
-                    )
+                    OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher une plante...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
                 }
                 item { Text("${legumes.filter { it.nom.contains(searchQuery, true) }.size} plantes trouvées", color = CouleursApp.TexteFonce) }
                 items(legumes.filter { it.nom.contains(searchQuery, true) }, key = { it.id }) { legume ->
@@ -384,18 +369,14 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             item { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { photoLauncher.launch(null) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(20.dp)); Spacer(modifier = Modifier.width(8.dp)); Text("Photo") }
-                Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)) { Text("Galerie") }
+                Button(onClick = { photoLauncher.launch(null) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("📸 Photo") }
+                Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)) { Text("🖼️ Galerie") }
             } }
             if (imageUri != null) { item { val loader = remember { ImageLoaderProvider.getImageLoader(context) }; AsyncImage(model = imageUri, contentDescription = "Plante", imageLoader = loader, modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp))) } }
             if (isAnalyzing) item { CircularProgressIndicator(color = CouleursApp.VertPrincipal); Text("Analyse en cours...") }
             if (errorMessage.isNotEmpty()) item { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
             if (resultats.isNotEmpty()) item { Text("🔍 Résultats :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
-            resultats.forEach { r ->
-                item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (r.messageErreur.isNotEmpty()) MaterialTheme.colorScheme.errorContainer else CouleursApp.VertPale)) {
-                    Column(modifier = Modifier.padding(16.dp)) { Text(r.nom, fontWeight = FontWeight.Bold); Text(r.nomScientifique, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodySmall); if (r.probabilite > 0) Text("Confiance : ${(r.probabilite * 100).toInt()}%", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); if (r.messageErreur.isNotEmpty()) Text(r.messageErreur, color = MaterialTheme.colorScheme.error) } }
-                }
-            }
+            resultats.forEach { r -> item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Column(modifier = Modifier.padding(16.dp)) { Text(r.nom, fontWeight = FontWeight.Bold); Text(r.nomScientifique, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodySmall); if (r.probabilite > 0) Text("Confiance : ${(r.probabilite * 100).toInt()}%", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) } } } }
         }
     }
 }
@@ -421,8 +402,7 @@ fun AdventicesScreen(onBack: () -> Unit) {
                 items(adventices, key = { it.id }) { a ->
                     Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable { selected = a }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(a.emoji, style = MaterialTheme.typography.headlineMedium)
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(a.emoji, style = MaterialTheme.typography.headlineMedium); Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) { Text(a.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(a.indicationSol, style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, maxLines = 2) }
                         }
                     }
@@ -526,25 +506,22 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         var selectedCategorie by remember { mutableStateOf<String?>(null) }
         var searchQuery by remember { mutableStateOf("") }
         val categories = legumes.groupBy { it.categorie }.keys.toList()
-        
         AlertDialog(onDismissRequest = { showLegumeSelection = false }, title = { Text("Choisissez une plante", fontWeight = FontWeight.Bold) },
             text = { Column {
                 Text("Case $caseNumero du carré", style = MaterialTheme.typography.bodySmall)
                 Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 HorizontalDivider()
                 OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
-                Spacer(modifier = Modifier.height(8.dp))
                 if (searchQuery.isEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState())) {
                         categories.forEach { c -> FilterChip(selected = selectedCategorie == c, onClick = { selectedCategorie = if (selectedCategorie == c) null else c }, label = { Text("${getEmojiCategorie(c)} $c", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
                 if (searchQuery.isNotEmpty() || selectedCategorie != null) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
                     LazyColumn { items(plantes) { legume ->
                         Text(legume.nom, modifier = Modifier.fillMaxWidth().clickable {
-                            if (!peutPlanterIci(carre, caseNumero, legume.nom)) { android.widget.Toast.makeText(context, "${legume.nom} est volumineux, espace insuffisant", android.widget.Toast.LENGTH_LONG).show(); showLegumeSelection = false }
+                            if (!peutPlanterIci(carre, caseNumero, legume.nom)) { android.widget.Toast.makeText(context, "${legume.nom} est volumineux", android.widget.Toast.LENGTH_LONG).show(); showLegumeSelection = false }
                             else { val av = rotationRepository.getAvertissement(legume.nom, carre); if (av != null) { selectedLegumeNom = legume.nom; avertissement = av; showAvertissement = true; showLegumeSelection = false } else { selectedLegumeNom = legume.nom; showVarieteSelection = true; showLegumeSelection = false } }
                         }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
                         HorizontalDivider()
@@ -554,10 +531,18 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             confirmButton = { TextButton(onClick = { showLegumeSelection = false }) { Text("Annuler") } })
     }
     
-    if (showVarieteSelection && selectedLegumeNom != null) {
-        VarieteSelectionDialog(selectedLegumeNom!!, varieteRepository,
-            onVarieteChoisie = { nomComplet -> scope.launch { jardinRepository.modifierCasePrecise(selectedCarre!!, selectedCaseNumero, nomComplet) }; showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0 },
-            onDismiss = { showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0 })
+    if (showVarieteSelection && selectedLegumeNom != null && selectedCarre != null) {
+        val carre = selectedCarre!!
+        val caseNumero = selectedCaseNumero
+        VarieteSelectionDialog(
+            legumeNom = selectedLegumeNom!!,
+            varieteRepository = varieteRepository,
+            onVarieteChoisie = { nomComplet ->
+                scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet) }
+                showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0
+            },
+            onDismiss = { showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0 }
+        )
     }
     
     if (showAvertissement && avertissement != null) {
@@ -629,9 +614,9 @@ fun CalendrierScreen(onBack: () -> Unit) {
             item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀", fontSize = MaterialTheme.typography.titleLarge.fontSize) }
+                        TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
                         Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶", fontSize = MaterialTheme.typography.titleLarge.fontSize) }
+                        TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth()) { listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = CouleursApp.VertPrincipal) } }
@@ -666,7 +651,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             text = { Column {
                 Text(if (rappelActif) "Rappel activé" else "Rappel désactivé", color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Text("⏰", style = MaterialTheme.typography.titleLarge); Spacer(modifier = Modifier.width(12.dp)); Column { Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) } } }
+                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp)) { Text("⏰ ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold) } }
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note (optionnel)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -695,7 +680,6 @@ fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleLarge)
             if (datePlantation != null) { val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE); Text("🌱 Planté le ${df.format(Date(datePlantation))}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
-            Text("📅 Semis : ${legume.semis}"); Text("🌱 Plantation : ${legume.plantation}"); Text("🧺 Récolte : ${legume.recolte}")
         }
     }
 }
@@ -711,14 +695,12 @@ fun ConservationScreen(onBack: () -> Unit) {
     var showAide by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { repository.ajouterLegumesPredefinis() }
     val methodes = listOf("Tous", "Séchage", "Lactofermentation", "Conserves", "Congélation")
-    
     Scaffold(
         containerColor = CouleursApp.Creme,
         topBar = { TopAppBar(title = { Text("Conservation 🥫", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Column { methodes.forEach { m -> FilterChip(selected = filtre == m, onClick = { filtre = m }, label = { Text(m) }, modifier = Modifier.padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) } } }
-            item { Text("${legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, true) }.size} plantes", color = CouleursApp.TexteFonce) }
+            item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Column { methodes.forEach { m -> FilterChip(selected = filtre == m, onClick = { filtre = m }, label = { Text(m) }, modifier = Modifier.padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) } } }
             legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, true) }.forEach { legume -> item { ConservationCard(legume) } }
         }
     }
@@ -731,46 +713,24 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("📖 Guide de conservation", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; else -> 3 }, containerColor = CouleursApp.VertPale, contentColor = CouleursApp.VertPrincipal) {
-                    Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(modifier = Modifier.fillMaxWidth().height(300.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    when (selectedOnglet) {
-                        "sechage" -> {
-                            item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Coupez en tranches fines (3-5mm)\n• Blanchissez les légumes durs 2-3 min\n• Température : 50-60°C\n• Durée : 6-12h\n• Stockez en bocaux hermétiques\n• Conservation : 6-12 mois") }
-                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Tomates, champignons, carottes, courgettes, oignons, poivrons, herbes") }
-                        }
-                        "lacto" -> {
-                            item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Sel sans iode : 20-30g/L\n• Légumes immergés sous la saumure\n• Température : 18-22°C\n• Durée : 1-4 semaines\n• Réfrigérateur après ouverture") }
-                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Choux, carottes, radis, concombres, haricots verts, betteraves") }
-                        }
-                        "conserves" -> {
-                            item { Text("🫙 Conserves", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Stérilisez bocaux et couvercles\n• Remplissez en laissant 2cm de vide\n• Eau salée bouillante (20g/L)\n• Stérilisez à 100°C pendant 1h-1h30\n• Conservation : 1-2 ans") }
-                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Tomates, haricots verts, petits pois, carottes, betteraves") }
-                        }
-                        "congelation" -> {
-                            item { Text("❄️ Congélation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Blanchissez 2-3 min\n• Refroidissez dans l'eau glacée\n• Disposez à plat\n• Température : -18°C\n• Conservation : 8-12 mois") }
-                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Haricots verts, petits pois, carottes, épinards, brocolis") }
-                        }
-                    }
+        text = { Column(modifier = Modifier.fillMaxWidth()) {
+            TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; else -> 3 }, containerColor = CouleursApp.VertPale) {
+                Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            LazyColumn(modifier = Modifier.height(250.dp)) {
+                when (selectedOnglet) {
+                    "sechage" -> { item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Tranches fines (3-5mm)\n• 50-60°C\n• 6-12h\n• Bocaux hermétiques\n• 6-12 mois") } }
+                    "lacto" -> { item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Sel 20-30g/L\n• Légumes immergés\n• 18-22°C\n• 1-4 semaines") } }
+                    "conserves" -> { item { Text("🫙 Conserves", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Stériliser bocaux\n• Eau salée 20g/L\n• 100°C 1h-1h30\n• 1-2 ans") } }
+                    "congelation" -> { item { Text("❄️ Congélation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Blanchir 2-3 min\n• Eau glacée\n• -18°C\n• 8-12 mois") } }
                 }
             }
-        },
-        confirmButton = { Button(onClick = onDismiss, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
+        } },
+        confirmButton = { Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
     )
 }
 
@@ -778,7 +738,7 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
 fun ConservationCard(legume: LegumeEntity) {
     Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleLarge)
+            Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
             Text(legume.conservation, color = CouleursApp.TexteFonce)
         }
     }
@@ -803,18 +763,15 @@ fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayLarge) } }
                 item { InfoCard("Catégorie", legume.categorie) }
-                if (legume.estVivace) item { InfoCard("Type", "🌿 Plante vivace") }
-                if (legume.estFleur) item { InfoCard("Type", "🌸 Fleur") }
                 item { InfoCard("Difficulté", legume.difficulte) }
-                item { InfoCard("Exposition", legume.exposition) }
                 item { InfoCard("Arrosage", legume.arrosage) }
                 item { InfoCard("Semis", legume.semis) }
                 item { InfoCard("Plantation", legume.plantation) }
                 item { InfoCard("Récolte", legume.recolte) }
                 item { InfoCard("Conservation", legume.conservation) }
                 if (varietes.isNotEmpty()) {
-                    item { Text("🌱 Variétés (${varietes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleLarge) }
-                    items(varietes) { v -> Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { selectedVariete = v }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Text("🌿 ${v.nom}", fontWeight = FontWeight.Bold) } } }
+                    item { Text("🌱 Variétés (${varietes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
+                    items(varietes) { v -> Card(modifier = Modifier.fillMaxWidth().clickable { selectedVariete = v }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) { Text("🌿 ${v.nom}", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) } }
                 }
             }
         }
@@ -830,9 +787,6 @@ fun VarieteDetailScreen(variete: VarieteEntity, onBack: () -> Unit) {
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { InfoCard("Description", variete.description) }
-            item { InfoCard("Semis", variete.semis) }
-            item { InfoCard("Plantation", variete.plantation) }
-            item { InfoCard("Récolte", variete.recolte) }
             item { InfoCard("Particularités", variete.particularites) }
         }
     }
@@ -846,9 +800,8 @@ fun LegumeCard(legume: LegumeEntity, onClick: () -> Unit, onDelete: () -> Unit) 
             Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayMedium)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.titleMedium)
-                Text("Catégorie : ${legume.categorie}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
-                Text("Difficulté : ${legume.difficulte}", style = MaterialTheme.typography.bodySmall)
+                Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                Text("${legume.categorie} - ${legume.difficulte}", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
         }
@@ -857,25 +810,18 @@ fun LegumeCard(legume: LegumeEntity, onClick: () -> Unit, onDelete: () -> Unit) 
 
 @Composable
 fun VarieteSelectionDialog(legumeNom: String, varieteRepository: VarieteRepository, onVarieteChoisie: (String) -> Unit, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    var varietes by remember { mutableStateOf<List<VarieteEntity>>(emptyList()) }
+    val varietes by varieteRepository.getVarietesForLegume(legumeNom).collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
-    LaunchedEffect(legumeNom) { scope.launch { try { varieteRepository.ajouterVarietesPredefinies(); varietes = AppDatabase.getDatabase(context).legumeDao().getVarietesForLegumeSync(legumeNom) } catch (e: Exception) { varietes = emptyList() } } }
+    LaunchedEffect(Unit) { scope.launch { try { varieteRepository.ajouterVarietesPredefinies() } catch (e: Exception) {} } }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Variétés de $legumeNom", fontWeight = FontWeight.Bold) },
-        text = {
-            LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                item { Text("🌱 Variété standard", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie(legumeNom) }.padding(16.dp), fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); HorizontalDivider() }
-                if (varietes.isEmpty()) item { Text("Aucune variété disponible", modifier = Modifier.padding(16.dp), color = CouleursApp.TexteFonce) }
-                else items(varietes) { v ->
-                    Text("🌿 ${v.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${v.nom})") }.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
-                    Text(v.description, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
-                    HorizontalDivider()
-                }
-            }
-        },
+        text = { LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            item { Text("🌱 Variété standard", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie(legumeNom) }.padding(16.dp), fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); HorizontalDivider() }
+            if (varietes.isEmpty()) item { Text("Chargement...", modifier = Modifier.padding(16.dp)) }
+            else items(varietes) { v -> Text("🌿 ${v.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${v.nom})") }.padding(16.dp)); Text(v.description, modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall); HorizontalDivider() }
+        } },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
 }
@@ -885,7 +831,7 @@ fun PlancheCard(planche: PlancheEntity, isExpanded: Boolean, onToggleExpand: () 
     Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggleExpand), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) { Text(planche.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.titleLarge); Text("${planche.largeur}m × ${planche.longueur}m = ${planche.largeur * planche.longueur} carrés", style = MaterialTheme.typography.bodySmall) }
+                Column(modifier = Modifier.weight(1f)) { Text(planche.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("${planche.largeur}m × ${planche.longueur}m", style = MaterialTheme.typography.bodySmall) }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
             }
             if (isExpanded) {
@@ -910,7 +856,7 @@ fun PlancheCard(planche: PlancheEntity, isExpanded: Boolean, onToggleExpand: () 
 fun Grille3x3(carre: CarreEntity, onSousCarreClick: (Int) -> Unit, modifier: Modifier = Modifier) {
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     if (legumes.size == 9 && legumes.distinct().size == 1) {
-        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(legumes[0], fontWeight = FontWeight.Bold); Text("✅") } }
+        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) { Text(legumes[0], fontWeight = FontWeight.Bold) }
     } else {
         Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
             for (row in 0..2) { Row(modifier = Modifier.weight(1f)) { for (col in 0..2) {
@@ -925,12 +871,10 @@ fun Grille3x3(carre: CarreEntity, onSousCarreClick: (Int) -> Unit, modifier: Mod
 @Composable
 fun LegendeCouleurs() {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Légende", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f))); Text(" Bonne association", style = MaterialTheme.typography.bodySmall) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Association neutre", style = MaterialTheme.typography.bodySmall) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Text("🟢 Bonne", style = MaterialTheme.typography.bodySmall)
+            Text("🟡 Neutre", style = MaterialTheme.typography.bodySmall)
+            Text("🔴 Mauvaise", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -953,7 +897,7 @@ fun getEmojiCategorie(categorie: String): String = when {
 fun InfoCard(titre: String, contenu: String) {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(titre, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleSmall)
+            Text(titre, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
             Spacer(modifier = Modifier.height(4.dp))
             Text(contenu, color = CouleursApp.TexteFonce)
         }
