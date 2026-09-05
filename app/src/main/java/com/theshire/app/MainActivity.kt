@@ -76,7 +76,6 @@ import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
@@ -96,7 +95,6 @@ object CouleursApp {
 }
 
 val DegradeFond = Brush.verticalGradient(colors = listOf(Color(0xFFFAF6F0), Color(0xFFF0F0E8), Color(0xFFE8EFE8)))
-val DegradeCarte = Brush.verticalGradient(colors = listOf(Color(0xFFFFFDF9), Color(0xFFF8F4EE)))
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -208,7 +206,6 @@ fun AccueilScreen() {
     }
     
     LaunchedEffect(Unit) { try { val v = localisationRepository.getVille(); if (v != null) ville = v; meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" }) } catch (e: Exception) {} }
-    LaunchedEffect(showPrevisions) { if (showPrevisions && previsions.isEmpty()) { try { previsions = meteoRepository.getPrevisions7Jours(ville.ifEmpty { "Paris" }) } catch (e: Exception) {} } }
     
     Scaffold(
         containerColor = CouleursApp.Creme,
@@ -277,7 +274,7 @@ fun AccueilScreen() {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
-                item { Column { Text("👆 Appui long = remplir le m²", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Maintenez votre doigt appuyé 2 secondes sur le centre d'un carré pour remplir tout le m² avec la même plante/variété.") } }
+                item { Column { Text("👆 Appui long = remplir le m²", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Maintenez votre doigt appuyé 2 secondes sur la case centrale (➕) d'un carré pour remplir tout le m² avec la même plante/variété.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
@@ -583,10 +580,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (remplirM2) {
-                        // Remplir toutes les 9 cases avec la même variété
-                        for (case in 1..9) {
-                            jardinRepository.modifierCasePrecise(carre, case, nomComplet)
-                        }
+                        for (case in 1..9) { jardinRepository.modifierCasePrecise(carre, case, nomComplet) }
                     } else {
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
@@ -964,17 +958,7 @@ fun Grille3x3(
             Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
         }
     } else {
-        Column(
-            modifier = modifier
-                .aspectRatio(1f)
-                .border(2.dp, CouleursApp.VertPrincipal)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { onSousCarreClick(5) },
-                        onLongPress = { if (onCarreLongClick != null) onCarreLongClick() }
-                    )
-                }
-        ) {
+        Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
             for (row in 0..2) {
                 Row(modifier = Modifier.weight(1f)) {
                     for (col in 0..2) {
@@ -985,16 +969,48 @@ fun Grille3x3(
                             7 -> carre.case7; 8 -> carre.case8; 9 -> carre.case9
                             else -> null
                         }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
-                                .border(1.dp, CouleursApp.VertPrincipal)
-                                .clickable { onSousCarreClick(caseNumero) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+                        
+                        if (caseNumero == 5 && onCarreLongClick != null) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
+                                    .border(1.dp, CouleursApp.VertPrincipal)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onTap = { onSousCarreClick(caseNumero) },
+                                            onLongPress = { onCarreLongClick() }
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = legume ?: "➕",
+                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(2.dp),
+                                    fontWeight = if (legume == null) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (legume == null) CouleursApp.VertClair else Color.Unspecified
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
+                                    .border(1.dp, CouleursApp.VertPrincipal)
+                                    .clickable { onSousCarreClick(caseNumero) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = legume ?: "",
+                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(2.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1013,7 +1029,7 @@ fun LegendeCouleurs() {
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Association neutre", style = MaterialTheme.typography.bodySmall) }
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("👆 Appui long sur le centre = remplir le m²", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
+            Text("👆 Appui long sur la case ➕ = remplir le m²", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
         }
     }
 }
