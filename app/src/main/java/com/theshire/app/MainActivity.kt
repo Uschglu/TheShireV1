@@ -272,13 +272,13 @@ fun AccueilScreen() {
             onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
-                item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices (mauvaises herbes), Reconnaissance photo.") } }
-                item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Planches, variétés, plantes volumineuses bloquées.") } }
-                item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
-                item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
-                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
+                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Cliquez sur la météo pour les prévisions 7 jours.") } }
+                item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("3 onglets : Plantes (fiches détaillées), Adventices (indications du sol), Identifier (reconnaissance photo).") } }
+                item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices sont des plantes sauvages qui poussent spontanément. Elles indiquent la nature de votre sol.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches, choisissez plantes et variétés. Les plantes volumineuses (tomates, courges...) ont besoin d'espace !") } }
+                item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Cliquez sur un jour pour ajouter un rappel avec cloche 🔔 et heure personnalisable.") } }
+                item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Filtrez par méthode et consultez le guide détaillé avec le bouton ?.") } }
+                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("• Swipe gauche/droite\n• Back téléphone : page précédente\n• Flèche retour : accueil\n• Billes en bas : position") } }
             } },
             confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
@@ -637,8 +637,9 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     }
                 }
             } }
-            item { Text("Plantes plantées (${legumesPlantes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) }
-            legumesPlantes.forEach { nom -> val legume = legumes.find { it.nom == nom }; if (legume != null) item { CalendrierLegumeCard(legume, datesPlantation[nom]) } }
+            item { Text("Plantes plantées (${legumesPlantes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.titleMedium) }
+            if (legumesPlantes.isEmpty()) { item { Text("Aucune plante plantée. Ajoutez des plantes dans votre jardin !", style = MaterialTheme.typography.bodyMedium) } }
+            else { legumesPlantes.forEach { nom -> val legume = legumes.find { it.nom == nom }; if (legume != null) item { CalendrierLegumeCard(legume, datesPlantation[nom]) } } }
         }
     }
     
@@ -651,7 +652,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
             text = { Column {
                 Text(if (rappelActif) "Rappel activé" else "Rappel désactivé", color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp)) { Text("⏰ ${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold) } }
+                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Text("⏰", style = MaterialTheme.typography.titleLarge); Spacer(modifier = Modifier.width(12.dp)); Column { Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) } } }
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note (optionnel)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -679,7 +680,17 @@ fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleLarge)
-            if (datePlantation != null) { val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE); Text("🌱 Planté le ${df.format(Date(datePlantation))}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) }
+            Spacer(modifier = Modifier.height(8.dp))
+            if (datePlantation != null) {
+                val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
+                Text("🌱 Planté le : ${df.format(Date(datePlantation))}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Text("📅 Semis : ${legume.semis}", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("🌱 Plantation : ${legume.plantation}", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("🧺 Récolte : ${legume.recolte}", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -701,6 +712,7 @@ fun ConservationScreen(onBack: () -> Unit) {
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Column { methodes.forEach { m -> FilterChip(selected = filtre == m, onClick = { filtre = m }, label = { Text(m) }, modifier = Modifier.padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) } } }
+            item { Text("${legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, true) }.size} plantes", color = CouleursApp.TexteFonce) }
             legumes.filter { if (filtre == "Tous") true else it.conservation.contains(filtre, true) }.forEach { legume -> item { ConservationCard(legume) } }
         }
     }
@@ -713,24 +725,46 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("📖 Guide de conservation", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
-        text = { Column(modifier = Modifier.fillMaxWidth()) {
-            TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; else -> 3 }, containerColor = CouleursApp.VertPale) {
-                Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-                Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(modifier = Modifier.height(250.dp)) {
-                when (selectedOnglet) {
-                    "sechage" -> { item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Tranches fines (3-5mm)\n• 50-60°C\n• 6-12h\n• Bocaux hermétiques\n• 6-12 mois") } }
-                    "lacto" -> { item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Sel 20-30g/L\n• Légumes immergés\n• 18-22°C\n• 1-4 semaines") } }
-                    "conserves" -> { item { Text("🫙 Conserves", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Stériliser bocaux\n• Eau salée 20g/L\n• 100°C 1h-1h30\n• 1-2 ans") } }
-                    "congelation" -> { item { Text("❄️ Congélation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }; item { Text("• Blanchir 2-3 min\n• Eau glacée\n• -18°C\n• 8-12 mois") } }
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TabRow(selectedTabIndex = when(selectedOnglet) { "sechage" -> 0; "lacto" -> 1; "conserves" -> 2; else -> 3 }, containerColor = CouleursApp.VertPale, contentColor = CouleursApp.VertPrincipal) {
+                    Tab(selected = selectedOnglet == "sechage", onClick = { selectedOnglet = "sechage" }, text = { Text("🌬️ Séchage", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                    Tab(selected = selectedOnglet == "lacto", onClick = { selectedOnglet = "lacto" }, text = { Text("🥬 Lacto", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                    Tab(selected = selectedOnglet == "conserves", onClick = { selectedOnglet = "conserves" }, text = { Text("🫙 Conserves", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                    Tab(selected = selectedOnglet == "congelation", onClick = { selectedOnglet = "congelation" }, text = { Text("❄️ Congélation", fontSize = MaterialTheme.typography.bodySmall.fontSize, fontWeight = FontWeight.Bold) })
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(modifier = Modifier.fillMaxWidth().height(300.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    when (selectedOnglet) {
+                        "sechage" -> {
+                            item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
+                            item { Text("• Choisissez des légumes frais et sains\n• Lavez et séchez soigneusement\n• Coupez en tranches fines et régulières (3-5mm)\n• Blanchissez les légumes durs (carottes, haricots) 2-3 min\n• Disposez sans chevauchement sur les plateaux\n• Température idéale : 50-60°C\n• Durée : 6-12h selon l'épaisseur\n• Les légumes doivent être cassants et croquants\n• Stockez dans des bocaux hermétiques à l'abri de la lumière\n• Conservation : 6-12 mois") }
+                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
+                            item { Text("Tomates, champignons, carottes, courgettes, oignons, poivrons, herbes aromatiques, haricots verts") }
+                        }
+                        "lacto" -> {
+                            item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
+                            item { Text("• Utilisez du sel sans iode (sel de mer)\n• Proportion : 2-3% de sel (20-30g par litre d'eau)\n• Coupez les légumes en morceaux réguliers\n• Tassez bien pour éliminer les bulles d'air\n• Les légumes doivent être immergés sous la saumure\n• Utilisez un poids pour maintenir sous l'eau\n• Laissez fermenter à température ambiante (18-22°C)\n• Durée : 1-4 semaines selon le goût\n• Goûtez régulièrement\n• Une fois ouvert, conservez au réfrigérateur") }
+                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
+                            item { Text("Choux (choucroute), carottes, radis, concombres (pickles), haricots verts, betteraves, navets") }
+                        }
+                        "conserves" -> {
+                            item { Text("🫙 Conserves (stérilisation)", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
+                            item { Text("• Stérilisez les bocaux et couvercles à l'eau bouillante\n• Utilisez des légumes très frais\n• Remplissez les bocaux en laissant 2cm de vide\n• Ajoutez de l'eau salée bouillante (20g sel/litre)\n• Fermez hermétiquement\n• Stérilisez à 100°C pendant 1h-1h30\n• Vérifiez l'étanchéité après refroidissement\n• Le couvercle doit être bombé vers l'intérieur\n• Stockez dans un endroit frais et sombre\n• Conservation : 1-2 ans") }
+                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
+                            item { Text("Tomates, haricots verts, petits pois, carottes, betteraves, ratatouille, coulis de tomate") }
+                        }
+                        "congelation" -> {
+                            item { Text("❄️ Congélation optimale", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
+                            item { Text("• Choisissez des légumes très frais\n• Lavez et séchez soigneusement\n• Blanchissez la plupart des légumes 2-3 min\n• Refroidissez immédiatement dans l'eau glacée\n• Égouttez bien avant de congeler\n• Disposez à plat pour éviter les blocs\n• Utilisez des sacs de congélation sans air\n• Étiquetez avec le nom et la date\n• Température idéale : -18°C ou moins\n• Ne recongelez jamais un produit décongelé\n• Conservation : 8-12 mois") }
+                            item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
+                            item { Text("Haricots verts, petits pois, carottes, courgettes, poivrons, épinards, brocolis, choux-fleurs") }
+                        }
+                    }
                 }
             }
-        } },
-        confirmButton = { Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
+        },
+        confirmButton = { Button(onClick = onDismiss, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Fermer") } }
     )
 }
 
@@ -856,13 +890,17 @@ fun PlancheCard(planche: PlancheEntity, isExpanded: Boolean, onToggleExpand: () 
 fun Grille3x3(carre: CarreEntity, onSousCarreClick: (Int) -> Unit, modifier: Modifier = Modifier) {
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     if (legumes.size == 9 && legumes.distinct().size == 1) {
-        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) { Text(legumes[0], fontWeight = FontWeight.Bold) }
+        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) {
+            Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+        }
     } else {
         Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
             for (row in 0..2) { Row(modifier = Modifier.weight(1f)) { for (col in 0..2) {
                 val caseNumero = row * 3 + col + 1
                 val legume = when (caseNumero) { 1 -> carre.case1; 2 -> carre.case2; 3 -> carre.case3; 4 -> carre.case4; 5 -> carre.case5; 6 -> carre.case6; 7 -> carre.case7; 8 -> carre.case8; 9 -> carre.case9; else -> null }
-                Box(modifier = Modifier.weight(1f).fillMaxHeight().background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc).border(1.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(caseNumero) }, contentAlignment = Alignment.Center) { Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize) }
+                Box(modifier = Modifier.weight(1f).fillMaxHeight().background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc).border(1.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(caseNumero) }, contentAlignment = Alignment.Center) {
+                    Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+                }
             } } }
         }
     }
