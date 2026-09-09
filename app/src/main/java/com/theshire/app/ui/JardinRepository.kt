@@ -3,6 +3,7 @@ package com.theshire.app.ui
 import android.content.Context
 import com.theshire.app.data.AppDatabase
 import com.theshire.app.data.CarreEntity
+import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.PlancheEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -11,6 +12,7 @@ import java.util.Calendar
 class JardinRepository(context: Context) {
     
     private val plancheDao = AppDatabase.getDatabase(context).plancheDao()
+    private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
     
     val planches: Flow<List<PlancheEntity>> = plancheDao.getAllPlanches()
     
@@ -171,9 +173,204 @@ class JardinRepository(context: Context) {
         return dates
     }
     
+    // ========== NOUVELLES FONCTIONS DE VALIDATION ==========
+    
+    // Fonction pour obtenir les informations d'un légume
+    suspend fun getLegumeInfo(legumeNom: String): LegumeEntity? {
+        // Extraire le nom de base si c'est une variété
+        val nomBase = if (legumeNom.contains("(")) {
+            legumeNom.substringBefore("(").trim()
+        } else {
+            legumeNom
+        }
+        return legumeDao.getLegumeByNom(nomBase)
+    }
+    
+    // Fonction pour extraire la distance entre rangs
+    fun extraireDistanceRangs(plantation: String): Int {
+        val match = Regex("(\\d+-\\d+|\\d+) cm entre rangs").find(plantation)
+        return if (match != null) {
+            val valeur = match.groupValues[1]
+            if (valeur.contains("-")) {
+                val parts = valeur.split("-")
+                (parts[0].toInt() + parts[1].toInt()) / 2
+            } else {
+                valeur.toInt()
+            }
+        } else {
+            30 // Valeur par défaut
+        }
+    }
+    
+    // Fonction pour extraire la distance entre plants
+    fun extraireDistancePlants(plantation: String): Int {
+        val match = Regex("(\\d+-\\d+|\\d+) cm entre plants").find(plantation)
+        return if (match != null) {
+            val valeur = match.groupValues[1]
+            if (valeur.contains("-")) {
+                val parts = valeur.split("-")
+                (parts[0].toInt() + parts[1].toInt()) / 2
+            } else {
+                valeur.toInt()
+            }
+        } else {
+            20 // Valeur par défaut
+        }
+    }
+    
+    // Fonction pour calculer le nombre de lignes dans une sous-case
+    suspend fun calculerNombreLignes(legumeNom: String): Int {
+        val legume = getLegumeInfo(legumeNom) ?: return 1
+        val distanceEntreRangs = extraireDistanceRangs(legume.plantation)
+        // Une sous-case fait environ 33cm x 33cm (1m² divisé en 9)
+        val largeurSousCase = 33 // en cm
+        return maxOf(1, largeurSousCase / maxOf(distanceEntreRangs, 1))
+    }
+    
+    // Fonction pour calculer le nombre de plants par ligne dans une sous-case
+    suspend fun calculerPlantsParLigne(legumeNom: String): Int {
+        val legume = getLegumeInfo(legumeNom) ?: return 1
+        val distanceEntrePlants = extraireDistancePlants(legume.plantation)
+        // Une sous-case fait environ 33cm de long
+        val longueurSousCase = 33 // en cm
+        return maxOf(1, longueurSousCase / maxOf(distanceEntrePlants, 1))
+    }
+    
+    // Fonction pour calculer le nombre total de plants dans une sous-case
+    suspend fun calculerTotalPlants(legumeNom: String): Int {
+        val nombreLignes = calculerNombreLignes(legumeNom)
+        val plantsParLigne = calculerPlantsParLigne(legumeNom)
+        return nombreLignes * plantsParLigne
+    }
+    
+    // Fonction pour vérifier si une plante est volumineuse
+    fun estPlanteVolumineuse(nomLegume: String): Boolean {
+        val nomBase = if (nomLegume.contains("(")) {
+            nomLegume.substringBefore("(").trim()
+        } else {
+            nomLegume
+        }
+        return nomBase in listOf(
+            "Tomate", "Courgette", "Potiron", "Courge", "Aubergine", 
+            "Poivron", "Concombre", "Melon", "Chou pommé", "Brocoli", 
+            "Chou-fleur", "Topinambour"
+        )
+    }
+    
+    // Fonction pour obtenir les cases adjacentes
+    fun getCasesAdjacentes(caseNumero: Int): List<Int> {
+        return when (caseNumero) {
+            1 -> listOf(2, 4, 5)
+            2 -> listOf(1, 3, 4, 5, 6)
+            3 -> listOf(2, 5, 6)
+            4 -> listOf(1, 2, 5, 7, 8)
+            5 -> listOf(1, 2, 3, 4, 6, 7, 8, 9)
+            6 -> listOf(2, 3, 5, 8, 9)
+            7 -> listOf(4, 5, 8)
+            8 -> listOf(4, 5, 6, 7, 9)
+            9 -> listOf(5, 6, 8)
+            else -> emptyList()
+        }
+    }
+    
+    // Fonction pour obtenir la plante dans une case
+    fun getPlanteDansCase(carre: CarreEntity, caseNumero: Int): String? {
+        return when (caseNumero) {
+            1 -> carre.case1
+            2 -> carre.case2
+            3 -> carre.case3
+            4 -> carre.case4
+            5 -> carre.case5
+            6 -> carre.case6
+            7 -> carre.case7
+            8 -> carre.case8
+            9 -> carre.case9
+            else -> null
+        }
+    }
+    
+    // Fonction pour vérifier si une plante peut être plantée dans une case
+    suspend fun peutPlanterDansCase(carre: CarreEntity, caseNumero: Int, legumeNom: String): Boolean {
+        if (estPlanteVolumineuse(legumeNom)) {
+            // Vérifier les cases adjacentes pour les autres grandes plantes
+            val casesAdjacentes = getCasesAdjacentes(caseNumero)
+            for (caseAdj in casesAdjacentes) {
+                val planteAdj = getPlanteDansCase(carre, caseAdj)
+                if (planteAdj != null && estPlanteVolumineuse(planteAdj)) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+    
+    // Fonction pour vérifier les associations entre deux plantes
+    suspend fun verifierAssociation(plante1: String, plante2: String): String {
+        val legume1 = getLegumeInfo(plante1) ?: return "neutre"
+        
+        // Extraire le nom de base de la plante2
+        val nomBase2 = if (plante2.contains("(")) {
+            plante2.substringBefore("(").trim()
+        } else {
+            plante2
+        }
+        
+        if (legume1.bonnesAssociations.contains(nomBase2, true)) return "bonne"
+        if (legume1.mauvaisesAssociations.contains(nomBase2, true)) return "mauvaise"
+        return "neutre"
+    }
+    
+    // Fonction pour vérifier les associations avec les cases adjacentes
+    suspend fun verifierAssociationsAdjacentes(carre: CarreEntity, caseNumero: Int, legumeNom: String): List<Pair<String, String>> {
+        val resultats = mutableListOf<Pair<String, String>>()
+        val casesAdjacentes = getCasesAdjacentes(caseNumero)
+        
+        for (caseAdj in casesAdjacentes) {
+            val planteAdj = getPlanteDansCase(carre, caseAdj)
+            if (planteAdj != null) {
+                val association = verifierAssociation(legumeNom, planteAdj)
+                if (association != "neutre") {
+                    resultats.add(Pair(planteAdj, association))
+                }
+            }
+        }
+        
+        return resultats
+    }
+    
+    // Fonction pour calculer la densité réelle d'une plante
+    suspend fun getDensiteReelle(legumeNom: String): Int {
+        val legume = getLegumeInfo(legumeNom) ?: return 1
+        val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) plants/m²").find(legume.plantation)
+        return if (match != null) {
+            val valeur = match.groupValues[1]
+            when {
+                valeur.contains(",") -> valeur.replace(",", ".").toDouble().toInt()
+                valeur.contains("-") -> { 
+                    val parts = valeur.split("-")
+                    (parts[0].toInt() + parts[1].toInt()) / 2 
+                }
+                else -> valeur.toInt()
+            }
+        } else {
+            // Calcul basé sur les distances
+            val distancePlants = extraireDistancePlants(legume.plantation)
+            val distanceRangs = extraireDistanceRangs(legume.plantation)
+            val surfaceCm2 = 10000 // 1m² en cm²
+            val surfaceParPlant = distancePlants * distanceRangs
+            maxOf(1, surfaceCm2 / maxOf(surfaceParPlant, 1))
+        }
+    }
+    
     // Fonction pour obtenir la famille d'un légume
     private fun getFamilleLegume(legume: String): String {
-        return when (legume) {
+        val nomBase = if (legume.contains("(")) {
+            legume.substringBefore("(").trim()
+        } else {
+            legume
+        }
+        
+        return when (nomBase) {
             "Tomate", "Poivron", "Aubergine", "Pomme de terre" -> "Solanacées"
             "Chou", "Brocoli", "Chou-fleur", "Radis", "Navet", "Rutabaga", "Chou frisé (Kale)" -> "Brassicacées"
             "Oignon", "Ail", "Poireau", "Ciboulette" -> "Alliacées"
