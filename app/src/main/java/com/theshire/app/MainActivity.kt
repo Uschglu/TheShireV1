@@ -541,35 +541,40 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                 }
                 if (searchQuery.isNotEmpty() || selectedCategorie != null) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
-                    LazyColumn { items(plantes) { legume ->
-                        val densite = scope.launch { jardinRepository.calculerTotalPlants(legume.nom) }
-                        Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm)", ...)
-                            scope.launch {
-                                if (!jardinRepository.peutPlanterDansCase(carre, caseNumero, legume.nom)) { 
-                                    android.widget.Toast.makeText(context, "${legume.nom} est trop volumineux pour cette zone", android.widget.Toast.LENGTH_LONG).show()
-                                    showLegumeSelection = false 
-                                } else {
-                                    val associations = jardinRepository.verifierAssociationsAdjacentes(carre, caseNumero, legume.nom)
-                                    val mauvaiseAssoc = associations.filter { it.second == "mauvaise" }
-                                    if (mauvaiseAssoc.isNotEmpty()) {
-                                        selectedLegumeNom = legume.nom
-                                        avertissement = AvertissementRotation(
-                                            niveau = NiveauRisque.MOYEN,
-                                            message = "⚠️ Mauvaise association avec : ${mauvaiseAssoc.joinToString(", ") { it.first }}"
-                                        )
-                                        showAvertissement = true
-                                        showLegumeSelection = false
-                                    } else {
-                                        selectedLegumeNom = legume.nom
-                                        remplirM2Mode = false
-                                        showVarieteSelection = true
-                                        showLegumeSelection = false
+                    LazyColumn { 
+                        items(plantes) { legume ->
+                            Text(
+                                text = "${legume.nom} (${getDistanceEntrePlants(legume)} cm)", 
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    scope.launch {
+                                        if (!jardinRepository.peutPlanterDansCase(carre, caseNumero, legume.nom)) { 
+                                            android.widget.Toast.makeText(context, "${legume.nom} est trop volumineux pour cette zone", android.widget.Toast.LENGTH_LONG).show()
+                                            showLegumeSelection = false 
+                                        } else {
+                                            val associations = jardinRepository.verifierAssociationsAdjacentes(carre, caseNumero, legume.nom)
+                                            val mauvaiseAssoc = associations.filter { it.second == "mauvaise" }
+                                            if (mauvaiseAssoc.isNotEmpty()) {
+                                                selectedLegumeNom = legume.nom
+                                                avertissement = AvertissementRotation(
+                                                    niveau = NiveauRisque.MOYEN,
+                                                    message = "⚠️ Mauvaise association avec : ${mauvaiseAssoc.joinToString(", ") { it.first }}"
+                                                )
+                                                showAvertissement = true
+                                                showLegumeSelection = false
+                                            } else {
+                                                selectedLegumeNom = legume.nom
+                                                remplirM2Mode = false
+                                                showVarieteSelection = true
+                                                showLegumeSelection = false
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
-                        HorizontalDivider()
-                    } }
+                                }.padding(14.dp), 
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            HorizontalDivider()
+                        } 
+                    }
                 }
             } },
             confirmButton = { TextButton(onClick = { showLegumeSelection = false }) { Text("Annuler") } })
@@ -592,15 +597,21 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                 }
                 if (searchQuery.isNotEmpty() || selectedCategorie != null) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
-                    LazyColumn { items(plantes) { legume ->
-                        Text("${legume.nom} (${getDensiteFromPlantation(legume)} plants/m²)", modifier = Modifier.fillMaxWidth().clickable {
-                            selectedLegumeNom = legume.nom
-                            remplirM2Mode = true
-                            showVarieteSelection = true
-                            showRemplirM2 = false
-                        }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
-                        HorizontalDivider()
-                    } }
+                    LazyColumn { 
+                        items(plantes) { legume ->
+                            Text(
+                                text = "${legume.nom} (${getDensiteFromPlantation(legume)} plants/m²)", 
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    selectedLegumeNom = legume.nom
+                                    remplirM2Mode = true
+                                    showVarieteSelection = true
+                                    showRemplirM2 = false
+                                }.padding(14.dp), 
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            HorizontalDivider()
+                        } 
+                    }
                 }
             } },
             confirmButton = { TextButton(onClick = { showRemplirM2 = false; remplirM2Mode = false }) { Text("Annuler") } })
@@ -615,12 +626,10 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (remplirM2Mode) {
-                        // Remplir toutes les 9 cases avec la même plante
                         for (case in 1..9) { 
                             jardinRepository.modifierCasePrecise(carre, case, nomComplet) 
                         }
                     } else {
-                        // Remplir seulement la case sélectionnée
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
