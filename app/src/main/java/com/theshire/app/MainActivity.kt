@@ -460,6 +460,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     var showLegumeSelection by remember { mutableStateOf(false) }
     var showVarieteSelection by remember { mutableStateOf(false) }
     var showRemplirM2 by remember { mutableStateOf(false) }
+    var remplirM2Mode by remember { mutableStateOf(false) }
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
     
@@ -531,7 +532,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     LazyColumn { items(plantes) { legume ->
                         Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm)", modifier = Modifier.fillMaxWidth().clickable {
                             if (!peutPlanterIci(carre, caseNumero, legume.nom)) { android.widget.Toast.makeText(context, "${legume.nom} est volumineux", android.widget.Toast.LENGTH_LONG).show(); showLegumeSelection = false }
-                            else { val av = rotationRepository.getAvertissement(legume.nom, carre); if (av != null) { selectedLegumeNom = legume.nom; avertissement = av; showAvertissement = true; showLegumeSelection = false } else { selectedLegumeNom = legume.nom; showVarieteSelection = true; showLegumeSelection = false } }
+                            else { val av = rotationRepository.getAvertissement(legume.nom, carre); if (av != null) { selectedLegumeNom = legume.nom; avertissement = av; showAvertissement = true; showLegumeSelection = false } else { selectedLegumeNom = legume.nom; remplirM2Mode = false; showVarieteSelection = true; showLegumeSelection = false } }
                         }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
                         HorizontalDivider()
                     } }
@@ -545,7 +546,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         var selectedCategorie by remember { mutableStateOf<String?>(null) }
         var searchQuery by remember { mutableStateOf("") }
         val categories = legumes.groupBy { it.categorie }.keys.toList()
-        AlertDialog(onDismissRequest = { showRemplirM2 = false }, title = { Text("Remplir le m² entier", fontWeight = FontWeight.Bold) },
+        AlertDialog(onDismissRequest = { showRemplirM2 = false; remplirM2Mode = false }, title = { Text("Remplir le m² entier", fontWeight = FontWeight.Bold) },
             text = { Column {
                 Text("💡 Choisissez une plante pour remplir tout le carré d'1m². La densité sera automatiquement appliquée.", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -560,6 +561,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     LazyColumn { items(plantes) { legume ->
                         Text("${legume.nom} (${getDensiteFromPlantation(legume)} plants/m²)", modifier = Modifier.fillMaxWidth().clickable {
                             selectedLegumeNom = legume.nom
+                            remplirM2Mode = true
                             showVarieteSelection = true
                             showRemplirM2 = false
                         }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
@@ -567,27 +569,26 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     } }
                 }
             } },
-            confirmButton = { TextButton(onClick = { showRemplirM2 = false }) { Text("Annuler") } })
+            confirmButton = { TextButton(onClick = { showRemplirM2 = false; remplirM2Mode = false }) { Text("Annuler") } })
     }
     
     if (showVarieteSelection && selectedLegumeNom != null && selectedCarre != null) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
-        val remplirM2 = showRemplirM2
         VarieteSelectionDialog(
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
-                    if (remplirM2) {
+                    if (remplirM2Mode) {
                         for (case in 1..9) { jardinRepository.modifierCasePrecise(carre, case, nomComplet) }
                     } else {
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
-                showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; showRemplirM2 = false
+                showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; remplirM2Mode = false
             },
-            onDismiss = { showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; showRemplirM2 = false }
+            onDismiss = { showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; remplirM2Mode = false }
         )
     }
     
@@ -684,8 +685,58 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 }
             } }
             item { Text("Plantes plantées (${legumesPlantes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.titleMedium) }
-            if (legumesPlantes.isEmpty()) { item { Text("Aucune plante plantée.", style = MaterialTheme.typography.bodyMedium) } }
-            else { legumesPlantes.forEach { nom -> val legume = legumes.find { it.nom == nom }; if (legume != null) item { CalendrierLegumeCard(legume, datesPlantation[nom]) } } }
+            if (legumesPlantes.isEmpty()) { 
+                item { Text("Aucune plante plantée.", style = MaterialTheme.typography.bodyMedium) } 
+            } else { 
+                legumesPlantes.forEach { nomComplet ->
+                    val nomBase = if (nomComplet.contains("(")) {
+                        nomComplet.substringBefore("(").trim()
+                    } else {
+                        nomComplet
+                    }
+                    val variete = if (nomComplet.contains("(")) {
+                        nomComplet.substringAfter("(").substringBefore(")").trim()
+                    } else {
+                        null
+                    }
+                    
+                    val legume = legumes.find { it.nom == nomBase }
+                    if (legume != null) {
+                        item { 
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = if (variete != null) "$nomBase - Variété : $variete" else nomBase,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CouleursApp.VertPrincipal,
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    val datePlantation = datesPlantation[nomComplet]
+                                    if (datePlantation != null) {
+                                        val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
+                                        Text("🌱 Planté le : ${dateFormat.format(Date(datePlantation))}", 
+                                            color = CouleursApp.VertPrincipal, 
+                                            fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
+                                    
+                                    Text("📅 Semis : ${legume.semis}", style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("🌱 Plantation : ${legume.plantation}", style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("🧺 Récolte : ${legume.recolte}", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
