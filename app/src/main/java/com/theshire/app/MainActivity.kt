@@ -543,7 +543,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
                     LazyColumn { items(plantes) { legume ->
                         val densite = scope.launch { jardinRepository.calculerTotalPlants(legume.nom) }
-                        Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm, ${jardinRepository.calculerNombreLignes(legume.nom)} lignes)", modifier = Modifier.fillMaxWidth().clickable {
+                        Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm)", ...)
                             scope.launch {
                                 if (!jardinRepository.peutPlanterDansCase(carre, caseNumero, legume.nom)) { 
                                     android.widget.Toast.makeText(context, "${legume.nom} est trop volumineux pour cette zone", android.widget.Toast.LENGTH_LONG).show()
