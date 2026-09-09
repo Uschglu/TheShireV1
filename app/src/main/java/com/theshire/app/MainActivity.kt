@@ -624,10 +624,12 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (remplirM2Mode) {
+                        // Remplir toutes les 9 cases avec la même plante
                         for (case in 1..9) { 
                             jardinRepository.modifierCasePrecise(carre, case, nomComplet) 
                         }
                     } else {
+                        // Remplir seulement la case sélectionnée
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
