@@ -14,11 +14,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -1069,7 +1067,6 @@ fun PlancheCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
@@ -1108,17 +1105,24 @@ fun Grille3x3(
                             else -> null
                         }
                         
+                        val backgroundColor = when {
+                            legume != null -> Color(0xFF4CAF50).copy(alpha = 0.3f)
+                            else -> CouleursApp.Blanc
+                        }
+                        
                         if (caseNumero == 5 && onCarreLongClick != null) {
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
+                                    .background(backgroundColor)
                                     .border(1.dp, CouleursApp.VertPrincipal)
-                                    .combinedClickable(
-                                        onClick = { onSousCarreClick(caseNumero) },
-                                        onLongClick = { onCarreLongClick() }
-                                    ),
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onTap = { onSousCarreClick(caseNumero) },
+                                            onLongPress = { onCarreLongClick() }
+                                        )
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -1135,7 +1139,7 @@ fun Grille3x3(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
+                                    .background(backgroundColor)
                                     .border(1.dp, CouleursApp.VertPrincipal)
                                     .clickable { onSousCarreClick(caseNumero) },
                                 contentAlignment = Alignment.Center
