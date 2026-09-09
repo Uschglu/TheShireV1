@@ -14,9 +14,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -274,7 +276,7 @@ fun AccueilScreen() {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
-                item { Column { Text("👆 Appui long = remplir le m²", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Maintenez votre doigt appuyé 2 secondes sur la case centrale (➕) d'un carré pour remplir tout le m² avec la même plante/variété.") } }
+                item { Column { Text("👆 Appui long = remplir le m²", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Maintenez votre doigt appuyé 2 secondes sur la case centrale d'un carré pour remplir tout le m² avec la même plante/variété.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
@@ -493,7 +495,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         },
                         onCarreLongClick = { carre -> 
                             selectedCarre = carre
-                            selectedCaseNumero = 0
+                            selectedCaseNumero = 5
                             remplirM2Mode = true
                             showRemplirM2 = true 
                         }
@@ -540,9 +542,31 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                 if (searchQuery.isNotEmpty() || selectedCategorie != null) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
                     LazyColumn { items(plantes) { legume ->
-                        Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm)", modifier = Modifier.fillMaxWidth().clickable {
-                            if (!peutPlanterIci(carre, caseNumero, legume.nom)) { android.widget.Toast.makeText(context, "${legume.nom} est volumineux", android.widget.Toast.LENGTH_LONG).show(); showLegumeSelection = false }
-                            else { val av = rotationRepository.getAvertissement(legume.nom, carre); if (av != null) { selectedLegumeNom = legume.nom; avertissement = av; showAvertissement = true; showLegumeSelection = false } else { selectedLegumeNom = legume.nom; remplirM2Mode = false; showVarieteSelection = true; showLegumeSelection = false } }
+                        val densite = scope.launch { jardinRepository.calculerTotalPlants(legume.nom) }
+                        Text("${legume.nom} (${getDistanceEntrePlants(legume)} cm, ${jardinRepository.calculerNombreLignes(legume.nom)} lignes)", modifier = Modifier.fillMaxWidth().clickable {
+                            scope.launch {
+                                if (!jardinRepository.peutPlanterDansCase(carre, caseNumero, legume.nom)) { 
+                                    android.widget.Toast.makeText(context, "${legume.nom} est trop volumineux pour cette zone", android.widget.Toast.LENGTH_LONG).show()
+                                    showLegumeSelection = false 
+                                } else {
+                                    val associations = jardinRepository.verifierAssociationsAdjacentes(carre, caseNumero, legume.nom)
+                                    val mauvaiseAssoc = associations.filter { it.second == "mauvaise" }
+                                    if (mauvaiseAssoc.isNotEmpty()) {
+                                        selectedLegumeNom = legume.nom
+                                        avertissement = AvertissementRotation(
+                                            niveau = NiveauRisque.MOYEN,
+                                            message = "⚠️ Mauvaise association avec : ${mauvaiseAssoc.joinToString(", ") { it.first }}"
+                                        )
+                                        showAvertissement = true
+                                        showLegumeSelection = false
+                                    } else {
+                                        selectedLegumeNom = legume.nom
+                                        remplirM2Mode = false
+                                        showVarieteSelection = true
+                                        showLegumeSelection = false
+                                    }
+                                }
+                            }
                         }.padding(14.dp), style = MaterialTheme.typography.bodyLarge)
                         HorizontalDivider()
                     } }
@@ -618,10 +642,27 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     
     if (showAvertissement && avertissement != null) {
         val av = avertissement!!; val carre = selectedCarre; val caseNumero = selectedCaseNumero; val legumeNom = selectedLegumeNom
-        AlertDialog(onDismissRequest = { showAvertissement = false; avertissement = null }, title = { Text("Rotation des cultures", fontWeight = FontWeight.Bold) },
+        AlertDialog(onDismissRequest = { showAvertissement = false; avertissement = null }, title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
             text = { Text(av.message) },
-            confirmButton = { Button(onClick = { if (carre != null && caseNumero > 0 && legumeNom != null) scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom) }; showAvertissement = false; avertissement = null }, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Planter quand même") } },
-            dismissButton = { TextButton(onClick = { showAvertissement = false; avertissement = null }) { Text("Annuler") } })
+            confirmButton = { Button(onClick = { 
+                if (carre != null && caseNumero > 0 && legumeNom != null) {
+                    scope.launch { 
+                        jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom)
+                    }
+                }
+                showAvertissement = false
+                avertissement = null
+                selectedLegumeNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+            }, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Planter quand même") } },
+            dismissButton = { TextButton(onClick = { 
+                showAvertissement = false
+                avertissement = null
+                selectedLegumeNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+            }) { Text("Annuler") } })
     }
 }
 
@@ -1019,6 +1060,7 @@ fun PlancheCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
@@ -1064,21 +1106,19 @@ fun Grille3x3(
                                     .fillMaxHeight()
                                     .background(if (legume != null) Color(0xFF4CAF50).copy(alpha = 0.3f) else CouleursApp.Blanc)
                                     .border(1.dp, CouleursApp.VertPrincipal)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onTap = { onSousCarreClick(caseNumero) },
-                                            onLongPress = { onCarreLongClick() }
-                                        )
-                                    },
+                                    .combinedClickable(
+                                        onClick = { onSousCarreClick(caseNumero) },
+                                        onLongClick = { onCarreLongClick() }
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = legume ?: "➕",
+                                    text = legume ?: "",
                                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth().padding(2.dp),
-                                    fontWeight = if (legume == null) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (legume == null) CouleursApp.VertClair else Color.Unspecified
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.Unspecified
                                 )
                             }
                         } else {
@@ -1116,7 +1156,7 @@ fun LegendeCouleurs() {
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Association neutre", style = MaterialTheme.typography.bodySmall) }
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("👆 Appui long sur la case ➕ = remplir le m²", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
+            Text("👆 Appui long sur la case centrale = remplir le m²", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
         }
     }
 }
