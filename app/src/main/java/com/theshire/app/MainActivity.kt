@@ -485,8 +485,18 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         onToggleExpand = { expandedPlancheId = if (expandedPlancheId == planche.id) null else planche.id },
                         onDelete = { scope.launch { jardinRepository.supprimerPlanche(planche) } },
                         jardinRepository = jardinRepository,
-                        onSousCarreClick = { carre, caseNumero -> selectedCarre = carre; selectedCaseNumero = caseNumero; showLegumeSelection = true },
-                        onCarreLongClick = { carre -> selectedCarre = carre; showRemplirM2 = true }
+                        onSousCarreClick = { carre, caseNumero -> 
+                            selectedCarre = carre
+                            selectedCaseNumero = caseNumero
+                            remplirM2Mode = false
+                            showLegumeSelection = true 
+                        },
+                        onCarreLongClick = { carre -> 
+                            selectedCarre = carre
+                            selectedCaseNumero = 0
+                            remplirM2Mode = true
+                            showRemplirM2 = true 
+                        }
                     )
                 }
             }
@@ -581,14 +591,28 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (remplirM2Mode) {
-                        for (case in 1..9) { jardinRepository.modifierCasePrecise(carre, case, nomComplet) }
+                        // Remplir toutes les 9 cases avec la même plante
+                        for (case in 1..9) { 
+                            jardinRepository.modifierCasePrecise(carre, case, nomComplet) 
+                        }
                     } else {
+                        // Remplir seulement la case sélectionnée
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
-                showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; remplirM2Mode = false
+                showVarieteSelection = false
+                selectedLegumeNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+                remplirM2Mode = false
             },
-            onDismiss = { showVarieteSelection = false; selectedLegumeNom = null; selectedCarre = null; selectedCaseNumero = 0; remplirM2Mode = false }
+            onDismiss = { 
+                showVarieteSelection = false
+                selectedLegumeNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+                remplirM2Mode = false
+            }
         )
     }
     
@@ -1005,8 +1029,20 @@ fun Grille3x3(
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     
     if (legumes.size == 9 && legumes.distinct().size == 1) {
-        Box(modifier = modifier.aspectRatio(1f).background(Color(0xFF4CAF50).copy(alpha = 0.2f)).border(2.dp, CouleursApp.VertPrincipal).clickable { onSousCarreClick(1) }, contentAlignment = Alignment.Center) {
-            Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+        Box(
+            modifier = modifier
+                .aspectRatio(1f)
+                .background(Color(0xFF4CAF50).copy(alpha = 0.2f))
+                .border(2.dp, CouleursApp.VertPrincipal)
+                .clickable { onSousCarreClick(1) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = legumes[0],
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(2.dp)
+            )
         }
     } else {
         Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
