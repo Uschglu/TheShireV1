@@ -194,7 +194,7 @@ fun AccueilScreen() {
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
-    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu", false) == false) }
+    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v2", false) == false) }
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     
@@ -268,7 +268,7 @@ fun AccueilScreen() {
     
     if (showTuto) {
         AlertDialog(
-            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() },
+            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v2", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
@@ -280,7 +280,7 @@ fun AccueilScreen() {
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
                 item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
             } },
-            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
+            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v2", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
     }
 }
@@ -489,10 +489,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             selectedCarre = carre
                             selectedCaseNumero = caseNumero
                             if (caseNumero == 5) {
-                                // Case centrale : ouvrir le choix de remplissage
                                 showChoixRemplissage = true
                             } else {
-                                // Autre case : sélection simple
                                 remplirM2Mode = false
                                 showLegumeSelection = true
                             }
@@ -503,7 +501,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         }
     }
     
-    // Dialogue de choix : remplir tout le m² ou juste la case centrale
     if (showChoixRemplissage && selectedCarre != null) {
         AlertDialog(
             onDismissRequest = { showChoixRemplissage = false },
@@ -584,14 +581,22 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                 }
                 HorizontalDivider()
                 OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
-                if (searchQuery.isEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState())) {
-                        categories.forEach { c -> FilterChip(selected = selectedCategorie == c, onClick = { selectedCategorie = if (selectedCategorie == c) null else c }, label = { Text("${getEmojiCategorie(c)} $c", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
+                if (searchQuery.isEmpty() && selectedCategorie == null) {
+                    Column(modifier = Modifier.fillMaxWidth().height(150.dp).verticalScroll(rememberScrollState())) {
+                        categories.forEach { c -> 
+                            FilterChip(
+                                selected = selectedCategorie == c, 
+                                onClick = { selectedCategorie = if (selectedCategorie == c) null else c }, 
+                                label = { Text("${getEmojiCategorie(c)} $c", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, 
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), 
+                                shape = RoundedCornerShape(16.dp)
+                            ) 
+                        }
                     }
                 }
                 if (searchQuery.isNotEmpty() || selectedCategorie != null) {
                     val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
-                    LazyColumn { 
+                    LazyColumn(modifier = Modifier.heightIn(max = 350.dp)) { 
                         items(plantes) { legume ->
                             Text(
                                 text = "${legume.nom} (${getDistanceEntrePlants(legume)} cm)", 
@@ -639,12 +644,10 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (modeM2) {
-                        // Remplir toutes les 9 cases avec la même plante
                         for (case in 1..9) { 
                             jardinRepository.modifierCasePrecise(carre, case, nomComplet) 
                         }
                     } else {
-                        // Remplir seulement la case sélectionnée
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
