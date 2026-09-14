@@ -644,7 +644,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (modeM2) {
-                        // Remplir toutes les 9 cases en UN SEUL appel
+                        // Remplir les 9 cases en un seul appel
                         jardinRepository.remplirM2Entier(carre, nomComplet)
                     } else {
                         // Remplir seulement la case sélectionnée
