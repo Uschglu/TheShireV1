@@ -122,6 +122,45 @@ class JardinRepository(context: Context) {
         plancheDao.updateCarre(carreFinal)
     }
     
+    // ========== NOUVELLE FONCTION : Remplir les 9 cases d'un coup ==========
+    suspend fun remplirM2Entier(carre: CarreEntity, legumeNom: String?) {
+        val dateActuelle = System.currentTimeMillis()
+        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
+        
+        val carreFinal = carre.copy(
+            case1 = legumeNom,
+            case2 = legumeNom,
+            case3 = legumeNom,
+            case4 = legumeNom,
+            case5 = legumeNom,
+            case6 = legumeNom,
+            case7 = legumeNom,
+            case8 = legumeNom,
+            case9 = legumeNom,
+            datePlantationCase1 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase2 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase3 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase4 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase5 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase6 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase7 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase8 = if (legumeNom != null) dateActuelle else null,
+            datePlantationCase9 = if (legumeNom != null) dateActuelle else null,
+            anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+        )
+        
+        // Mettre à jour les familles plantées
+        val famillesSet = mutableSetOf<String>()
+        if (legumeNom != null) {
+            val famille = getFamilleLegume(legumeNom)
+            if (famille != "Autre") {
+                famillesSet.add(famille)
+            }
+        }
+        
+        plancheDao.updateCarre(carreFinal.copy(famillesPlantees = famillesSet.joinToString(",")))
+    }
+    
     suspend fun getLegumesPlantes(): List<String> {
         val listeLegumes = mutableListOf<String>()
         
@@ -173,11 +212,9 @@ class JardinRepository(context: Context) {
         return dates
     }
     
-    // ========== NOUVELLES FONCTIONS DE VALIDATION ==========
+    // ========== FONCTIONS DE VALIDATION ==========
     
-    // Fonction pour obtenir les informations d'un légume
     suspend fun getLegumeInfo(legumeNom: String): LegumeEntity? {
-        // Extraire le nom de base si c'est une variété
         val nomBase = if (legumeNom.contains("(")) {
             legumeNom.substringBefore("(").trim()
         } else {
@@ -186,7 +223,6 @@ class JardinRepository(context: Context) {
         return legumeDao.getLegumeByNom(nomBase)
     }
     
-    // Fonction pour extraire la distance entre rangs
     fun extraireDistanceRangs(plantation: String): Int {
         val match = Regex("(\\d+-\\d+|\\d+) cm entre rangs").find(plantation)
         return if (match != null) {
@@ -198,11 +234,10 @@ class JardinRepository(context: Context) {
                 valeur.toInt()
             }
         } else {
-            30 // Valeur par défaut
+            30
         }
     }
     
-    // Fonction pour extraire la distance entre plants
     fun extraireDistancePlants(plantation: String): Int {
         val match = Regex("(\\d+-\\d+|\\d+) cm entre plants").find(plantation)
         return if (match != null) {
@@ -214,36 +249,30 @@ class JardinRepository(context: Context) {
                 valeur.toInt()
             }
         } else {
-            20 // Valeur par défaut
+            20
         }
     }
     
-    // Fonction pour calculer le nombre de lignes dans une sous-case
     suspend fun calculerNombreLignes(legumeNom: String): Int {
         val legume = getLegumeInfo(legumeNom) ?: return 1
         val distanceEntreRangs = extraireDistanceRangs(legume.plantation)
-        // Une sous-case fait environ 33cm x 33cm (1m² divisé en 9)
-        val largeurSousCase = 33 // en cm
+        val largeurSousCase = 33
         return maxOf(1, largeurSousCase / maxOf(distanceEntreRangs, 1))
     }
     
-    // Fonction pour calculer le nombre de plants par ligne dans une sous-case
     suspend fun calculerPlantsParLigne(legumeNom: String): Int {
         val legume = getLegumeInfo(legumeNom) ?: return 1
         val distanceEntrePlants = extraireDistancePlants(legume.plantation)
-        // Une sous-case fait environ 33cm de long
-        val longueurSousCase = 33 // en cm
+        val longueurSousCase = 33
         return maxOf(1, longueurSousCase / maxOf(distanceEntrePlants, 1))
     }
     
-    // Fonction pour calculer le nombre total de plants dans une sous-case
     suspend fun calculerTotalPlants(legumeNom: String): Int {
         val nombreLignes = calculerNombreLignes(legumeNom)
         val plantsParLigne = calculerPlantsParLigne(legumeNom)
         return nombreLignes * plantsParLigne
     }
     
-    // Fonction pour vérifier si une plante est volumineuse
     fun estPlanteVolumineuse(nomLegume: String): Boolean {
         val nomBase = if (nomLegume.contains("(")) {
             nomLegume.substringBefore("(").trim()
@@ -257,7 +286,6 @@ class JardinRepository(context: Context) {
         )
     }
     
-    // Fonction pour obtenir les cases adjacentes
     fun getCasesAdjacentes(caseNumero: Int): List<Int> {
         return when (caseNumero) {
             1 -> listOf(2, 4, 5)
@@ -273,7 +301,6 @@ class JardinRepository(context: Context) {
         }
     }
     
-    // Fonction pour obtenir la plante dans une case
     fun getPlanteDansCase(carre: CarreEntity, caseNumero: Int): String? {
         return when (caseNumero) {
             1 -> carre.case1
@@ -289,10 +316,8 @@ class JardinRepository(context: Context) {
         }
     }
     
-    // Fonction pour vérifier si une plante peut être plantée dans une case
     suspend fun peutPlanterDansCase(carre: CarreEntity, caseNumero: Int, legumeNom: String): Boolean {
         if (estPlanteVolumineuse(legumeNom)) {
-            // Vérifier les cases adjacentes pour les autres grandes plantes
             val casesAdjacentes = getCasesAdjacentes(caseNumero)
             for (caseAdj in casesAdjacentes) {
                 val planteAdj = getPlanteDansCase(carre, caseAdj)
@@ -304,11 +329,9 @@ class JardinRepository(context: Context) {
         return true
     }
     
-    // Fonction pour vérifier les associations entre deux plantes
     suspend fun verifierAssociation(plante1: String, plante2: String): String {
         val legume1 = getLegumeInfo(plante1) ?: return "neutre"
         
-        // Extraire le nom de base de la plante2
         val nomBase2 = if (plante2.contains("(")) {
             plante2.substringBefore("(").trim()
         } else {
@@ -320,7 +343,6 @@ class JardinRepository(context: Context) {
         return "neutre"
     }
     
-    // Fonction pour vérifier les associations avec les cases adjacentes
     suspend fun verifierAssociationsAdjacentes(carre: CarreEntity, caseNumero: Int, legumeNom: String): List<Pair<String, String>> {
         val resultats = mutableListOf<Pair<String, String>>()
         val casesAdjacentes = getCasesAdjacentes(caseNumero)
@@ -338,7 +360,6 @@ class JardinRepository(context: Context) {
         return resultats
     }
     
-    // Fonction pour calculer la densité réelle d'une plante
     suspend fun getDensiteReelle(legumeNom: String): Int {
         val legume = getLegumeInfo(legumeNom) ?: return 1
         val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) plants/m²").find(legume.plantation)
@@ -353,16 +374,14 @@ class JardinRepository(context: Context) {
                 else -> valeur.toInt()
             }
         } else {
-            // Calcul basé sur les distances
             val distancePlants = extraireDistancePlants(legume.plantation)
             val distanceRangs = extraireDistanceRangs(legume.plantation)
-            val surfaceCm2 = 10000 // 1m² en cm²
+            val surfaceCm2 = 10000
             val surfaceParPlant = distancePlants * distanceRangs
             maxOf(1, surfaceCm2 / maxOf(surfaceParPlant, 1))
         }
     }
     
-    // Fonction pour obtenir la famille d'un légume
     private fun getFamilleLegume(legume: String): String {
         val nomBase = if (legume.contains("(")) {
             legume.substringBefore("(").trim()
