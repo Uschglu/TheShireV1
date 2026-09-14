@@ -12,8 +12,10 @@ class LegumeRepository(context: Context) {
     val legumes: Flow<List<LegumeEntity>> = legumeDao.getAllLegumes()
     
     suspend fun ajouterLegumesPredefinis() {
-        if (legumeDao.countLegumes() == 0) {
-            getLegumesPredefinis().forEach { legume ->
+        // Vérifie chaque légume individuellement et insère seulement ceux qui manquent
+        getLegumesPredefinis().forEach { legume ->
+            val existant = legumeDao.getLegumeByNom(legume.nom)
+            if (existant == null) {
                 legumeDao.insertLegume(legume)
             }
         }
