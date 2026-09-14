@@ -274,7 +274,7 @@ fun AccueilScreen() {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
-                item { Column { Text("👆 Appui long = remplir le m²", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Maintenez votre doigt appuyé 2 secondes sur la case centrale d'un carré pour remplir tout le m² avec la même plante/variété.") } }
+                item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
@@ -459,7 +459,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     var selectedLegumeNom by remember { mutableStateOf<String?>(null) }
     var showLegumeSelection by remember { mutableStateOf(false) }
     var showVarieteSelection by remember { mutableStateOf(false) }
-    var showRemplirM2 by remember { mutableStateOf(false) }
+    var showChoixRemplissage by remember { mutableStateOf(false) }
     var remplirM2Mode by remember { mutableStateOf(false) }
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
@@ -488,19 +488,69 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         onSousCarreClick = { carre, caseNumero -> 
                             selectedCarre = carre
                             selectedCaseNumero = caseNumero
-                            remplirM2Mode = false
-                            showLegumeSelection = true 
-                        },
-                        onCarreLongClick = { carre -> 
-                            selectedCarre = carre
-                            selectedCaseNumero = 5
-                            remplirM2Mode = true
-                            showRemplirM2 = true 
+                            if (caseNumero == 5) {
+                                // Case centrale : ouvrir le choix de remplissage
+                                showChoixRemplissage = true
+                            } else {
+                                // Autre case : sélection simple
+                                remplirM2Mode = false
+                                showLegumeSelection = true
+                            }
                         }
                     )
                 }
             }
         }
+    }
+    
+    // Dialogue de choix : remplir tout le m² ou juste la case centrale
+    if (showChoixRemplissage && selectedCarre != null) {
+        AlertDialog(
+            onDismissRequest = { showChoixRemplissage = false },
+            title = { Text("Case centrale", fontWeight = FontWeight.Bold) },
+            text = { Column {
+                Text("Que souhaitez-vous faire avec cette case centrale ?", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        remplirM2Mode = true
+                        showChoixRemplissage = false
+                        showLegumeSelection = true
+                    },
+                    colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("🌱", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Remplir tout le m²", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                            Text("Les 9 cases avec la même plante", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        remplirM2Mode = false
+                        showChoixRemplissage = false
+                        showLegumeSelection = true
+                    },
+                    colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("🌿", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Remplir juste cette case", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                            Text("Seulement la case centrale", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            } },
+            confirmButton = { TextButton(onClick = { showChoixRemplissage = false }) { Text("Annuler", color = CouleursApp.VertPrincipal) } }
+        )
     }
     
     if (showAddPlancheDialog) {
@@ -526,10 +576,12 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         var selectedCategorie by remember { mutableStateOf<String?>(null) }
         var searchQuery by remember { mutableStateOf("") }
         val categories = legumes.groupBy { it.categorie }.keys.toList()
-        AlertDialog(onDismissRequest = { showLegumeSelection = false }, title = { Text("Choisissez une plante", fontWeight = FontWeight.Bold) },
+        AlertDialog(onDismissRequest = { showLegumeSelection = false }, title = { Text(if (remplirM2Mode) "Remplir le m² entier" else "Choisissez une plante", fontWeight = FontWeight.Bold) },
             text = { Column {
                 Text("Case $caseNumero du carré", style = MaterialTheme.typography.bodySmall)
-                Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                if (!remplirM2Mode) {
+                    Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
                 HorizontalDivider()
                 OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
                 if (searchQuery.isEmpty()) {
@@ -561,7 +613,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                 showLegumeSelection = false
                                             } else {
                                                 selectedLegumeNom = legume.nom
-                                                remplirM2Mode = false
                                                 showVarieteSelection = true
                                                 showLegumeSelection = false
                                             }
@@ -578,52 +629,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             confirmButton = { TextButton(onClick = { showLegumeSelection = false }) { Text("Annuler") } })
     }
     
-    if (showRemplirM2 && selectedCarre != null) {
-        val carre = selectedCarre!!
-        var selectedCategorie by remember { mutableStateOf<String?>(null) }
-        var searchQuery by remember { mutableStateOf("") }
-        val categories = legumes.groupBy { it.categorie }.keys.toList()
-        AlertDialog(onDismissRequest = { showRemplirM2 = false; remplirM2Mode = false }, title = { Text("Remplir le m² entier", fontWeight = FontWeight.Bold) },
-            text = { Column {
-                Text("💡 Choisissez une plante pour remplir tout le carré d'1m². La densité sera automatiquement appliquée.", style = MaterialTheme.typography.bodySmall)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
-                if (searchQuery.isEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth().height(120.dp).verticalScroll(rememberScrollState())) {
-                        categories.forEach { c -> FilterChip(selected = selectedCategorie == c, onClick = { selectedCategorie = if (selectedCategorie == c) null else c }, label = { Text("${getEmojiCategorie(c)} $c", fontSize = MaterialTheme.typography.bodySmall.fontSize) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
-                    }
-                }
-                if (searchQuery.isNotEmpty() || selectedCategorie != null) {
-                    val plantes = legumes.filter { (searchQuery.isEmpty() || it.nom.contains(searchQuery, true)) && (selectedCategorie == null || it.categorie == selectedCategorie) }
-                    LazyColumn { 
-                        items(plantes) { legume ->
-                            Text(
-                                text = "${legume.nom} (${getDensiteFromPlantation(legume)} plants/m²)", 
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    selectedLegumeNom = legume.nom
-                                    remplirM2Mode = true
-                                    showVarieteSelection = true
-                                    showRemplirM2 = false
-                                }.padding(14.dp), 
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            HorizontalDivider()
-                        } 
-                    }
-                }
-            } },
-            confirmButton = { TextButton(onClick = { showRemplirM2 = false; remplirM2Mode = false }) { Text("Annuler") } })
-    }
-    
     if (showVarieteSelection && selectedLegumeNom != null && selectedCarre != null) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
+        val modeM2 = remplirM2Mode
         VarieteSelectionDialog(
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
-                    if (remplirM2Mode) {
+                    if (modeM2) {
                         // Remplir toutes les 9 cases avec la même plante
                         for (case in 1..9) { 
                             jardinRepository.modifierCasePrecise(carre, case, nomComplet) 
@@ -1037,8 +1052,7 @@ fun PlancheCard(
     onToggleExpand: () -> Unit,
     onDelete: () -> Unit,
     jardinRepository: JardinRepository,
-    onSousCarreClick: (CarreEntity, Int) -> Unit,
-    onCarreLongClick: (CarreEntity) -> Unit
+    onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1057,7 +1071,6 @@ fun PlancheCard(
                                 if (carre != null) Grille3x3(
                                     carre = carre,
                                     onSousCarreClick = { case -> onSousCarreClick(carre, case) },
-                                    onCarreLongClick = { onCarreLongClick(carre) },
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -1073,7 +1086,6 @@ fun PlancheCard(
 fun Grille3x3(
     carre: CarreEntity,
     onSousCarreClick: (Int) -> Unit,
-    onCarreLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
@@ -1112,56 +1124,21 @@ fun Grille3x3(
                             else -> CouleursApp.Blanc
                         }
                         
-                        if (caseNumero == 5 && onCarreLongClick != null) {
-                            var longPressDeclenche by remember { mutableStateOf(false) }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .background(backgroundColor)
-                                    .border(1.dp, CouleursApp.VertPrincipal)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onTap = { 
-                                                if (!longPressDeclenche) {
-                                                    onSousCarreClick(caseNumero)
-                                                }
-                                                longPressDeclenche = false
-                                            },
-                                            onLongPress = { 
-                                                longPressDeclenche = true
-                                                onCarreLongClick()
-                                            }
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = legume ?: "",
-                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(2.dp),
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color.Unspecified
-                                )
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .background(backgroundColor)
-                                    .border(1.dp, CouleursApp.VertPrincipal)
-                                    .clickable { onSousCarreClick(caseNumero) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = legume ?: "",
-                                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(2.dp)
-                                )
-                            }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(backgroundColor)
+                                .border(1.dp, CouleursApp.VertPrincipal)
+                                .clickable { onSousCarreClick(caseNumero) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = legume ?: "",
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(2.dp)
+                            )
                         }
                     }
                 }
@@ -1180,7 +1157,7 @@ fun LegendeCouleurs() {
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Association neutre", style = MaterialTheme.typography.bodySmall) }
             Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("👆 Appui long sur la case centrale = remplir le m²", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
+            Text("👆 Case centrale : choisir entre remplir tout le m² ou une seule case", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
         }
     }
 }
