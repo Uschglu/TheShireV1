@@ -1113,6 +1113,7 @@ fun Grille3x3(
                         }
                         
                         if (caseNumero == 5 && onCarreLongClick != null) {
+                            var longPressDeclenche by remember { mutableStateOf(false) }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -1121,8 +1122,16 @@ fun Grille3x3(
                                     .border(1.dp, CouleursApp.VertPrincipal)
                                     .pointerInput(Unit) {
                                         detectTapGestures(
-                                            onTap = { onSousCarreClick(caseNumero) },
-                                            onLongPress = { onCarreLongClick() }
+                                            onTap = { 
+                                                if (!longPressDeclenche) {
+                                                    onSousCarreClick(caseNumero)
+                                                }
+                                                longPressDeclenche = false
+                                            },
+                                            onLongPress = { 
+                                                longPressDeclenche = true
+                                                onCarreLongClick()
+                                            }
                                         )
                                     },
                                 contentAlignment = Alignment.Center
