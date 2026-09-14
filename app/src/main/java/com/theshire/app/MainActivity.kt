@@ -642,9 +642,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
+                // DEBUG : afficher les valeurs avant l'appel
+                android.widget.Toast.makeText(
+                    context,
+                    "DEBUG: modeM2=$modeM2, caseNumero=$caseNumero, carre.id=${carre.id}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                
                 scope.launch {
                     if (modeM2) {
-                        // Remplir les 9 cases en un seul appel
+                        // Remplir les 9 cases
                         jardinRepository.remplirM2Entier(carre, nomComplet)
                     } else {
                         // Remplir seulement la case sélectionnée
