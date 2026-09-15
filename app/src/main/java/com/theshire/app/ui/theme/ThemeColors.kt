@@ -14,21 +14,18 @@ import androidx.compose.ui.graphics.Color
  * 
  * L'objet global `CouleursApp` expose les couleurs dynamiquement
  * selon le thème actif (light ou dark). Il suffit d'appeler
- * `CouleursApp.setDarkMode(true/false)` pour basculer.
- * 
- * Note : les palettes sont nommées PotagerLightPalette/PotagerDarkPalette
- * pour éviter le conflit avec LightColors/DarkColors du Material 3 dans Theme.kt.
+ * `CouleursApp.changerModeSombre(true/false)` pour basculer.
  */
 object CouleursApp {
     
     // ========== ÉTAT DU THÈME ==========
     
-    /** État observable du mode sombre. Modifié via setDarkMode(). */
+    /** État observable du mode sombre. Modifié via changerModeSombre(). */
     var isDarkMode: Boolean by mutableStateOf(false)
         private set
     
     /** Change le mode et déclenche la recomposition Compose. */
-    fun setDarkMode(enabled: Boolean) {
+    fun changerModeSombre(enabled: Boolean) {
         isDarkMode = enabled
     }
     
