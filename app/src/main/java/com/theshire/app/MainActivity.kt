@@ -87,6 +87,7 @@ import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.CouleursApp
 import com.theshire.app.ui.theme.PotagerShireTheme
+import com.theshire.app.ui.theme.envelopperAvecTheme
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
@@ -101,7 +102,6 @@ import java.util.Locale
 @Composable
 fun getDegradeFond(): Brush {
     return if (CouleursApp.isDarkMode) {
-        // Mode sombre : dégradé de verts très foncés
         Brush.verticalGradient(
             colors = listOf(
                 Color(0xFF1A1F1A),
@@ -110,7 +110,6 @@ fun getDegradeFond(): Brush {
             )
         )
     } else {
-        // Mode clair : dégradé crème (actuel)
         Brush.verticalGradient(
             colors = listOf(
                 Color(0xFFFAF6F0),
@@ -137,7 +136,6 @@ class MainActivity : ComponentActivity() {
         }
         if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 1000)
         
-        // Charger le thème sauvegardé AVANT d'afficher l'UI
         CouleursApp.changerModeSombre(ThemePreferences.chargerModeSombre(this))
         
         setContent { PotagerShireTheme { MainScreen() } }
@@ -336,7 +334,7 @@ fun AccueilScreen() {
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Quand vous plantez, des opérations culturales (tuteurage, buttage, éclaircissage...) sont générées automatiquement et affichées sur le calendrier sous forme de barres ←→ sur leur période. Cliquez pour voir les détails et marquer comme fait.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
-                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
+                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, cliquez sur les billes en bas pour accéder directement.") } }
             } },
             confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
@@ -963,7 +961,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Card(modifier = Modifier.fillMaxWidth().clickable { 
-                        val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true)
+                        val tp = TimePickerDialog(envelopperAvecTheme(context), { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true)
                         tp.show()
                     }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { 
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { 
@@ -986,8 +984,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                             val r = rappelRepository.getRappel(ts)
                             if (r != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel", rappelNote)
                         }
-                        showOperationsDialog = false
-                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
+                        showOperationsDialog = false                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
                         Text("Enregistrer la note") 
                     }
                 }
@@ -1523,7 +1520,8 @@ fun calculerCouleursCarre(
     
     fun nomBase(nom: String?): String? {
         if (nom == null) return null
-        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom    }
+        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom
+    }
     
     fun infosLegume(nom: String?): LegumeEntity? {
         val base = nomBase(nom) ?: return null
@@ -1624,6 +1622,35 @@ fun calculerCouleursCarre(
     return resultat
 }
 
+/**
+ * Retourne la pire couleur parmi les 9 cases d'un carré.
+ * Priorité : Rouge (mauvaise) > Orange (neutre) > Vert (bonne) > Blanc (vide)
+ * 
+ * Utilisé quand les 9 cases sont identiques (grand carré) pour refléter
+ * les associations avec les carrés voisins.
+ */
+fun calculerCouleurPire(couleurs: Map<Int, Color>): Color {
+    var aMauvaise = false
+    var aNeutre = false
+    var aBonne = false
+    
+    for (num in 1..9) {
+        val couleur = couleurs[num] ?: continue
+        when (couleur) {
+            CouleursApp.MauvaiseAssociation -> aMauvaise = true
+            CouleursApp.NeutreAssociation -> aNeutre = true
+            CouleursApp.BonneAssociation -> aBonne = true
+        }
+    }
+    
+    return when {
+        aMauvaise -> CouleursApp.MauvaiseAssociation
+        aNeutre -> CouleursApp.NeutreAssociation
+        aBonne -> CouleursApp.BonneAssociation
+        else -> CouleursApp.CaseVide
+    }
+}
+
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
@@ -1634,10 +1661,13 @@ fun Grille3x3(
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     
     if (legumes.size == 9 && legumes.distinct().size == 1) {
+        // Grand carré : utilise la pire couleur parmi les 9 cases (avec voisins)
+        val couleurGrandCarre = calculerCouleurPire(couleurs)
+        
         Box(
             modifier = modifier
                 .aspectRatio(1f)
-                .background(CouleursApp.BonneAssociation)
+                .background(couleurGrandCarre)
                 .border(2.dp, CouleursApp.VertPrincipal)
                 .clickable { onSousCarreClick(1) },
             contentAlignment = Alignment.Center
