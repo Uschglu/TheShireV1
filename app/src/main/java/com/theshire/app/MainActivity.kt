@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
         if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 1000)
         
         // Charger le thème sauvegardé AVANT d'afficher l'UI
-        CouleursApp.setDarkMode(ThemePreferences.chargerModeSombre(this))
+        CouleursApp.changerModeSombre(ThemePreferences.chargerModeSombre(this))
         
         setContent { PotagerShireTheme { MainScreen() } }
         planifierNotifications()
@@ -241,7 +241,6 @@ fun AccueilScreen() {
         floatingActionButton = { FloatingActionButton(onClick = { showTuto = true }, containerColor = CouleursApp.Terracotta, shape = CircleShape) { Text("❓", style = MaterialTheme.typography.titleLarge) } }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
-            // Barre du haut : titre + bouton mode sombre
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -253,11 +252,10 @@ fun AccueilScreen() {
                     style = MaterialTheme.typography.headlineMedium,
                     color = CouleursApp.VertPrincipal
                 )
-                // Bouton bascule mode sombre
                 IconButton(
                     onClick = {
                         val nouveauMode = ThemePreferences.toggleModeSombre(context)
-                        CouleursApp.setDarkMode(nouveauMode)
+                        CouleursApp.changerModeSombre(nouveauMode)
                     },
                     modifier = Modifier
                         .background(CouleursApp.VertPale, CircleShape)
@@ -687,7 +685,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                         }
                                     }
                                 }.padding(14.dp), 
-                                style = MaterialTheme.typography.bodyLarge
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = CouleursApp.TexteFonce
                             )
                             HorizontalDivider()
                         } 
@@ -883,11 +882,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                         rappel.dateDebut <= finJour && rappel.dateFin >= debutJour
                                     }
                                     
-                                    if (ops.isNotEmpty()) {
-                                        operationsDuJour = ops
-                                    } else {
-                                        operationsDuJour = emptyList()
-                                    }
+                                    operationsDuJour = ops
                                     
                                     val rappel = rappelRepository.getRappelSync(selectedTimestamp)
                                     rappelActif = rappel?.estActif ?: false
@@ -1528,8 +1523,7 @@ fun calculerCouleursCarre(
     
     fun nomBase(nom: String?): String? {
         if (nom == null) return null
-        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom
-    }
+        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom    }
     
     fun infosLegume(nom: String?): LegumeEntity? {
         val base = nomBase(nom) ?: return null
