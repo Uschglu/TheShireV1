@@ -96,6 +96,12 @@ object CouleursApp {
 
 val DegradeFond = Brush.verticalGradient(colors = listOf(Color(0xFFFAF6F0), Color(0xFFF0F0E8), Color(0xFFE8EFE8)))
 
+// Couleurs d'association
+val CouleurBonneAssociation = Color(0xFF66BB6A).copy(alpha = 0.55f)
+val CouleurNeutreAssociation = Color(0xFFFFA726).copy(alpha = 0.45f)
+val CouleurMauvaiseAssociation = Color(0xFFEF5350).copy(alpha = 0.55f)
+val CouleurCaseVide = Color(0xFFFFFFFF)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -275,6 +281,7 @@ fun AccueilScreen() {
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
+                item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise association. Les associations tiennent compte des carrés voisins (m² adjacents).") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
@@ -485,6 +492,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         onToggleExpand = { expandedPlancheId = if (expandedPlancheId == planche.id) null else planche.id },
                         onDelete = { scope.launch { jardinRepository.supprimerPlanche(planche) } },
                         jardinRepository = jardinRepository,
+                        legumes = legumes,
                         onSousCarreClick = { carre, caseNumero -> 
                             selectedCarre = carre
                             selectedCaseNumero = caseNumero
@@ -644,10 +652,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (modeM2) {
-                        // Remplir les 9 cases
                         jardinRepository.remplirM2Entier(carre, nomComplet)
                     } else {
-                        // Remplir seulement la case sélectionnée
                         jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
                     }
                 }
@@ -1055,6 +1061,7 @@ fun PlancheCard(
     onToggleExpand: () -> Unit,
     onDelete: () -> Unit,
     jardinRepository: JardinRepository,
+    legumes: List<LegumeEntity>,
     onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
@@ -1071,11 +1078,21 @@ fun PlancheCard(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             for (x in 0 until planche.largeur) {
                                 val carre = carres.find { it.positionX == x && it.positionY == y }
-                                if (carre != null) Grille3x3(
-                                    carre = carre,
-                                    onSousCarreClick = { case -> onSousCarreClick(carre, case) },
-                                    modifier = Modifier.weight(1f)
-                                )
+                                if (carre != null) {
+                                    // Calculer les couleurs de ce carré
+                                    val couleurs = calculerCouleursCarre(
+                                        carre = carre,
+                                        planche = planche,
+                                        tousLesCarres = carres,
+                                        legumes = legumes
+                                    )
+                                    Grille3x3(
+                                        carre = carre,
+                                        couleurs = couleurs,
+                                        onSousCarreClick = { case -> onSousCarreClick(carre, case) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1085,19 +1102,166 @@ fun PlancheCard(
     }
 }
 
+// ============== CALCUL DES COULEURS D'ASSOCIATION ==============
+
+/**
+ * Calcule les 9 couleurs d'un carré en fonction des associations avec les cases voisines.
+ * Prend en compte les cases du même carré ET les carrés voisins (m² adjacents).
+ */
+@Composable
+fun calculerCouleursCarre(
+    carre: CarreEntity,
+    planche: PlancheEntity,
+    tousLesCarres: List<CarreEntity>,
+    legumes: List<LegumeEntity>
+): Map<Int, Color> {
+    val resultat = mutableMapOf<Int, Color>()
+    
+    // Extraire les noms de base des légumes pour la recherche
+    fun nomBase(nom: String?): String? {
+        if (nom == null) return null
+        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom
+    }
+    
+    // Obtenir les infos d'un légume
+    fun infosLegume(nom: String?): LegumeEntity? {
+        val base = nomBase(nom) ?: return null
+        return legumes.find { it.nom == base }
+    }
+    
+    // Vérifier l'association entre deux plantes
+    fun verifierAssociation(plante1: String?, plante2: String?): String {
+        if (plante1 == null || plante2 == null) return "neutre"
+        val leg1 = infosLegume(plante1) ?: return "neutre"
+        val base2 = nomBase(plante2) ?: return "neutre"
+        if (leg1.bonnesAssociations.contains(base2, true)) return "bonne"
+        if (leg1.mauvaisesAssociations.contains(base2, true)) return "mauvaise"
+        return "neutre"
+    }
+    
+    // Extraire la plante d'une case
+    fun planteDansCase(c: CarreEntity, num: Int): String? = when (num) {
+        1 -> c.case1; 2 -> c.case2; 3 -> c.case3
+        4 -> c.case4; 5 -> c.case5; 6 -> c.case6
+        7 -> c.case7; 8 -> c.case8; 9 -> c.case9
+        else -> null
+    }
+    
+    // Obtenir les cases voisines dans le MÊME carré
+    fun casesVoisinesMemeCarre(num: Int): List<Int> = when (num) {
+        1 -> listOf(2, 4, 5)
+        2 -> listOf(1, 3, 4, 5, 6)
+        3 -> listOf(2, 5, 6)
+        4 -> listOf(1, 2, 5, 7, 8)
+        5 -> listOf(1, 2, 3, 4, 6, 7, 8, 9)
+        6 -> listOf(2, 3, 5, 8, 9)
+        7 -> listOf(4, 5, 8)
+        8 -> listOf(4, 5, 6, 7, 9)
+        9 -> listOf(5, 6, 8)
+        else -> emptyList()
+    }
+    
+    // Pour chaque case du carré actuel
+    for (num in 1..9) {
+        val plante = planteDansCase(carre, num)
+        if (plante == null) {
+            resultat[num] = CouleurCaseVide
+            continue
+        }
+        
+        // Liste des plantes voisines (même carré + carrés adjacents)
+        val plantesVoisines = mutableListOf<String>()
+        
+        // 1. Cases voisines dans le même carré
+        casesVoisinesMemeCarre(num).forEach { voisinNum ->
+            val planteVoisine = planteDansCase(carre, voisinNum)
+            if (planteVoisine != null) plantesVoisines.add(planteVoisine)
+        }
+        
+        // 2. Cases frontalières dans les carrés voisins (haut/bas/gauche/droite)
+        // Position de la case dans la grille 3x3 : row = (num-1)/3, col = (num-1)%3
+        val row = (num - 1) / 3
+        val col = (num - 1) % 3
+        
+        // Carré voisin à GAUCHE (positionX - 1)
+        if (col == 0) {
+            val carreGauche = tousLesCarres.find { it.positionX == carre.positionX - 1 && it.positionY == carre.positionY }
+            if (carreGauche != null) {
+                // Les cases de la colonne de droite (3, 6, 9) du carré gauche sont voisines
+                val voisinNum = row * 3 + 3 // 3, 6, 9
+                val planteVoisine = planteDansCase(carreGauche, voisinNum)
+                if (planteVoisine != null) plantesVoisines.add(planteVoisine)
+            }
+        }
+        
+        // Carré voisin à DROITE (positionX + 1)
+        if (col == 2) {
+            val carreDroite = tousLesCarres.find { it.positionX == carre.positionX + 1 && it.positionY == carre.positionY }
+            if (carreDroite != null) {
+                // Les cases de la colonne de gauche (1, 4, 7) du carré droit sont voisines
+                val voisinNum = row * 3 + 1 // 1, 4, 7
+                val planteVoisine = planteDansCase(carreDroite, voisinNum)
+                if (planteVoisine != null) plantesVoisines.add(planteVoisine)
+            }
+        }
+        
+        // Carré voisin en HAUT (positionY - 1)
+        if (row == 0) {
+            val carreHaut = tousLesCarres.find { it.positionX == carre.positionX && it.positionY == carre.positionY - 1 }
+            if (carreHaut != null) {
+                // Les cases de la ligne du bas (7, 8, 9) du carré haut sont voisines
+                val voisinNum = 7 + col // 7, 8, 9
+                val planteVoisine = planteDansCase(carreHaut, voisinNum)
+                if (planteVoisine != null) plantesVoisines.add(planteVoisine)
+            }
+        }
+        
+        // Carré voisin en BAS (positionY + 1)
+        if (row == 2) {
+            val carreBas = tousLesCarres.find { it.positionX == carre.positionX && it.positionY == carre.positionY + 1 }
+            if (carreBas != null) {
+                // Les cases de la ligne du haut (1, 2, 3) du carré bas sont voisines
+                val voisinNum = 1 + col // 1, 2, 3
+                val planteVoisine = planteDansCase(carreBas, voisinNum)
+                if (planteVoisine != null) plantesVoisines.add(planteVoisine)
+            }
+        }
+        
+        // Déterminer la couleur dominante
+        var aBonne = false
+        var aMauvaise = false
+        plantesVoisines.forEach { voisine ->
+            when (verifierAssociation(plante, voisine)) {
+                "bonne" -> aBonne = true
+                "mauvaise" -> aMauvaise = true
+            }
+        }
+        
+        resultat[num] = when {
+            aMauvaise -> CouleurMauvaiseAssociation
+            aBonne -> CouleurBonneAssociation
+            else -> CouleurNeutreAssociation
+        }
+    }
+    
+    return resultat
+}
+
 @Composable
 fun Grille3x3(
     carre: CarreEntity,
+    couleurs: Map<Int, Color>,
     onSousCarreClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     
     if (legumes.size == 9 && legumes.distinct().size == 1) {
+        // Grand carré : toutes les cases identiques
         Box(
             modifier = modifier
                 .aspectRatio(1f)
-                .background(Color(0xFF4CAF50).copy(alpha = 0.2f))
+                .background(CouleurBonneAssociation.copy(alpha = 0.35f))
                 .border(2.dp, CouleursApp.VertPrincipal)
                 .clickable { onSousCarreClick(1) },
             contentAlignment = Alignment.Center
@@ -1122,10 +1286,7 @@ fun Grille3x3(
                             else -> null
                         }
                         
-                        val backgroundColor = when {
-                            legume != null -> Color(0xFF4CAF50).copy(alpha = 0.3f)
-                            else -> CouleursApp.Blanc
-                        }
+                        val backgroundColor = couleurs[caseNumero] ?: if (legume != null) CouleurNeutreAssociation else CouleurCaseVide
                         
                         Box(
                             modifier = Modifier
@@ -1154,12 +1315,26 @@ fun Grille3x3(
 fun LegendeCouleurs() {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Légende", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+            Text("Légende des couleurs", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFF4CAF50).copy(alpha = 0.5f))); Text(" Bonne association", style = MaterialTheme.typography.bodySmall) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFFF9800).copy(alpha = 0.5f))); Text(" Association neutre", style = MaterialTheme.typography.bodySmall) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Box(modifier = Modifier.size(20.dp).background(Color(0xFFF44336).copy(alpha = 0.5f))); Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(20.dp).background(CouleurBonneAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(" Bonne association", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(20.dp).background(CouleurNeutreAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(" Association neutre", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(20.dp).background(CouleurMauvaiseAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) 
+            }
             Spacer(modifier = Modifier.height(8.dp))
+            Text("🌱 Les couleurs tiennent compte des carrés voisins (m² adjacents)", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
             Text("👆 Case centrale : choisir entre remplir tout le m² ou une seule case", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
         }
     }
