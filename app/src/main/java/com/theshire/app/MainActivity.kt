@@ -19,6 +19,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,8 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
@@ -200,7 +205,7 @@ fun AccueilScreen() {
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
-    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v2", false) == false) }
+    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v3", false) == false) }
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     
@@ -274,7 +279,7 @@ fun AccueilScreen() {
     
     if (showTuto) {
         AlertDialog(
-            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v2", true).apply() },
+            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v3", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
@@ -282,12 +287,13 @@ fun AccueilScreen() {
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
                 item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise association. Les associations tiennent compte des carrés voisins (m² adjacents).") } }
+                item { Column { Text("🔍 Zoom sur les planches", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Pincez à deux doigts sur une planche dépliée pour zoomer et dézoomer. Glissez à deux doigts pour vous déplacer. Un bouton ↺ apparaît pour réinitialiser le zoom.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
                 item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
             } },
-            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v2", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
+            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v3", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
     }
 }
@@ -1073,30 +1079,84 @@ fun PlancheCard(
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(16.dp))
                 val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (y in 0 until planche.longueur) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            for (x in 0 until planche.largeur) {
-                                val carre = carres.find { it.positionX == x && it.positionY == y }
-                                if (carre != null) {
-                                    // Calculer les couleurs de ce carré
-                                    val couleurs = calculerCouleursCarre(
-                                        carre = carre,
-                                        planche = planche,
-                                        tousLesCarres = carres,
-                                        legumes = legumes
-                                    )
-                                    Grille3x3(
-                                        carre = carre,
-                                        couleurs = couleurs,
-                                        onSousCarreClick = { case -> onSousCarreClick(carre, case) },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                
+                // État pour le zoom et le pan
+                var scale by remember { mutableStateOf(1f) }
+                var offset by remember { mutableStateOf(Offset.Zero) }
+                val state = rememberTransformableState { zoomChange, panChange, _ ->
+                    scale = (scale * zoomChange).coerceIn(0.5f, 5f)
+                    offset += panChange
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 200.dp, max = 600.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CouleursApp.Creme)
+                        .transformable(state = state)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offset.x,
+                                translationY = offset.y,
+                                transformOrigin = TransformOrigin.Center
+                            )
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (y in 0 until planche.longueur) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                for (x in 0 until planche.largeur) {
+                                    val carre = carres.find { it.positionX == x && it.positionY == y }
+                                    if (carre != null) {
+                                        val couleurs = calculerCouleursCarre(
+                                            carre = carre,
+                                            planche = planche,
+                                            tousLesCarres = carres,
+                                            legumes = legumes
+                                        )
+                                        Grille3x3(
+                                            carre = carre,
+                                            couleurs = couleurs,
+                                            onSousCarreClick = { case -> onSousCarreClick(carre, case) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    
+                    // Bouton reset en bas à droite (apparaît seulement si zoom actif)
+                    if (scale != 1f || offset != Offset.Zero) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                scale = 1f
+                                offset = Offset.Zero
+                            },
+                            containerColor = CouleursApp.VertPrincipal,
+                            contentColor = CouleursApp.Blanc,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                        ) {
+                            Text("↺", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
                 }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "🔍 Pincez à deux doigts pour zoomer",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.VertPrincipal.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Italic
+                )
             }
         }
     }
@@ -1334,6 +1394,8 @@ fun LegendeCouleurs() {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text("🌱 Les couleurs tiennent compte des carrés voisins (m² adjacents)", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("🔍 Pincez à deux doigts sur une planche pour zoomer", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             Text("👆 Case centrale : choisir entre remplir tout le m² ou une seule case", style = MaterialTheme.typography.bodySmall, color = CouleursApp.Terracotta)
         }
