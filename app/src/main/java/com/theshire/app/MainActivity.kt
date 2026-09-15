@@ -52,7 +52,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.ImageLoader
 import coil.disk.DiskCache
@@ -72,12 +74,14 @@ import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PlantIdentification
 import com.theshire.app.data.PlantNetRepository
 import com.theshire.app.data.PrevisionJour
+import com.theshire.app.data.RappelCulturelEntity
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.RappelCulturelRepository
 import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
 import com.theshire.app.ui.theme.PotagerShireTheme
@@ -205,7 +209,7 @@ fun AccueilScreen() {
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
-    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v3", false) == false) }
+    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v4", false) == false) }
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     
@@ -279,7 +283,7 @@ fun AccueilScreen() {
     
     if (showTuto) {
         AlertDialog(
-            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v3", true).apply() },
+            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v4", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
@@ -288,12 +292,12 @@ fun AccueilScreen() {
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
                 item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise association. Les associations tiennent compte des carrés voisins (m² adjacents).") } }
                 item { Column { Text("🔍 Zoom sur les planches", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Pincez à deux doigts sur une planche dépliée pour zoomer et dézoomer. Glissez à deux doigts pour vous déplacer. Un bouton ↺ apparaît pour réinitialiser le zoom.") } }
+                item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Quand vous plantez, des opérations culturales (tuteurage, buttage, éclaircissage...) sont générées automatiquement et affichées sur le calendrier sous forme de barres ←→ sur leur période. Cliquez pour voir les détails et marquer comme fait.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
-                item { Column { Text("📅 Calendrier", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Rappels avec cloche 🔔 et heure personnalisable.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
                 item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
             } },
-            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v3", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
+            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v4", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
     }
 }
@@ -476,6 +480,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     var remplirM2Mode by remember { mutableStateOf(false) }
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
+    var currentPlancheId by remember { mutableStateOf<Long>(0L) }
     
     LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis(); varieteRepository.ajouterVarietesPredefinies() }
     
@@ -502,6 +507,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         onSousCarreClick = { carre, caseNumero -> 
                             selectedCarre = carre
                             selectedCaseNumero = caseNumero
+                            currentPlancheId = planche.id
                             if (caseNumero == 5) {
                                 showChoixRemplissage = true
                             } else {
@@ -591,7 +597,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             text = { Column {
                 Text("Case $caseNumero du carré", style = MaterialTheme.typography.bodySmall)
                 if (!remplirM2Mode) {
-                    Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null, currentPlancheId) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
                 HorizontalDivider()
                 OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
@@ -652,15 +658,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
         val modeM2 = remplirM2Mode
+        val plancheId = currentPlancheId
         VarieteSelectionDialog(
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
                 scope.launch {
                     if (modeM2) {
-                        jardinRepository.remplirM2Entier(carre, nomComplet)
+                        jardinRepository.remplirM2Entier(carre, nomComplet, plancheId)
                     } else {
-                        jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet)
+                        jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet, plancheId)
                     }
                 }
                 showVarieteSelection = false
@@ -686,7 +693,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             confirmButton = { Button(onClick = { 
                 if (carre != null && caseNumero > 0 && legumeNom != null) {
                     scope.launch { 
-                        jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom)
+                        jardinRepository.modifierCasePrecise(carre, caseNumero, legumeNom, currentPlancheId)
                     }
                 }
                 showAvertissement = false
@@ -727,33 +734,60 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
     }
 }
 
-// ============== CALENDRIER ==============
+// ============== CALENDRIER AVEC BARRES D'OPÉRATIONS CULTURALES ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val jardinRepository = remember { JardinRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
+    val rappelCulturelRepository = remember { RappelCulturelRepository(context) }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     val meteoRepository = remember { MeteoRepository() }
     val luneRepository = remember { LuneRepository() }
-    var legumesPlantes by remember { mutableStateOf<List<String>>(emptyList()) }
-    var datesPlantation by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
     var ville by remember { mutableStateOf("Paris") }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var selectedDay by remember { mutableStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) }
-    var showRappelDialog by remember { mutableStateOf(false) }
     var selectedTimestamp by remember { mutableStateOf(0L) }
     val rappelRepository = remember { RappelRepository(context) }
     var rappelActif by remember { mutableStateOf(false) }
     var rappelNote by remember { mutableStateOf("") }
     var rappelHeure by remember { mutableStateOf(9) }
     var rappelMinute by remember { mutableStateOf(0) }
-    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis(); try { legumesPlantes = jardinRepository.getLegumesPlantes(); datesPlantation = jardinRepository.getDatesPlantation() } catch (e: Exception) {} }
+    
+    // Liste des rappels culturaux pour le mois affiché
+    var rappelsCulturelsDuMois by remember { mutableStateOf<List<RappelCulturelEntity>>(emptyList()) }
+    
+    // Jour sélectionné pour afficher les rappels culturaux
+    var showOperationsDialog by remember { mutableStateOf(false) }
+    var operationsDuJour by remember { mutableStateOf<List<RappelCulturelEntity>>(emptyList()) }
+    
+    // Détail d'une opération
+    var showDetailOperationDialog by remember { mutableStateOf(false) }
+    var operationSelectionnee by remember { mutableStateOf<RappelCulturelEntity?>(null) }
+    
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
     LaunchedEffect(Unit) { try { meteo = meteoRepository.getMeteo(ville) } catch (e: Exception) {} }
+    
+    // Recharger les rappels culturels quand on change de mois
+    LaunchedEffect(currentMonth, currentYear) {
+        val calDebut = Calendar.getInstance().apply {
+            set(currentYear, currentMonth, 1, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val calFin = Calendar.getInstance().apply {
+            set(currentYear, currentMonth, 1, 23, 59, 59)
+            set(Calendar.MILLISECOND, 999)
+            add(Calendar.DAY_OF_MONTH, 42)  // 6 semaines après pour couvrir la vue complète
+        }
+        rappelsCulturelsDuMois = rappelCulturelRepository.getRappelsEntreDates(calDebut.timeInMillis, calFin.timeInMillis)
+    }
+    
     val moisNoms = listOf("Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre")
     
     Scaffold(
@@ -762,104 +796,455 @@ fun CalendrierScreen(onBack: () -> Unit) {
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { MeteoCard(meteo, ville, true, phaseLune) }
-            item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
-                        Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) { listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = CouleursApp.VertPrincipal) } }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, 1)
-                    val firstDay = cal.get(Calendar.DAY_OF_WEEK); val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-                    val offset = if (firstDay == Calendar.SUNDAY) 6 else firstDay - 2
-                    for (row in 0 until ((offset + daysInMonth + 6) / 7)) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            for (col in 0..6) {
-                                val dayNumber = row * 7 + col - offset + 1
-                                if (dayNumber in 1..daysInMonth) {
-                                    val isSelected = dayNumber == selectedDay
-                                    Box(modifier = Modifier.weight(1f).aspectRatio(1f).background(if (isSelected) CouleursApp.VertPrincipal else Color.Transparent, RoundedCornerShape(8.dp)).clickable { selectedDay = dayNumber; val calJour = Calendar.getInstance(); calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0); selectedTimestamp = calJour.timeInMillis; val rappel = rappelRepository.getRappelSync(selectedTimestamp); rappelActif = rappel?.estActif ?: false; rappelNote = rappel?.note ?: ""; showRappelDialog = true }.padding(4.dp), contentAlignment = Alignment.Center) { Text("$dayNumber", color = if (isSelected) CouleursApp.Blanc else CouleursApp.TexteFonce, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
-                                } else Box(modifier = Modifier.weight(1f).aspectRatio(1f))
-                            }
+            
+            // Calendrier mensuel avec barres d'opérations
+            item { 
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
+                            Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
                         }
-                    }
-                }
-            } }
-            item { Text("Plantes plantées (${legumesPlantes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.titleMedium) }
-            if (legumesPlantes.isEmpty()) { 
-                item { Text("Aucune plante plantée.", style = MaterialTheme.typography.bodyMedium) } 
-            } else { 
-                legumesPlantes.forEach { nomComplet ->
-                    val nomBase = if (nomComplet.contains("(")) {
-                        nomComplet.substringBefore("(").trim()
-                    } else {
-                        nomComplet
-                    }
-                    val variete = if (nomComplet.contains("(")) {
-                        nomComplet.substringAfter("(").substringBefore(")").trim()
-                    } else {
-                        null
-                    }
-                    
-                    val legume = legumes.find { it.nom == nomBase }
-                    if (legume != null) {
-                        item { 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = if (variete != null) "$nomBase - Variété : $variete" else nomBase,
-                                        fontWeight = FontWeight.Bold,
-                                        color = CouleursApp.VertPrincipal,
-                                        style = MaterialTheme.typography.titleLarge
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // En-têtes des jours
+                        Row(modifier = Modifier.fillMaxWidth()) { 
+                            listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { 
+                                Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = CouleursApp.VertPrincipal) 
+                            } 
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Calcul des semaines du mois
+                        val cal = Calendar.getInstance()
+                        cal.set(currentYear, currentMonth, 1)
+                        val firstDay = cal.get(Calendar.DAY_OF_WEEK)
+                        val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        val offset = if (firstDay == Calendar.SUNDAY) 6 else firstDay - 2
+                        val nombreSemaines = (offset + daysInMonth + 6) / 7
+                        
+                        // Pour chaque semaine, on affiche les jours + une ou deux lignes d'opérations
+                        for (semaine in 0 until nombreSemaines) {
+                            SemaineCalendrier(
+                                semaine = semaine,
+                                offset = offset,
+                                daysInMonth = daysInMonth,
+                                currentYear = currentYear,
+                                currentMonth = currentMonth,
+                                selectedDay = selectedDay,
+                                rappelsCulturels = rappelsCulturelsDuMois,
+                                onDayClick = { dayNumber ->
+                                    selectedDay = dayNumber
+                                    val calJour = Calendar.getInstance()
+                                    calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0)
+                                    selectedTimestamp = calJour.timeInMillis
                                     
-                                    val datePlantation = datesPlantation[nomComplet]
-                                    if (datePlantation != null) {
-                                        val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
-                                        Text("🌱 Planté le : ${dateFormat.format(Date(datePlantation))}", 
-                                            color = CouleursApp.VertPrincipal, 
-                                            fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                    // Chercher les rappels culturaux pour ce jour
+                                    val debutJour = Calendar.getInstance().apply {
+                                        timeInMillis = calJour.timeInMillis
+                                        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                                    }.timeInMillis
+                                    val finJour = debutJour + 24L * 60 * 60 * 1000 - 1
+                                    
+                                    val ops = rappelsCulturelsDuMois.filter { rappel ->
+                                        rappel.dateDebut <= finJour && rappel.dateFin >= debutJour
                                     }
                                     
-                                    Text("📅 Semis : ${legume.semis}", style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("🌱 Plantation : ${legume.plantation}", style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("🧺 Récolte : ${legume.recolte}", style = MaterialTheme.typography.bodyMedium)
+                                    if (ops.isNotEmpty()) {
+                                        operationsDuJour = ops
+                                        showOperationsDialog = true
+                                    } else {
+                                        // Pas d'opération : ouvrir le dialogue rappel manuel
+                                        val rappel = rappelRepository.getRappelSync(selectedTimestamp)
+                                        rappelActif = rappel?.estActif ?: false
+                                        rappelNote = rappel?.note ?: ""
+                                        showOperationsDialog = true
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("🌱 Les barres ←→ indiquent les opérations culturales automatiques", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontStyle = FontStyle.Italic)
+                    }
+                }
+            }
+            
+            // Légende des couleurs d'opérations
+            item { LegendeOperations() }
+        }
+    }
+    
+    // Dialogue : opérations du jour
+    if (showOperationsDialog) {
+        val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
+        val dateAffichee = Date(selectedTimestamp)
+        
+        AlertDialog(
+            onDismissRequest = { showOperationsDialog = false },
+            title = { 
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { 
+                    Text("📅 ${dateFormat.format(dateAffichee)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    IconButton(onClick = { 
+                        scope.launch { 
+                            val cal = Calendar.getInstance()
+                            cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0)
+                            rappelRepository.toggleRappel(cal.timeInMillis, "Rappel")
+                            rappelActif = !rappelActif
+                        } 
+                    }) { 
+                        Text(if (rappelActif) "🔔" else "🔕", style = MaterialTheme.typography.titleLarge) 
+                    } 
+                } 
+            },
+            text = { 
+                Column {
+                    // Section : opérations culturales
+                    if (operationsDuJour.isNotEmpty()) {
+                        Text("🌱 Opérations culturales :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        operationsDuJour.forEach { op ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                                    operationSelectionnee = op
+                                    showDetailOperationDialog = true
+                                },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(android.graphics.Color.parseColor(op.couleurHex)).copy(alpha = 0.15f)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(op.emoji, style = MaterialTheme.typography.titleLarge)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(op.typeOperation, fontWeight = FontWeight.Bold)
+                                        Text("${op.legumeNom} - Case ${op.caseNumero}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
+                                        if (op.estTermine) {
+                                            Text("✅ Terminé", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    
+                    // Section : rappel manuel
+                    Text("📝 Note personnelle :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Card(modifier = Modifier.fillMaxWidth().clickable { 
+                        val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true)
+                        tp.show()
+                    }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { 
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { 
+                            Text("⏰", style = MaterialTheme.typography.titleLarge)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column { 
+                                Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                                Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) 
+                            } 
+                        } 
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note (optionnel)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 2)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { 
+                        scope.launch { 
+                            val cal = Calendar.getInstance()
+                            cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0)
+                            val ts = cal.timeInMillis
+                            val r = rappelRepository.getRappel(ts)
+                            if (r != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel", rappelNote)
+                        }
+                        showOperationsDialog = false
+                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
+                        Text("Enregistrer la note") 
                     }
                 }
+            },
+            confirmButton = { 
+                TextButton(onClick = { showOperationsDialog = false }) { 
+                    Text("Fermer", color = CouleursApp.VertPrincipal) 
+                } 
+            }
+        )
+    }
+    
+    // Dialogue : détail d'une opération
+    if (showDetailOperationDialog && operationSelectionnee != null) {
+        val op = operationSelectionnee!!
+        val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
+        
+        AlertDialog(
+            onDismissRequest = { showDetailOperationDialog = false },
+            title = { 
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(op.emoji, style = MaterialTheme.typography.headlineMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(op.typeOperation, fontWeight = FontWeight.Bold)
+                        Text(op.legumeNom, style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
+                    }
+                }
+            },
+            text = { 
+                Column {
+                    Text(op.description, style = MaterialTheme.typography.bodyMedium)
+                    if (op.conseil.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(12.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("💡 Conseil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(op.conseil, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("📅 Période : ${dateFormat.format(Date(op.dateDebut))} → ${dateFormat.format(Date(op.dateFin))}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
+                    Text("📍 Case ${op.caseNumero}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
+                    if (op.estTermine) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("✅ Marqué comme terminé", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = { 
+                Button(onClick = { 
+                    scope.launch {
+                        if (op.estTermine) {
+                            rappelCulturelRepository.marquerNonTermine(op.id)
+                        } else {
+                            rappelCulturelRepository.marquerTermine(op.id)
+                        }
+                        // Recharger les rappels
+                        val calDebut = Calendar.getInstance().apply {
+                            set(currentYear, currentMonth, 1, 0, 0, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        val calFin = Calendar.getInstance().apply {
+                            set(currentYear, currentMonth, 1, 23, 59, 59)
+                            set(Calendar.MILLISECOND, 999)
+                            add(Calendar.DAY_OF_MONTH, 42)
+                        }
+                        rappelsCulturelsDuMois = rappelCulturelRepository.getRappelsEntreDates(calDebut.timeInMillis, calFin.timeInMillis)
+                    }
+                    showDetailOperationDialog = false
+                    showOperationsDialog = false
+                }, colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
+                    Text(if (op.estTermine) "Annuler" else "Marquer comme fait") 
+                } 
+            },
+            dismissButton = { 
+                TextButton(onClick = { showDetailOperationDialog = false }) { 
+                    Text("Fermer", color = CouleursApp.VertPrincipal) 
+                } 
+            }
+        )
+    }
+}
+
+/**
+ * Affiche une semaine du calendrier avec les jours et les barres d'opérations.
+ */
+@Composable
+fun SemaineCalendrier(
+    semaine: Int,
+    offset: Int,
+    daysInMonth: Int,
+    currentYear: Int,
+    currentMonth: Int,
+    selectedDay: Int,
+    rappelsCulturels: List<RappelCulturelEntity>,
+    onDayClick: (Int) -> Unit
+) {
+    // 1. Ligne des jours
+    Row(modifier = Modifier.fillMaxWidth()) {
+        for (col in 0..6) {
+            val dayNumber = semaine * 7 + col - offset + 1
+            if (dayNumber in 1..daysInMonth) {
+                val isSelected = dayNumber == selectedDay
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(1.2f)
+                        .background(if (isSelected) CouleursApp.VertPrincipal else Color.Transparent, RoundedCornerShape(8.dp))
+                        .clickable { onDayClick(dayNumber) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "$dayNumber",
+                        color = if (isSelected) CouleursApp.Blanc else CouleursApp.TexteFonce,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            } else {
+                Box(modifier = Modifier.weight(1f).aspectRatio(1.2f))
             }
         }
     }
     
-    if (showRappelDialog) {
-        val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
-        val dateRappel = Date(selectedTimestamp)
-        val scope = rememberCoroutineScope()
-        AlertDialog(onDismissRequest = { showRappelDialog = false },
-            title = { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("📅 ${dateFormat.format(dateRappel)}", fontWeight = FontWeight.Bold); IconButton(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); rappelRepository.toggleRappel(cal.timeInMillis, "Rappel"); rappelActif = !rappelActif } }) { Text(if (rappelActif) "🔔" else "🔕", style = MaterialTheme.typography.titleLarge) } } },
-            text = { Column {
-                Text(if (rappelActif) "Rappel activé" else "Rappel désactivé", color = if (rappelActif) CouleursApp.VertPrincipal else MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth().clickable { val tp = TimePickerDialog(context, { _, h, m -> rappelHeure = h; rappelMinute = m }, rappelHeure, rappelMinute, true); tp.show() }, colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Text("⏰", style = MaterialTheme.typography.titleLarge); Spacer(modifier = Modifier.width(12.dp)); Column { Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) } } }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(value = rappelNote, onValueChange = { rappelNote = it }, label = { Text("Note (optionnel)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), minLines = 3)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { scope.launch { val cal = Calendar.getInstance(); cal.set(currentYear, currentMonth, selectedDay, rappelHeure, rappelMinute, 0); val ts = cal.timeInMillis; val r = rappelRepository.getRappel(ts); if (r != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel", rappelNote) }; showRappelDialog = false }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Enregistrer") }
-            } },
-            confirmButton = { TextButton(onClick = { showRappelDialog = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } })
+    // 2. Barres d'opérations pour cette semaine (2 lignes max)
+    val debutSemaine = Calendar.getInstance().apply {
+        set(currentYear, currentMonth, 1, 0, 0, 0)
+        set(Calendar.MILLISECOND, 0)
+        add(Calendar.DAY_OF_MONTH, semaine * 7 - offset)
+    }.timeInMillis
+    val finSemaine = debutSemaine + 7L * 24 * 60 * 60 * 1000 - 1
+    
+    // Filtrer les rappels qui touchent cette semaine
+    val rappelsSemaine = rappelsCulturels.filter { rappel ->
+        rappel.dateDebut <= finSemaine && rappel.dateFin >= debutSemaine
+    }
+    
+    if (rappelsSemaine.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        // Trier par date de début
+        val rappelsTries = rappelsSemaine.sortedBy { it.dateDebut }
+        
+        // Prendre max 2 rappels
+        val rappelsAAfficher = rappelsTries.take(2)
+        val nombreEnPlus = (rappelsTries.size - 2).coerceAtLeast(0)
+        
+        rappelsAAfficher.forEach { rappel ->
+            BarreOperation(
+                rappel = rappel,
+                debutSemaine = debutSemaine,
+                finSemaine = finSemaine
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+        
+        if (nombreEnPlus > 0) {
+            Text(
+                "+$nombreEnPlus autre(s)...",
+                style = MaterialTheme.typography.labelSmall,
+                color = CouleursApp.VertPrincipal,
+                fontStyle = FontStyle.Italic,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Affiche une barre horizontale pour une opération culturelle.
+ * La barre couvre les jours de la période dans la semaine affichée.
+ */
+@Composable
+fun BarreOperation(
+    rappel: RappelCulturelEntity,
+    debutSemaine: Long,
+    finSemaine: Long
+) {
+    val MILLIS_PAR_JOUR = 24L * 60 * 60 * 1000
+    
+    // Calculer la position de début et de fin DANS cette semaine (en jours 0-6)
+    val debutAffiche = maxOf(rappel.dateDebut, debutSemaine)
+    val finAffiche = minOf(rappel.dateFin, finSemaine)
+    
+    val jourDebutSemaine = ((debutAffiche - debutSemaine) / MILLIS_PAR_JOUR).toInt().coerceIn(0, 6)
+    val jourFinSemaine = ((finAffiche - debutSemaine) / MILLIS_PAR_JOUR).toInt().coerceIn(0, 6)
+    
+    val nombreJoursCouverts = jourFinSemaine - jourDebutSemaine + 1
+    val estTermine = rappel.estTermine
+    val estEnRetard = !estTermine && rappel.dateFin < System.currentTimeMillis()
+    
+    // Couleur de la barre
+    val couleurBase = try {
+        Color(android.graphics.Color.parseColor(rappel.couleurHex))
+    } catch (e: Exception) {
+        CouleurNeutreAssociation
+    }
+    
+    val couleurAffichee = when {
+        estTermine -> couleurBase.copy(alpha = 0.25f)
+        estEnRetard -> CouleurMauvaiseAssociation.copy(alpha = 0.7f)
+        else -> couleurBase.copy(alpha = 0.65f)
+    }
+    
+    Row(modifier = Modifier.fillMaxWidth().height(20.dp)) {
+        // Espace vide avant la barre
+        if (jourDebutSemaine > 0) {
+            Spacer(modifier = Modifier.weight(jourDebutSemaine.toFloat()))
+        }
+        
+        // La barre elle-même
+        Box(
+            modifier = Modifier
+                .weight(nombreJoursCouverts.toFloat())
+                .fillMaxHeight()
+                .padding(horizontal = 1.dp)
+                .background(couleurAffichee, RoundedCornerShape(4.dp))
+                .border(0.5.dp, couleurBase.copy(alpha = 0.8f), RoundedCornerShape(4.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp)
+            ) {
+                Text(
+                    text = "${rappel.emoji} ${rappel.typeOperation}",
+                    fontSize = 9.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        
+        // Espace vide après la barre
+        if (jourFinSemaine < 6) {
+            Spacer(modifier = Modifier.weight((6 - jourFinSemaine).toFloat()))
+        }
+    }
+}
+
+/**
+ * Légende des couleurs d'opérations culturales.
+ */
+@Composable
+fun LegendeOperations() {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Types d'opérations", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFF66BB6A))); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Plantation, semis, repiquage", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFFFFA726))); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Entretien (tuteurage, buttage, paillage)", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFFAB47BC))); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Taille, effeuillage, pincement", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFFEF5350))); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Traitement, surveillance maladies", style = MaterialTheme.typography.bodySmall) 
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { 
+                Box(modifier = Modifier.size(16.dp).background(Color(0xFF42A5F5))); 
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Récolte, arrêt arrosage", style = MaterialTheme.typography.bodySmall) 
+            }
+        }
     }
 }
 
@@ -872,22 +1257,6 @@ fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune:
             Spacer(modifier = Modifier.height(8.dp))
             if (meteo != null) { Text("🌡️ ${meteo.temperature}°C"); Text("☁️ ${meteo.description}"); Text("💧 ${meteo.humidite}%"); Text("🌬️ ${meteo.vent} m/s") }
             else Text("Météo indisponible")
-        }
-    }
-}
-
-@Composable
-fun CalendrierLegumeCard(legume: LegumeEntity, datePlantation: Long? = null) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(20.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (datePlantation != null) { val df = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE); Text("🌱 Planté le : ${df.format(Date(datePlantation))}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold); Spacer(modifier = Modifier.height(4.dp)) }
-            Text("📅 Semis : ${legume.semis}", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("🌱 Plantation : ${legume.plantation}", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("🧺 Récolte : ${legume.recolte}", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -1080,7 +1449,6 @@ fun PlancheCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 val carres by jardinRepository.getCarresForPlanche(planche.id).collectAsState(initial = emptyList())
                 
-                // État pour le zoom et le pan
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(Offset.Zero) }
                 val state = rememberTransformableState { zoomChange, panChange, _ ->
@@ -1132,42 +1500,23 @@ fun PlancheCard(
                         }
                     }
                     
-                    // Bouton reset en bas à droite (apparaît seulement si zoom actif)
                     if (scale != 1f || offset != Offset.Zero) {
                         SmallFloatingActionButton(
-                            onClick = {
-                                scale = 1f
-                                offset = Offset.Zero
-                            },
+                            onClick = { scale = 1f; offset = Offset.Zero },
                             containerColor = CouleursApp.VertPrincipal,
                             contentColor = CouleursApp.Blanc,
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(8.dp)
-                        ) {
-                            Text("↺", style = MaterialTheme.typography.titleMedium)
-                        }
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
+                        ) { Text("↺", style = MaterialTheme.typography.titleMedium) }
                     }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "🔍 Pincez à deux doigts pour zoomer",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CouleursApp.VertPrincipal.copy(alpha = 0.7f),
-                    fontStyle = FontStyle.Italic
-                )
+                Text("🔍 Pincez à deux doigts pour zoomer", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal.copy(alpha = 0.7f), fontStyle = FontStyle.Italic)
             }
         }
     }
 }
 
-// ============== CALCUL DES COULEURS D'ASSOCIATION ==============
-
-/**
- * Calcule les 9 couleurs d'un carré en fonction des associations avec les cases voisines.
- * Prend en compte les cases du même carré ET les carrés voisins (m² adjacents).
- */
 @Composable
 fun calculerCouleursCarre(
     carre: CarreEntity,
@@ -1177,19 +1526,16 @@ fun calculerCouleursCarre(
 ): Map<Int, Color> {
     val resultat = mutableMapOf<Int, Color>()
     
-    // Extraire les noms de base des légumes pour la recherche
     fun nomBase(nom: String?): String? {
         if (nom == null) return null
         return if (nom.contains("(")) nom.substringBefore("(").trim() else nom
     }
     
-    // Obtenir les infos d'un légume
     fun infosLegume(nom: String?): LegumeEntity? {
         val base = nomBase(nom) ?: return null
         return legumes.find { it.nom == base }
     }
     
-    // Vérifier l'association entre deux plantes
     fun verifierAssociation(plante1: String?, plante2: String?): String {
         if (plante1 == null || plante2 == null) return "neutre"
         val leg1 = infosLegume(plante1) ?: return "neutre"
@@ -1199,7 +1545,6 @@ fun calculerCouleursCarre(
         return "neutre"
     }
     
-    // Extraire la plante d'une case
     fun planteDansCase(c: CarreEntity, num: Int): String? = when (num) {
         1 -> c.case1; 2 -> c.case2; 3 -> c.case3
         4 -> c.case4; 5 -> c.case5; 6 -> c.case6
@@ -1207,7 +1552,6 @@ fun calculerCouleursCarre(
         else -> null
     }
     
-    // Obtenir les cases voisines dans le MÊME carré
     fun casesVoisinesMemeCarre(num: Int): List<Int> = when (num) {
         1 -> listOf(2, 4, 5)
         2 -> listOf(1, 3, 4, 5, 6)
@@ -1221,7 +1565,6 @@ fun calculerCouleursCarre(
         else -> emptyList()
     }
     
-    // Pour chaque case du carré actuel
     for (num in 1..9) {
         val plante = planteDansCase(carre, num)
         if (plante == null) {
@@ -1229,65 +1572,45 @@ fun calculerCouleursCarre(
             continue
         }
         
-        // Liste des plantes voisines (même carré + carrés adjacents)
         val plantesVoisines = mutableListOf<String>()
         
-        // 1. Cases voisines dans le même carré
         casesVoisinesMemeCarre(num).forEach { voisinNum ->
             val planteVoisine = planteDansCase(carre, voisinNum)
             if (planteVoisine != null) plantesVoisines.add(planteVoisine)
         }
         
-        // 2. Cases frontalières dans les carrés voisins (haut/bas/gauche/droite)
-        // Position de la case dans la grille 3x3 : row = (num-1)/3, col = (num-1)%3
         val row = (num - 1) / 3
         val col = (num - 1) % 3
         
-        // Carré voisin à GAUCHE (positionX - 1)
         if (col == 0) {
             val carreGauche = tousLesCarres.find { it.positionX == carre.positionX - 1 && it.positionY == carre.positionY }
             if (carreGauche != null) {
-                // Les cases de la colonne de droite (3, 6, 9) du carré gauche sont voisines
-                val voisinNum = row * 3 + 3 // 3, 6, 9
-                val planteVoisine = planteDansCase(carreGauche, voisinNum)
+                val planteVoisine = planteDansCase(carreGauche, row * 3 + 3)
                 if (planteVoisine != null) plantesVoisines.add(planteVoisine)
             }
         }
-        
-        // Carré voisin à DROITE (positionX + 1)
         if (col == 2) {
             val carreDroite = tousLesCarres.find { it.positionX == carre.positionX + 1 && it.positionY == carre.positionY }
             if (carreDroite != null) {
-                // Les cases de la colonne de gauche (1, 4, 7) du carré droit sont voisines
-                val voisinNum = row * 3 + 1 // 1, 4, 7
-                val planteVoisine = planteDansCase(carreDroite, voisinNum)
+                val planteVoisine = planteDansCase(carreDroite, row * 3 + 1)
                 if (planteVoisine != null) plantesVoisines.add(planteVoisine)
             }
         }
-        
-        // Carré voisin en HAUT (positionY - 1)
         if (row == 0) {
             val carreHaut = tousLesCarres.find { it.positionX == carre.positionX && it.positionY == carre.positionY - 1 }
             if (carreHaut != null) {
-                // Les cases de la ligne du bas (7, 8, 9) du carré haut sont voisines
-                val voisinNum = 7 + col // 7, 8, 9
-                val planteVoisine = planteDansCase(carreHaut, voisinNum)
+                val planteVoisine = planteDansCase(carreHaut, 7 + col)
                 if (planteVoisine != null) plantesVoisines.add(planteVoisine)
             }
         }
-        
-        // Carré voisin en BAS (positionY + 1)
         if (row == 2) {
             val carreBas = tousLesCarres.find { it.positionX == carre.positionX && it.positionY == carre.positionY + 1 }
             if (carreBas != null) {
-                // Les cases de la ligne du haut (1, 2, 3) du carré bas sont voisines
-                val voisinNum = 1 + col // 1, 2, 3
-                val planteVoisine = planteDansCase(carreBas, voisinNum)
+                val planteVoisine = planteDansCase(carreBas, 1 + col)
                 if (planteVoisine != null) plantesVoisines.add(planteVoisine)
             }
         }
         
-        // Déterminer la couleur dominante
         var aBonne = false
         var aMauvaise = false
         plantesVoisines.forEach { voisine ->
@@ -1317,7 +1640,6 @@ fun Grille3x3(
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     
     if (legumes.size == 9 && legumes.distinct().size == 1) {
-        // Grand carré : toutes les cases identiques
         Box(
             modifier = modifier
                 .aspectRatio(1f)
@@ -1326,12 +1648,7 @@ fun Grille3x3(
                 .clickable { onSousCarreClick(1) },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = legumes[0],
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(2.dp)
-            )
+            Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
         }
     } else {
         Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
@@ -1357,12 +1674,7 @@ fun Grille3x3(
                                 .clickable { onSousCarreClick(caseNumero) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = legume ?: "",
-                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(2.dp)
-                            )
+                            Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
                         }
                     }
                 }
