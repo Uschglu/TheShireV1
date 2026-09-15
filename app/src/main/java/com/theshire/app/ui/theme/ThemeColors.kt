@@ -9,15 +9,15 @@ import androidx.compose.ui.graphics.Color
  * Palette de couleurs POTAGER SHIRE
  * 
  * Contient deux palettes :
- * - LightColors : mode clair (fond crème, textes vert foncé)
- * - DarkColors : mode sombre (fond vert très foncé, textes vert très clair)
+ * - PotagerLightPalette : mode clair (fond crème, textes vert foncé)
+ * - PotagerDarkPalette : mode sombre (fond vert très foncé, textes vert très clair)
  * 
  * L'objet global `CouleursApp` expose les couleurs dynamiquement
  * selon le thème actif (light ou dark). Il suffit d'appeler
  * `CouleursApp.setDarkMode(true/false)` pour basculer.
  * 
- * Toutes les références `CouleursApp.X` dans le code s'adaptent
- * automatiquement au thème actif sans modification.
+ * Note : les palettes sont nommées PotagerLightPalette/PotagerDarkPalette
+ * pour éviter le conflit avec LightColors/DarkColors du Material 3 dans Theme.kt.
  */
 object CouleursApp {
     
@@ -36,7 +36,7 @@ object CouleursApp {
     
     // Récupère la palette active selon le mode
     private val palette: AppPalette
-        get() = if (isDarkMode) DarkColors else LightColors
+        get() = if (isDarkMode) PotagerDarkPalette else PotagerLightPalette
     
     // ----- FONDS -----
     val Creme: Color get() = palette.fondPrincipal
@@ -88,7 +88,7 @@ data class AppPalette(
 // PALETTE CLAIRE (mode actuel)
 // ============================================================
 
-val LightColors = AppPalette(
+val PotagerLightPalette = AppPalette(
     // Fonds
     fondPrincipal = Color(0xFFFAF6F0),      // Crème
     fondSecondaire = Color(0xFFE8EFE8),     // Vert pâle
@@ -114,7 +114,7 @@ val LightColors = AppPalette(
 // PALETTE SOMBRE
 // ============================================================
 
-val DarkColors = AppPalette(
+val PotagerDarkPalette = AppPalette(
     // Fonds
     fondPrincipal = Color(0xFF1A1F1A),      // Vert très foncé (fond principal)
     fondSecondaire = Color(0xFF252B25),     // Vert foncé (fonds secondaires)
