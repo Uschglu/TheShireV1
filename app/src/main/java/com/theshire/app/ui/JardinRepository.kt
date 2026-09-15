@@ -11,8 +11,12 @@ import java.util.Calendar
 
 class JardinRepository(context: Context) {
     
+    private val appContext = context.applicationContext
     private val plancheDao = AppDatabase.getDatabase(context).plancheDao()
     private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
+    
+    // Repository pour générer automatiquement les rappels culturaux
+    private val rappelCulturelRepository = RappelCulturelRepository(context)
     
     val planches: Flow<List<PlancheEntity>> = plancheDao.getAllPlanches()
     
@@ -45,11 +49,22 @@ class JardinRepository(context: Context) {
     }
     
     suspend fun supprimerPlanche(planche: PlancheEntity) {
+        // Supprimer les rappels culturaux associés à cette planche
+        rappelCulturelRepository.supprimerRappelsPourPlanche(planche.id)
+        
         plancheDao.deleteCarresForPlanche(planche.id)
         plancheDao.deletePlanche(planche)
     }
     
-    suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?) {
+    /**
+     * Modifie une case précise d'un carré.
+     * 
+     * @param carre Le carré concerné
+     * @param caseNumero Numéro de la case (1-9)
+     * @param legumeNom Nom du légume à planter (null = vider la case)
+     * @param plancheId ID de la planche (nécessaire pour générer les rappels culturaux)
+     */
+    suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?, plancheId: Long) {
         val dateActuelle = System.currentTimeMillis()
         val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
         
@@ -120,10 +135,25 @@ class JardinRepository(context: Context) {
         val carreFinal = nouveauCarre.copy(famillesPlantees = famillesSet.joinToString(","))
         
         plancheDao.updateCarre(carreFinal)
+        
+        // ===== GESTION DES RAPPELS CULTURAUX =====
+        if (legumeNom != null) {
+            // Générer les rappels pour cette nouvelle plantation
+            rappelCulturelRepository.genererRappelsPourPlantation(
+                legumeNom = legumeNom,
+                datePlantation = dateActuelle,
+                carreId = carre.id,
+                caseNumero = caseNumero,
+                plancheId = plancheId
+            )
+        } else {
+            // Case vidée → supprimer les rappels associés
+            rappelCulturelRepository.supprimerRappelsPourCase(carre.id, caseNumero)
+        }
     }
     
-    // ========== NOUVELLE FONCTION : Remplir les 9 cases d'un coup ==========
-    suspend fun remplirM2Entier(carre: CarreEntity, legumeNom: String?) {
+    // ========== FONCTION : Remplir les 9 cases d'un coup ==========
+    suspend fun remplirM2Entier(carre: CarreEntity, legumeNom: String?, plancheId: Long) {
         val dateActuelle = System.currentTimeMillis()
         val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
         
@@ -159,6 +189,26 @@ class JardinRepository(context: Context) {
         }
         
         plancheDao.updateCarre(carreFinal.copy(famillesPlantees = famillesSet.joinToString(",")))
+        
+        // ===== GESTION DES RAPPELS CULTURAUX =====
+        if (legumeNom != null) {
+            // Supprimer les anciens rappels des 9 cases
+            for (case in 1..9) {
+                rappelCulturelRepository.supprimerRappelsPourCase(carre.id, case)
+            }
+            // Générer les rappels UNE SEULE FOIS pour la case centrale (case 5)
+            // car c'est la même plante dans tout le carré
+            rappelCulturelRepository.genererRappelsPourPlantation(
+                legumeNom = legumeNom,
+                datePlantation = dateActuelle,
+                carreId = carre.id,
+                caseNumero = 5,   // Case centrale = référence
+                plancheId = plancheId
+            )
+        } else {
+            // Carré vidé → supprimer tous les rappels
+            rappelCulturelRepository.supprimerRappelsPourCarre(carre.id)
+        }
     }
     
     suspend fun getLegumesPlantes(): List<String> {
