@@ -77,6 +77,7 @@ import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.RappelCulturelEntity
 import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
+import com.theshire.app.data.ThemePreferences
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
@@ -84,6 +85,7 @@ import com.theshire.app.ui.LegumeRepository
 import com.theshire.app.ui.RappelCulturelRepository
 import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
+import com.theshire.app.ui.theme.CouleursApp
 import com.theshire.app.ui.theme.PotagerShireTheme
 import kotlinx.coroutines.launch
 import java.io.File
@@ -92,24 +94,32 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-object CouleursApp {
-    val Creme = Color(0xFFFAF6F0)
-    val Blanc = Color(0xFFFFFDF9)
-    val VertPrincipal = Color(0xFF5B8C5A)
-    val VertClair = Color(0xFF8BC34A)
-    val VertPale = Color(0xFFE8EFE8)
-    val TexteFonce = Color(0xFF2D3A2D)
-    val Terracotta = Color(0xFFC67B4B)
-    val BrunDoux = Color(0xFF8B7355)
+// ============================================================
+// FOND DÉGRADÉ (s'adapte au thème clair/sombre)
+// ============================================================
+
+@Composable
+fun getDegradeFond(): Brush {
+    return if (CouleursApp.isDarkMode) {
+        // Mode sombre : dégradé de verts très foncés
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1A1F1A),
+                Color(0xFF1F241F),
+                Color(0xFF252B25)
+            )
+        )
+    } else {
+        // Mode clair : dégradé crème (actuel)
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFFAF6F0),
+                Color(0xFFF0F0E8),
+                Color(0xFFE8EFE8)
+            )
+        )
+    }
 }
-
-val DegradeFond = Brush.verticalGradient(colors = listOf(Color(0xFFFAF6F0), Color(0xFFF0F0E8), Color(0xFFE8EFE8)))
-
-// Couleurs d'association
-val CouleurBonneAssociation = Color(0xFF66BB6A).copy(alpha = 0.55f)
-val CouleurNeutreAssociation = Color(0xFFFFA726).copy(alpha = 0.45f)
-val CouleurMauvaiseAssociation = Color(0xFFEF5350).copy(alpha = 0.55f)
-val CouleurCaseVide = Color(0xFFFFFFFF)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,6 +136,10 @@ class MainActivity : ComponentActivity() {
             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
         if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 1000)
+        
+        // Charger le thème sauvegardé AVANT d'afficher l'UI
+        CouleursApp.setDarkMode(ThemePreferences.chargerModeSombre(this))
+        
         setContent { PotagerShireTheme { MainScreen() } }
         planifierNotifications()
     }
@@ -169,7 +183,7 @@ fun MainScreen() {
     fun goToPrevious() { val i = screens.indexOf(currentScreen); if (i > 0) navigateTo(screens[i - 1]) }
     var dragOffset by remember { mutableStateOf(0f) }
     
-    Box(modifier = Modifier.fillMaxSize().background(DegradeFond).pointerInput(currentScreen) {
+    Box(modifier = Modifier.fillMaxSize().background(getDegradeFond()).pointerInput(currentScreen) {
         detectHorizontalDragGestures(
             onDragEnd = { if (dragOffset < -200f) goToNext() else if (dragOffset > 200f) goToPrevious(); dragOffset = 0f },
             onHorizontalDrag = { change, amount -> change.consume(); dragOffset += amount }
@@ -209,7 +223,7 @@ fun AccueilScreen() {
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
-    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v4", false) == false) }
+    var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v5", false) == false) }
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     
@@ -227,17 +241,46 @@ fun AccueilScreen() {
         floatingActionButton = { FloatingActionButton(onClick = { showTuto = true }, containerColor = CouleursApp.Terracotta, shape = CircleShape) { Text("❓", style = MaterialTheme.typography.titleLarge) } }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
+            // Barre du haut : titre + bouton mode sombre
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Potager Shire",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = CouleursApp.VertPrincipal
+                )
+                // Bouton bascule mode sombre
+                IconButton(
+                    onClick = {
+                        val nouveauMode = ThemePreferences.toggleModeSombre(context)
+                        CouleursApp.setDarkMode(nouveauMode)
+                    },
+                    modifier = Modifier
+                        .background(CouleursApp.VertPale, CircleShape)
+                        .size(48.dp)
+                ) {
+                    Text(
+                        if (CouleursApp.isDarkMode) "☀️" else "🌙",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            }
+            
             Card(modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(28.dp)).clip(RoundedCornerShape(28.dp)).clickable { showPrevisions = true }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
                 Box(modifier = Modifier.background(Brush.linearGradient(listOf(CouleursApp.VertPale, CouleursApp.Blanc)))) {
                     Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(getEmojiMeteo(meteo), style = MaterialTheme.typography.displayLarge)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            if (meteo != null) { Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text(meteo!!.description) }
-                            else { Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("Météo indisponible") }
-                            Text(dateFormat.format(Date()), style = MaterialTheme.typography.bodySmall)
+                            if (meteo != null) { Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(meteo!!.description, color = CouleursApp.TexteFonce) }
+                            else { Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("Météo indisponible", color = CouleursApp.TexteFonce) }
+                            Text(dateFormat.format(Date()), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                             Text("${phaseLune.emoji} ${phaseLune.nom}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
-                            if (ville.isNotEmpty()) Text("📍 $ville", style = MaterialTheme.typography.bodySmall)
+                            if (ville.isNotEmpty()) Text("📍 $ville", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                         }
                     }
                 }
@@ -248,14 +291,14 @@ fun AccueilScreen() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         val loader = remember { ImageLoaderProvider.getImageLoader(context) }
                         AsyncImage(model = imageFile, contentDescription = "Photo", imageLoader = loader, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(32.dp)))
-                        IconButton(onClick = { showPhotoDialog = true }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).background(CouleursApp.VertPrincipal.copy(alpha = 0.8f), CircleShape)) { Icon(Icons.Default.CameraAlt, "Changer", tint = CouleursApp.Blanc) }
+                        IconButton(onClick = { showPhotoDialog = true }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).background(CouleursApp.VertPrincipal.copy(alpha = 0.8f), CircleShape)) { Icon(Icons.Default.CameraAlt, "Changer", tint = Color.White) }
                     }
                 } else {
                     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(80.dp), tint = CouleursApp.VertClair)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("📸 Photo de mon jardin", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                        Text("Prenez une photo ou choisissez une image", textAlign = TextAlign.Center)
+                        Text("📸 Photo de mon jardin", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = CouleursApp.TexteFonce)
+                        Text("Prenez une photo ou choisissez une image", textAlign = TextAlign.Center, color = CouleursApp.TexteFonce)
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { showPhotoDialog = true }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Ajouter une photo") }
                     }
@@ -283,10 +326,10 @@ fun AccueilScreen() {
     
     if (showTuto) {
         AlertDialog(
-            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v4", true).apply() },
+            onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() },
             title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
+                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Basculez le mode sombre avec le bouton 🌙/☀️ en haut à droite.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
@@ -297,7 +340,7 @@ fun AccueilScreen() {
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
                 item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, billes en bas.") } }
             } },
-            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v4", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
+            confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
     }
 }
@@ -318,10 +361,10 @@ fun getEmojiMeteo(meteo: MeteoData?): String = when {
 fun BibliothequeScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("plantes") }
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = when(selectedOnglet) { "plantes" -> 0; "adventices" -> 1; else -> 2 }, containerColor = CouleursApp.VertPrincipal, contentColor = CouleursApp.Blanc) {
-            Tab(selected = selectedOnglet == "plantes", onClick = { selectedOnglet = "plantes" }, text = { Text("🌱 Plantes", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "plantes") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
-            Tab(selected = selectedOnglet == "adventices", onClick = { selectedOnglet = "adventices" }, text = { Text("🌿 Adventices", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "adventices") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
-            Tab(selected = selectedOnglet == "reconnaissance", onClick = { selectedOnglet = "reconnaissance" }, text = { Text("📸 Identifier", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "reconnaissance") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
+        TabRow(selectedTabIndex = when(selectedOnglet) { "plantes" -> 0; "adventices" -> 1; else -> 2 }, containerColor = CouleursApp.VertPrincipal, contentColor = Color.White) {
+            Tab(selected = selectedOnglet == "plantes", onClick = { selectedOnglet = "plantes" }, text = { Text("🌱 Plantes", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "plantes") Color.White else Color.White.copy(alpha = 0.6f)) })
+            Tab(selected = selectedOnglet == "adventices", onClick = { selectedOnglet = "adventices" }, text = { Text("🌿 Adventices", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "adventices") Color.White else Color.White.copy(alpha = 0.6f)) })
+            Tab(selected = selectedOnglet == "reconnaissance", onClick = { selectedOnglet = "reconnaissance" }, text = { Text("📸 Identifier", fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = if (selectedOnglet == "reconnaissance") Color.White else Color.White.copy(alpha = 0.6f)) })
         }
         when (selectedOnglet) {
             "plantes" -> BibliothequePlantesScreen(onBack)
@@ -346,7 +389,7 @@ fun BibliothequePlantesScreen(onBack: () -> Unit) {
     else {
         Scaffold(
             containerColor = CouleursApp.Creme,
-            topBar = { TopAppBar(title = { Text("Bibliothèque 📚", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+            topBar = { TopAppBar(title = { Text("Bibliothèque 📚", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("🔍 Rechercher une plante...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true) }
@@ -380,7 +423,7 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Identifier une plante 📸", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text("Identifier une plante 📸", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             item { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -388,10 +431,10 @@ fun ReconnaissanceScreen(onBack: () -> Unit) {
                 Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)) { Text("🖼️ Galerie") }
             } }
             if (imageUri != null) { item { val loader = remember { ImageLoaderProvider.getImageLoader(context) }; AsyncImage(model = imageUri, contentDescription = "Plante", imageLoader = loader, modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp))) } }
-            if (isAnalyzing) item { CircularProgressIndicator(color = CouleursApp.VertPrincipal); Text("Analyse en cours...") }
+            if (isAnalyzing) item { CircularProgressIndicator(color = CouleursApp.VertPrincipal); Text("Analyse en cours...", color = CouleursApp.TexteFonce) }
             if (errorMessage.isNotEmpty()) item { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
             if (resultats.isNotEmpty()) item { Text("🔍 Résultats :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
-            resultats.forEach { r -> item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Column(modifier = Modifier.padding(16.dp)) { Text(r.nom, fontWeight = FontWeight.Bold); Text(r.nomScientifique, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodySmall); if (r.probabilite > 0) Text("Confiance : ${(r.probabilite * 100).toInt()}%", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) } } } }
+            resultats.forEach { r -> item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Column(modifier = Modifier.padding(16.dp)) { Text(r.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(r.nomScientifique, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce); if (r.probabilite > 0) Text("Confiance : ${(r.probabilite * 100).toInt()}%", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold) } } } }
         }
     }
 }
@@ -410,10 +453,10 @@ fun AdventicesScreen(onBack: () -> Unit) {
     else {
         Scaffold(
             containerColor = CouleursApp.Creme,
-            topBar = { TopAppBar(title = { Text("Adventices 🌿", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+            topBar = { TopAppBar(title = { Text("Adventices 🌿", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { Text("${adventices.size} adventices courantes", color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Text("Les adventices (mauvaises herbes) indiquent la nature de votre sol.", style = MaterialTheme.typography.bodySmall) }
+                item { Text("${adventices.size} adventices courantes", color = CouleursApp.TexteFonce); Spacer(modifier = Modifier.height(8.dp)); Text("Les adventices (mauvaises herbes) indiquent la nature de votre sol.", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) }
                 items(adventices, key = { it.id }) { a ->
                     Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable { selected = a }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -432,7 +475,7 @@ fun AdventicesScreen(onBack: () -> Unit) {
 fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text(adventice.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text(adventice.nom, fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Box(modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(20.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(adventice.emoji, style = MaterialTheme.typography.displayLarge) } }
@@ -450,9 +493,9 @@ fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
 fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("planches") }
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = if (selectedOnglet == "planches") 0 else 1, containerColor = CouleursApp.VertPrincipal, contentColor = CouleursApp.Blanc) {
-            Tab(selected = selectedOnglet == "planches", onClick = { selectedOnglet = "planches" }, text = { Text("🌱 Planches", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "planches") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
-            Tab(selected = selectedOnglet == "analyse", onClick = { selectedOnglet = "analyse" }, text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "analyse") CouleursApp.Blanc else CouleursApp.Blanc.copy(alpha = 0.6f)) })
+        TabRow(selectedTabIndex = if (selectedOnglet == "planches") 0 else 1, containerColor = CouleursApp.VertPrincipal, contentColor = Color.White) {
+            Tab(selected = selectedOnglet == "planches", onClick = { selectedOnglet = "planches" }, text = { Text("🌱 Planches", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "planches") Color.White else Color.White.copy(alpha = 0.6f)) })
+            Tab(selected = selectedOnglet == "analyse", onClick = { selectedOnglet = "analyse" }, text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "analyse") Color.White else Color.White.copy(alpha = 0.6f)) })
         }
         if (selectedOnglet == "planches") JardinPlanchesScreen(onBack) else AnalyseSolScreen(onBack)
     }
@@ -486,12 +529,12 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) },
+        topBar = { TopAppBar(title = { Text("Mon Jardin 🏡", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) },
         floatingActionButton = { FloatingActionButton(onClick = { showAddPlancheDialog = true }, containerColor = CouleursApp.VertClair, shape = CircleShape) { Icon(Icons.Default.Add, "Ajouter") } }
     ) { innerPadding ->
         if (planches.isEmpty()) {
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text("🏡", style = MaterialTheme.typography.displayLarge); Text("Aucune planche", fontWeight = FontWeight.Bold); Text("Cliquez sur + pour créer")
+                Text("🏡", style = MaterialTheme.typography.displayLarge); Text("Aucune planche", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("Cliquez sur + pour créer", color = CouleursApp.TexteFonce)
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -542,7 +585,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text("Remplir tout le m²", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Les 9 cases avec la même plante", style = MaterialTheme.typography.bodySmall)
+                            Text("Les 9 cases avec la même plante", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                         }
                     }
                 }
@@ -561,7 +604,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text("Remplir juste cette case", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                            Text("Seulement la case centrale", style = MaterialTheme.typography.bodySmall)
+                            Text("Seulement la case centrale", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                         }
                     }
                 }
@@ -595,7 +638,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         val categories = legumes.groupBy { it.categorie }.keys.toList()
         AlertDialog(onDismissRequest = { showLegumeSelection = false }, title = { Text(if (remplirM2Mode) "Remplir le m² entier" else "Choisissez une plante", fontWeight = FontWeight.Bold) },
             text = { Column {
-                Text("Case $caseNumero du carré", style = MaterialTheme.typography.bodySmall)
+                Text("Case $caseNumero du carré", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                 if (!remplirM2Mode) {
                     Text("🗑️ Vider la case", modifier = Modifier.fillMaxWidth().clickable { scope.launch { jardinRepository.modifierCasePrecise(carre, caseNumero, null, currentPlancheId) }; showLegumeSelection = false }.padding(12.dp), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
@@ -722,14 +765,14 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
     fun calculer() { val a = argile.toIntOrNull() ?: 0; val s = sable.toIntOrNull() ?: 0; val l = limon.toIntOrNull() ?: 0; typeSol = if (a + s + l == 100) when { a > 40 -> "Sol argileux"; s > 70 -> "Sol sableux"; l > 50 -> "Sol limoneux"; else -> "Sol équilibré" } else "Total = ${a + s + l}% (doit faire 100%)" }
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Analyse du sol 🔬", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text("Analyse du sol 🔬", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { OutlinedTextField(value = argile, onValueChange = { argile = it }, label = { Text("Argile (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
             item { OutlinedTextField(value = sable, onValueChange = { sable = it }, label = { Text("Sable (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
             item { OutlinedTextField(value = limon, onValueChange = { limon = it }, label = { Text("Limon (%)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) }
             item { Button(onClick = { calculer() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Analyser") } }
-            if (typeSol.isNotEmpty()) item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Text(typeSol, modifier = Modifier.padding(20.dp), fontWeight = FontWeight.Bold) } }
+            if (typeSol.isNotEmpty()) item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Text(typeSol, modifier = Modifier.padding(20.dp), fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) } }
         }
     }
 }
@@ -758,14 +801,9 @@ fun CalendrierScreen(onBack: () -> Unit) {
     var rappelHeure by remember { mutableStateOf(9) }
     var rappelMinute by remember { mutableStateOf(0) }
     
-    // Liste des rappels culturaux pour le mois affiché
     var rappelsCulturelsDuMois by remember { mutableStateOf<List<RappelCulturelEntity>>(emptyList()) }
-    
-    // Jour sélectionné pour afficher les rappels culturaux
     var showOperationsDialog by remember { mutableStateOf(false) }
     var operationsDuJour by remember { mutableStateOf<List<RappelCulturelEntity>>(emptyList()) }
-    
-    // Détail d'une opération
     var showDetailOperationDialog by remember { mutableStateOf(false) }
     var operationSelectionnee by remember { mutableStateOf<RappelCulturelEntity?>(null) }
     
@@ -774,7 +812,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
     LaunchedEffect(Unit) { try { meteo = meteoRepository.getMeteo(ville) } catch (e: Exception) {} }
     
-    // Recharger les rappels culturels quand on change de mois
     LaunchedEffect(currentMonth, currentYear) {
         val calDebut = Calendar.getInstance().apply {
             set(currentYear, currentMonth, 1, 0, 0, 0)
@@ -783,7 +820,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
         val calFin = Calendar.getInstance().apply {
             set(currentYear, currentMonth, 1, 23, 59, 59)
             set(Calendar.MILLISECOND, 999)
-            add(Calendar.DAY_OF_MONTH, 42)  // 6 semaines après pour couvrir la vue complète
+            add(Calendar.DAY_OF_MONTH, 42)
         }
         rappelsCulturelsDuMois = rappelCulturelRepository.getRappelsEntreDates(calDebut.timeInMillis, calFin.timeInMillis)
     }
@@ -792,23 +829,21 @@ fun CalendrierScreen(onBack: () -> Unit) {
     
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Calendrier 📅", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text("Calendrier 📅", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { MeteoCard(meteo, ville, true, phaseLune) }
             
-            // Calendrier mensuel avec barres d'opérations
             item { 
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             TextButton(onClick = { if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth-- }) { Text("◀") }
-                            Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text("${moisNoms[currentMonth]} $currentYear", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = CouleursApp.TexteFonce)
                             TextButton(onClick = { if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++ }) { Text("▶") }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         
-                        // En-têtes des jours
                         Row(modifier = Modifier.fillMaxWidth()) { 
                             listOf("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim").forEach { 
                                 Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.bodySmall.fontSize, color = CouleursApp.VertPrincipal) 
@@ -816,7 +851,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Calcul des semaines du mois
                         val cal = Calendar.getInstance()
                         cal.set(currentYear, currentMonth, 1)
                         val firstDay = cal.get(Calendar.DAY_OF_WEEK)
@@ -824,7 +858,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         val offset = if (firstDay == Calendar.SUNDAY) 6 else firstDay - 2
                         val nombreSemaines = (offset + daysInMonth + 6) / 7
                         
-                        // Pour chaque semaine, on affiche les jours + une ou deux lignes d'opérations
                         for (semaine in 0 until nombreSemaines) {
                             SemaineCalendrier(
                                 semaine = semaine,
@@ -840,7 +873,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                     calJour.set(currentYear, currentMonth, dayNumber, rappelHeure, rappelMinute, 0)
                                     selectedTimestamp = calJour.timeInMillis
                                     
-                                    // Chercher les rappels culturaux pour ce jour
                                     val debutJour = Calendar.getInstance().apply {
                                         timeInMillis = calJour.timeInMillis
                                         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
@@ -853,14 +885,14 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                     
                                     if (ops.isNotEmpty()) {
                                         operationsDuJour = ops
-                                        showOperationsDialog = true
                                     } else {
-                                        // Pas d'opération : ouvrir le dialogue rappel manuel
-                                        val rappel = rappelRepository.getRappelSync(selectedTimestamp)
-                                        rappelActif = rappel?.estActif ?: false
-                                        rappelNote = rappel?.note ?: ""
-                                        showOperationsDialog = true
+                                        operationsDuJour = emptyList()
                                     }
+                                    
+                                    val rappel = rappelRepository.getRappelSync(selectedTimestamp)
+                                    rappelActif = rappel?.estActif ?: false
+                                    rappelNote = rappel?.note ?: ""
+                                    showOperationsDialog = true
                                 }
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -872,12 +904,10 @@ fun CalendrierScreen(onBack: () -> Unit) {
                 }
             }
             
-            // Légende des couleurs d'opérations
             item { LegendeOperations() }
         }
     }
     
-    // Dialogue : opérations du jour
     if (showOperationsDialog) {
         val dateFormat = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE)
         val dateAffichee = Date(selectedTimestamp)
@@ -901,7 +931,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
             },
             text = { 
                 Column {
-                    // Section : opérations culturales
                     if (operationsDuJour.isNotEmpty()) {
                         Text("🌱 Opérations culturales :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -912,7 +941,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                     showDetailOperationDialog = true
                                 },
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(android.graphics.Color.parseColor(op.couleurHex)).copy(alpha = 0.15f)
+                                    containerColor = Color(android.graphics.Color.parseColor(op.couleurHex)).copy(alpha = if (CouleursApp.isDarkMode) 0.30f else 0.15f)
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -920,7 +949,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                                     Text(op.emoji, style = MaterialTheme.typography.titleLarge)
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(op.typeOperation, fontWeight = FontWeight.Bold)
+                                        Text(op.typeOperation, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
                                         Text("${op.legumeNom} - Case ${op.caseNumero}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
                                         if (op.estTermine) {
                                             Text("✅ Terminé", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
@@ -935,7 +964,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                     
-                    // Section : rappel manuel
                     Text("📝 Note personnelle :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
                     Spacer(modifier = Modifier.height(8.dp))
                     
@@ -948,7 +976,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                             Spacer(modifier = Modifier.width(12.dp))
                             Column { 
                                 Text("Heure du rappel", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
-                                Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) 
+                                Text("${String.format("%02d", rappelHeure)}:${String.format("%02d", rappelMinute)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = CouleursApp.TexteFonce) 
                             } 
                         } 
                     }
@@ -977,7 +1005,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
         )
     }
     
-    // Dialogue : détail d'une opération
     if (showDetailOperationDialog && operationSelectionnee != null) {
         val op = operationSelectionnee!!
         val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
@@ -1003,7 +1030,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text("💡 Conseil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.bodySmall)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(op.conseil, style = MaterialTheme.typography.bodySmall)
+                                Text(op.conseil, style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                             }
                         }
                     }
@@ -1024,7 +1051,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         } else {
                             rappelCulturelRepository.marquerTermine(op.id)
                         }
-                        // Recharger les rappels
                         val calDebut = Calendar.getInstance().apply {
                             set(currentYear, currentMonth, 1, 0, 0, 0)
                             set(Calendar.MILLISECOND, 0)
@@ -1051,9 +1077,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
     }
 }
 
-/**
- * Affiche une semaine du calendrier avec les jours et les barres d'opérations.
- */
 @Composable
 fun SemaineCalendrier(
     semaine: Int,
@@ -1065,7 +1088,6 @@ fun SemaineCalendrier(
     rappelsCulturels: List<RappelCulturelEntity>,
     onDayClick: (Int) -> Unit
 ) {
-    // 1. Ligne des jours
     Row(modifier = Modifier.fillMaxWidth()) {
         for (col in 0..6) {
             val dayNumber = semaine * 7 + col - offset + 1
@@ -1081,7 +1103,7 @@ fun SemaineCalendrier(
                 ) {
                     Text(
                         "$dayNumber",
-                        color = if (isSelected) CouleursApp.Blanc else CouleursApp.TexteFonce,
+                        color = if (isSelected) Color.White else CouleursApp.TexteFonce,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }
@@ -1091,7 +1113,6 @@ fun SemaineCalendrier(
         }
     }
     
-    // 2. Barres d'opérations pour cette semaine (2 lignes max)
     val debutSemaine = Calendar.getInstance().apply {
         set(currentYear, currentMonth, 1, 0, 0, 0)
         set(Calendar.MILLISECOND, 0)
@@ -1099,27 +1120,18 @@ fun SemaineCalendrier(
     }.timeInMillis
     val finSemaine = debutSemaine + 7L * 24 * 60 * 60 * 1000 - 1
     
-    // Filtrer les rappels qui touchent cette semaine
     val rappelsSemaine = rappelsCulturels.filter { rappel ->
         rappel.dateDebut <= finSemaine && rappel.dateFin >= debutSemaine
     }
     
     if (rappelsSemaine.isNotEmpty()) {
         Spacer(modifier = Modifier.height(4.dp))
-        
-        // Trier par date de début
         val rappelsTries = rappelsSemaine.sortedBy { it.dateDebut }
-        
-        // Prendre max 2 rappels
         val rappelsAAfficher = rappelsTries.take(2)
         val nombreEnPlus = (rappelsTries.size - 2).coerceAtLeast(0)
         
         rappelsAAfficher.forEach { rappel ->
-            BarreOperation(
-                rappel = rappel,
-                debutSemaine = debutSemaine,
-                finSemaine = finSemaine
-            )
+            BarreOperation(rappel = rappel, debutSemaine = debutSemaine, finSemaine = finSemaine)
             Spacer(modifier = Modifier.height(2.dp))
         }
         
@@ -1135,10 +1147,6 @@ fun SemaineCalendrier(
     }
 }
 
-/**
- * Affiche une barre horizontale pour une opération culturelle.
- * La barre couvre les jours de la période dans la semaine affichée.
- */
 @Composable
 fun BarreOperation(
     rappel: RappelCulturelEntity,
@@ -1147,7 +1155,6 @@ fun BarreOperation(
 ) {
     val MILLIS_PAR_JOUR = 24L * 60 * 60 * 1000
     
-    // Calculer la position de début et de fin DANS cette semaine (en jours 0-6)
     val debutAffiche = maxOf(rappel.dateDebut, debutSemaine)
     val finAffiche = minOf(rappel.dateFin, finSemaine)
     
@@ -1158,33 +1165,30 @@ fun BarreOperation(
     val estTermine = rappel.estTermine
     val estEnRetard = !estTermine && rappel.dateFin < System.currentTimeMillis()
     
-    // Couleur de la barre
     val couleurBase = try {
         Color(android.graphics.Color.parseColor(rappel.couleurHex))
     } catch (e: Exception) {
-        CouleurNeutreAssociation
+        Color(0xFFFFA726)
     }
     
     val couleurAffichee = when {
         estTermine -> couleurBase.copy(alpha = 0.25f)
-        estEnRetard -> CouleurMauvaiseAssociation.copy(alpha = 0.7f)
-        else -> couleurBase.copy(alpha = 0.65f)
+        estEnRetard -> Color(0xFFE53935).copy(alpha = 0.7f)
+        else -> couleurBase.copy(alpha = 0.75f)
     }
     
     Row(modifier = Modifier.fillMaxWidth().height(20.dp)) {
-        // Espace vide avant la barre
         if (jourDebutSemaine > 0) {
             Spacer(modifier = Modifier.weight(jourDebutSemaine.toFloat()))
         }
         
-        // La barre elle-même
         Box(
             modifier = Modifier
                 .weight(nombreJoursCouverts.toFloat())
                 .fillMaxHeight()
                 .padding(horizontal = 1.dp)
                 .background(couleurAffichee, RoundedCornerShape(4.dp))
-                .border(0.5.dp, couleurBase.copy(alpha = 0.8f), RoundedCornerShape(4.dp)),
+                .border(0.5.dp, couleurBase.copy(alpha = 0.9f), RoundedCornerShape(4.dp)),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -1203,16 +1207,12 @@ fun BarreOperation(
             }
         }
         
-        // Espace vide après la barre
         if (jourFinSemaine < 6) {
             Spacer(modifier = Modifier.weight((6 - jourFinSemaine).toFloat()))
         }
     }
 }
 
-/**
- * Légende des couleurs d'opérations culturales.
- */
 @Composable
 fun LegendeOperations() {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
@@ -1222,27 +1222,27 @@ fun LegendeOperations() {
             Row(verticalAlignment = Alignment.CenterVertically) { 
                 Box(modifier = Modifier.size(16.dp).background(Color(0xFF66BB6A))); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Plantation, semis, repiquage", style = MaterialTheme.typography.bodySmall) 
+                Text("Plantation, semis, repiquage", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
                 Box(modifier = Modifier.size(16.dp).background(Color(0xFFFFA726))); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Entretien (tuteurage, buttage, paillage)", style = MaterialTheme.typography.bodySmall) 
+                Text("Entretien (tuteurage, buttage, paillage)", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
                 Box(modifier = Modifier.size(16.dp).background(Color(0xFFAB47BC))); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Taille, effeuillage, pincement", style = MaterialTheme.typography.bodySmall) 
+                Text("Taille, effeuillage, pincement", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
                 Box(modifier = Modifier.size(16.dp).background(Color(0xFFEF5350))); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Traitement, surveillance maladies", style = MaterialTheme.typography.bodySmall) 
+                Text("Traitement, surveillance maladies", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
                 Box(modifier = Modifier.size(16.dp).background(Color(0xFF42A5F5))); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Récolte, arrêt arrosage", style = MaterialTheme.typography.bodySmall) 
+                Text("Récolte, arrêt arrosage", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
         }
     }
@@ -1255,8 +1255,8 @@ fun MeteoCard(meteo: MeteoData?, ville: String, estConnecte: Boolean, phaseLune:
             Text("🌦️ Météo à $ville", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
             if (phaseLune != null) Text("${phaseLune.emoji} ${phaseLune.nom}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            if (meteo != null) { Text("🌡️ ${meteo.temperature}°C"); Text("☁️ ${meteo.description}"); Text("💧 ${meteo.humidite}%"); Text("🌬️ ${meteo.vent} m/s") }
-            else Text("Météo indisponible")
+            if (meteo != null) { Text("🌡️ ${meteo.temperature}°C", color = CouleursApp.TexteFonce); Text("☁️ ${meteo.description}", color = CouleursApp.TexteFonce); Text("💧 ${meteo.humidite}%", color = CouleursApp.TexteFonce); Text("🌬️ ${meteo.vent} m/s", color = CouleursApp.TexteFonce) }
+            else Text("Météo indisponible", color = CouleursApp.TexteFonce)
         }
     }
 }
@@ -1274,7 +1274,7 @@ fun ConservationScreen(onBack: () -> Unit) {
     val methodes = listOf("Tous", "Séchage", "Lactofermentation", "Conserves", "Congélation")
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text("Conservation 🥫", fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text("Conservation 🥫", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, actions = { IconButton(onClick = { showAide = true }) { Icon(Icons.Default.Help, "Aide", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text("Filtrer par méthode :", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Column { methodes.forEach { m -> FilterChip(selected = filtre == m, onClick = { filtre = m }, label = { Text(m) }, modifier = Modifier.padding(vertical = 4.dp), shape = RoundedCornerShape(16.dp)) } } }
@@ -1304,27 +1304,27 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
                     when (selectedOnglet) {
                         "sechage" -> {
                             item { Text("🌬️ Séchage optimal", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Choisissez des légumes frais et sains\n• Lavez et séchez soigneusement\n• Coupez en tranches fines et régulières (3-5mm)\n• Blanchissez les légumes durs (carottes, haricots) 2-3 min\n• Disposez sans chevauchement sur les plateaux\n• Température idéale : 50-60°C\n• Durée : 6-12h selon l'épaisseur\n• Les légumes doivent être cassants et croquants\n• Stockez dans des bocaux hermétiques à l'abri de la lumière\n• Conservation : 6-12 mois") }
+                            item { Text("• Choisissez des légumes frais et sains\n• Lavez et séchez soigneusement\n• Coupez en tranches fines et régulières (3-5mm)\n• Blanchissez les légumes durs (carottes, haricots) 2-3 min\n• Disposez sans chevauchement sur les plateaux\n• Température idéale : 50-60°C\n• Durée : 6-12h selon l'épaisseur\n• Les légumes doivent être cassants et croquants\n• Stockez dans des bocaux hermétiques à l'abri de la lumière\n• Conservation : 6-12 mois", color = CouleursApp.TexteFonce) }
                             item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Tomates, champignons, carottes, courgettes, oignons, poivrons, herbes aromatiques, haricots verts") }
+                            item { Text("Tomates, champignons, carottes, courgettes, oignons, poivrons, herbes aromatiques, haricots verts", color = CouleursApp.TexteFonce) }
                         }
                         "lacto" -> {
                             item { Text("🥬 Lactofermentation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Utilisez du sel sans iode (sel de mer)\n• Proportion : 2-3% de sel (20-30g par litre d'eau)\n• Coupez les légumes en morceaux réguliers\n• Tassez bien pour éliminer les bulles d'air\n• Les légumes doivent être immergés sous la saumure\n• Utilisez un poids pour maintenir sous l'eau\n• Laissez fermenter à température ambiante (18-22°C)\n• Durée : 1-4 semaines selon le goût\n• Goûtez régulièrement\n• Une fois ouvert, conservez au réfrigérateur") }
+                            item { Text("• Utilisez du sel sans iode (sel de mer)\n• Proportion : 2-3% de sel (20-30g par litre d'eau)\n• Coupez les légumes en morceaux réguliers\n• Tassez bien pour éliminer les bulles d'air\n• Les légumes doivent être immergés sous la saumure\n• Utilisez un poids pour maintenir sous l'eau\n• Laissez fermenter à température ambiante (18-22°C)\n• Durée : 1-4 semaines selon le goût\n• Goûtez régulièrement\n• Une fois ouvert, conservez au réfrigérateur", color = CouleursApp.TexteFonce) }
                             item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Choux (choucroute), carottes, radis, concombres (pickles), haricots verts, betteraves, navets") }
+                            item { Text("Choux (choucroute), carottes, radis, concombres (pickles), haricots verts, betteraves, navets", color = CouleursApp.TexteFonce) }
                         }
                         "conserves" -> {
                             item { Text("🫙 Conserves (stérilisation)", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Stérilisez les bocaux et couvercles à l'eau bouillante\n• Utilisez des légumes très frais\n• Remplissez les bocaux en laissant 2cm de vide\n• Ajoutez de l'eau salée bouillante (20g sel/litre)\n• Fermez hermétiquement\n• Stérilisez à 100°C pendant 1h-1h30\n• Vérifiez l'étanchéité après refroidissement\n• Le couvercle doit être bombé vers l'intérieur\n• Stockez dans un endroit frais et sombre\n• Conservation : 1-2 ans") }
+                            item { Text("• Stérilisez les bocaux et couvercles à l'eau bouillante\n• Utilisez des légumes très frais\n• Remplissez les bocaux en laissant 2cm de vide\n• Ajoutez de l'eau salée bouillante (20g sel/litre)\n• Fermez hermétiquement\n• Stérilisez à 100°C pendant 1h-1h30\n• Vérifiez l'étanchéité après refroidissement\n• Le couvercle doit être bombé vers l'intérieur\n• Stockez dans un endroit frais et sombre\n• Conservation : 1-2 ans", color = CouleursApp.TexteFonce) }
                             item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Tomates, haricots verts, petits pois, carottes, betteraves, ratatouille, coulis de tomate") }
+                            item { Text("Tomates, haricots verts, petits pois, carottes, betteraves, ratatouille, coulis de tomate", color = CouleursApp.TexteFonce) }
                         }
                         "congelation" -> {
                             item { Text("❄️ Congélation optimale", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.titleMedium) }
-                            item { Text("• Choisissez des légumes très frais\n• Lavez et séchez soigneusement\n• Blanchissez la plupart des légumes 2-3 min\n• Refroidissez immédiatement dans l'eau glacée\n• Égouttez bien avant de congeler\n• Disposez à plat pour éviter les blocs\n• Utilisez des sacs de congélation sans air\n• Étiquetez avec le nom et la date\n• Température idéale : -18°C ou moins\n• Ne recongelez jamais un produit décongelé\n• Conservation : 8-12 mois") }
+                            item { Text("• Choisissez des légumes très frais\n• Lavez et séchez soigneusement\n• Blanchissez la plupart des légumes 2-3 min\n• Refroidissez immédiatement dans l'eau glacée\n• Égouttez bien avant de congeler\n• Disposez à plat pour éviter les blocs\n• Utilisez des sacs de congélation sans air\n• Étiquetez avec le nom et la date\n• Température idéale : -18°C ou moins\n• Ne recongelez jamais un produit décongelé\n• Conservation : 8-12 mois", color = CouleursApp.TexteFonce) }
                             item { Text("🥕 Légumes adaptés", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta) }
-                            item { Text("Haricots verts, petits pois, carottes, courgettes, poivrons, épinards, brocolis, choux-fleurs") }
+                            item { Text("Haricots verts, petits pois, carottes, courgettes, poivrons, épinards, brocolis, choux-fleurs", color = CouleursApp.TexteFonce) }
                         }
                     }
                 }
@@ -1358,7 +1358,7 @@ fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
     else {
         Scaffold(
             containerColor = CouleursApp.Creme,
-            topBar = { TopAppBar(title = { Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+            topBar = { TopAppBar(title = { Text(legume.nom, fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
         ) { innerPadding ->
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { Box(modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(24.dp)).background(CouleursApp.VertPale), contentAlignment = Alignment.Center) { Text(getEmojiCategorie(legume.categorie), style = MaterialTheme.typography.displayLarge) } }
@@ -1374,7 +1374,7 @@ fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
                 item { InfoCard("Conservation", legume.conservation) }
                 if (varietes.isNotEmpty()) {
                     item { Text("🌱 Variétés (${varietes.size}) :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal) }
-                    items(varietes) { v -> Card(modifier = Modifier.fillMaxWidth().clickable { selectedVariete = v }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) { Text("🌿 ${v.nom}", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold) } }
+                    items(varietes) { v -> Card(modifier = Modifier.fillMaxWidth().clickable { selectedVariete = v }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) { Text("🌿 ${v.nom}", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) } }
                 }
             }
         }
@@ -1386,7 +1386,7 @@ fun LegumeDetailScreen(legume: LegumeEntity, onBack: () -> Unit) {
 fun VarieteDetailScreen(variete: VarieteEntity, onBack: () -> Unit) {
     Scaffold(
         containerColor = CouleursApp.Creme,
-        topBar = { TopAppBar(title = { Text(variete.nom, fontWeight = FontWeight.Bold, color = CouleursApp.Blanc) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = CouleursApp.Blanc) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = CouleursApp.Blanc)) }
+        topBar = { TopAppBar(title = { Text(variete.nom, fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { InfoCard("Description", variete.description) }
@@ -1404,7 +1404,7 @@ fun LegumeCard(legume: LegumeEntity, onClick: () -> Unit, onDelete: () -> Unit) 
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(legume.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                Text("${legume.categorie} - ${legume.difficulte}", style = MaterialTheme.typography.bodySmall)
+                Text("${legume.categorie} - ${legume.difficulte}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
             }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
         }
@@ -1422,8 +1422,8 @@ fun VarieteSelectionDialog(legumeNom: String, varieteRepository: VarieteReposito
         title = { Text("Variétés de $legumeNom", fontWeight = FontWeight.Bold) },
         text = { LazyColumn(modifier = Modifier.fillMaxWidth()) {
             item { Text("🌱 Variété standard", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie(legumeNom) }.padding(16.dp), fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); HorizontalDivider() }
-            if (varietes.isEmpty()) item { Text("Chargement...", modifier = Modifier.padding(16.dp)) }
-            else items(varietes) { v -> Text("🌿 ${v.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${v.nom})") }.padding(16.dp)); Text(v.description, modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall); HorizontalDivider() }
+            if (varietes.isEmpty()) item { Text("Chargement...", modifier = Modifier.padding(16.dp), color = CouleursApp.TexteFonce) }
+            else items(varietes) { v -> Text("🌿 ${v.nom}", modifier = Modifier.fillMaxWidth().clickable { onVarieteChoisie("${legumeNom} (${v.nom})") }.padding(16.dp), color = CouleursApp.TexteFonce); Text(v.description, modifier = Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce); HorizontalDivider() }
         } },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
@@ -1442,7 +1442,7 @@ fun PlancheCard(
     Card(modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggleExpand), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) { Text(planche.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("${planche.largeur}m × ${planche.longueur}m", style = MaterialTheme.typography.bodySmall) }
+                Column(modifier = Modifier.weight(1f)) { Text(planche.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("${planche.largeur}m × ${planche.longueur}m", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Supprimer", tint = MaterialTheme.colorScheme.error) }
             }
             if (isExpanded) {
@@ -1461,7 +1461,7 @@ fun PlancheCard(
                         .fillMaxWidth()
                         .heightIn(min = 200.dp, max = 600.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CouleursApp.Creme)
+                        .background(CouleursApp.VertPale.copy(alpha = 0.3f))
                         .transformable(state = state)
                 ) {
                     Column(
@@ -1504,7 +1504,7 @@ fun PlancheCard(
                         SmallFloatingActionButton(
                             onClick = { scale = 1f; offset = Offset.Zero },
                             containerColor = CouleursApp.VertPrincipal,
-                            contentColor = CouleursApp.Blanc,
+                            contentColor = Color.White,
                             modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
                         ) { Text("↺", style = MaterialTheme.typography.titleMedium) }
                     }
@@ -1568,7 +1568,7 @@ fun calculerCouleursCarre(
     for (num in 1..9) {
         val plante = planteDansCase(carre, num)
         if (plante == null) {
-            resultat[num] = CouleurCaseVide
+            resultat[num] = CouleursApp.CaseVide
             continue
         }
         
@@ -1621,9 +1621,9 @@ fun calculerCouleursCarre(
         }
         
         resultat[num] = when {
-            aMauvaise -> CouleurMauvaiseAssociation
-            aBonne -> CouleurBonneAssociation
-            else -> CouleurNeutreAssociation
+            aMauvaise -> CouleursApp.MauvaiseAssociation
+            aBonne -> CouleursApp.BonneAssociation
+            else -> CouleursApp.NeutreAssociation
         }
     }
     
@@ -1643,12 +1643,12 @@ fun Grille3x3(
         Box(
             modifier = modifier
                 .aspectRatio(1f)
-                .background(CouleurBonneAssociation.copy(alpha = 0.35f))
+                .background(CouleursApp.BonneAssociation)
                 .border(2.dp, CouleursApp.VertPrincipal)
                 .clickable { onSousCarreClick(1) },
             contentAlignment = Alignment.Center
         ) {
-            Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+            Text(legumes[0], fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp), color = CouleursApp.TexteFonce)
         }
     } else {
         Column(modifier = modifier.aspectRatio(1f).border(2.dp, CouleursApp.VertPrincipal)) {
@@ -1663,7 +1663,7 @@ fun Grille3x3(
                             else -> null
                         }
                         
-                        val backgroundColor = couleurs[caseNumero] ?: if (legume != null) CouleurNeutreAssociation else CouleurCaseVide
+                        val backgroundColor = couleurs[caseNumero] ?: if (legume != null) CouleursApp.NeutreAssociation else CouleursApp.CaseVide
                         
                         Box(
                             modifier = Modifier
@@ -1674,7 +1674,7 @@ fun Grille3x3(
                                 .clickable { onSousCarreClick(caseNumero) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp))
+                            Text(legume ?: "", fontSize = MaterialTheme.typography.bodySmall.fontSize, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(2.dp), color = CouleursApp.TexteFonce)
                         }
                     }
                 }
@@ -1690,19 +1690,19 @@ fun LegendeCouleurs() {
             Text("Légende des couleurs", fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) { 
-                Box(modifier = Modifier.size(20.dp).background(CouleurBonneAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Box(modifier = Modifier.size(20.dp).background(CouleursApp.BonneAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(" Bonne association", style = MaterialTheme.typography.bodySmall) 
+                Text(" Bonne association", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
-                Box(modifier = Modifier.size(20.dp).background(CouleurNeutreAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Box(modifier = Modifier.size(20.dp).background(CouleursApp.NeutreAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(" Association neutre", style = MaterialTheme.typography.bodySmall) 
+                Text(" Association neutre", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Row(verticalAlignment = Alignment.CenterVertically) { 
-                Box(modifier = Modifier.size(20.dp).background(CouleurMauvaiseAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
+                Box(modifier = Modifier.size(20.dp).background(CouleursApp.MauvaiseAssociation).border(1.dp, CouleursApp.VertPrincipal)); 
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall) 
+                Text(" Mauvaise association", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce) 
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text("🌱 Les couleurs tiennent compte des carrés voisins (m² adjacents)", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
