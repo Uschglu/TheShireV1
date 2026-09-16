@@ -3,6 +3,7 @@ package com.theshire.app.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -12,8 +13,13 @@ interface LegumeDao {
     
     // ===== LÉGUMES =====
     
-    @Insert
-    suspend fun insertLegume(legume: LegumeEntity)
+    /**
+     * Insertion avec IGNORE : si un légume avec le même nom existe déjà
+     * (contrainte unique sur `nom`), l'insertion est silencieusement ignorée.
+     * Évite les doublons même en cas d'appels concurrents.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertLegume(legume: LegumeEntity): Long
     
     @Update
     suspend fun updateLegume(legume: LegumeEntity)
@@ -36,10 +42,22 @@ interface LegumeDao {
     @Query("DELETE FROM legumes WHERE id = :id")
     suspend fun deleteLegumeById(id: Long)
     
+    /**
+     * Supprime les doublons : garde l'entrée avec l'ID le plus petit,
+     * supprime toutes les autres ayant le même nom.
+     */
+    @Query("""
+        DELETE FROM legumes 
+        WHERE id NOT IN (
+            SELECT MIN(id) FROM legumes GROUP BY nom
+        )
+    """)
+    suspend fun supprimerDoublonsLegumes()
+    
     // ===== VARIÉTÉS =====
     
-    @Insert
-    suspend fun insertVariete(variete: VarieteEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertVariete(variete: VarieteEntity): Long
     
     @Update
     suspend fun updateVariete(variete: VarieteEntity)
@@ -62,10 +80,22 @@ interface LegumeDao {
     @Query("DELETE FROM varietes WHERE id = :id")
     suspend fun deleteVarieteById(id: Long)
     
+    /**
+     * Supprime les doublons de variétés : garde l'ID le plus petit
+     * pour chaque couple (nom, legumeParent).
+     */
+    @Query("""
+        DELETE FROM varietes 
+        WHERE id NOT IN (
+            SELECT MIN(id) FROM varietes GROUP BY nom, legumeParent
+        )
+    """)
+    suspend fun supprimerDoublonsVarietes()
+    
     // ===== ADVENTICES (Mauvaises herbes) =====
     
-    @Insert
-    suspend fun insertAdventice(adventice: AdventiceEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAdventice(adventice: AdventiceEntity): Long
     
     @Update
     suspend fun updateAdventice(adventice: AdventiceEntity)
@@ -84,4 +114,15 @@ interface LegumeDao {
     
     @Query("DELETE FROM adventices WHERE id = :id")
     suspend fun deleteAdventiceById(id: Long)
+    
+    /**
+     * Supprime les doublons d'adventices par nom.
+     */
+    @Query("""
+        DELETE FROM adventices 
+        WHERE id NOT IN (
+            SELECT MIN(id) FROM adventices GROUP BY nom
+        )
+    """)
+    suspend fun supprimerDoublonsAdventices()
 }
