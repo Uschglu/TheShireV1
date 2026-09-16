@@ -1,9 +1,13 @@
 package com.theshire.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "varietes")
+@Entity(
+    tableName = "varietes",
+    indices = [Index(value = ["nom", "legumeParent"], unique = true)]
+)
 data class VarieteEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
