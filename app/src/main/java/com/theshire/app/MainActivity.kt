@@ -95,10 +95,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// ============================================================
-// FOND DÉGRADÉ (s'adapte au thème clair/sombre)
-// ============================================================
-
 @Composable
 fun getDegradeFond(): Brush {
     return if (CouleursApp.isDarkMode) {
@@ -774,7 +770,7 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
     }
 }
 
-// ============== CALENDRIER AVEC BARRES D'OPÉRATIONS CULTURALES ==============
+// ============== CALENDRIER ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendrierScreen(onBack: () -> Unit) {
@@ -984,7 +980,8 @@ fun CalendrierScreen(onBack: () -> Unit) {
                             val r = rappelRepository.getRappel(ts)
                             if (r != null) rappelRepository.mettreAJourNote(ts, rappelNote) else rappelRepository.ajouterRappel(ts, "Rappel", rappelNote)
                         }
-                        showOperationsDialog = false                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
+                        showOperationsDialog = false
+                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { 
                         Text("Enregistrer la note") 
                     }
                 }
@@ -1622,31 +1619,24 @@ fun calculerCouleursCarre(
     return resultat
 }
 
-/**
- * Retourne la pire couleur parmi les 9 cases d'un carré.
- * Priorité : Rouge (mauvaise) > Orange (neutre) > Vert (bonne) > Blanc (vide)
- * 
- * Utilisé quand les 9 cases sont identiques (grand carré) pour refléter
- * les associations avec les carrés voisins.
- */
 fun calculerCouleurPire(couleurs: Map<Int, Color>): Color {
     var aMauvaise = false
-    var aNeutre = false
     var aBonne = false
+    var aNeutre = false
     
     for (num in 1..9) {
         val couleur = couleurs[num] ?: continue
         when (couleur) {
             CouleursApp.MauvaiseAssociation -> aMauvaise = true
-            CouleursApp.NeutreAssociation -> aNeutre = true
             CouleursApp.BonneAssociation -> aBonne = true
+            CouleursApp.NeutreAssociation -> aNeutre = true
         }
     }
     
     return when {
         aMauvaise -> CouleursApp.MauvaiseAssociation
-        aNeutre -> CouleursApp.NeutreAssociation
         aBonne -> CouleursApp.BonneAssociation
+        aNeutre -> CouleursApp.NeutreAssociation
         else -> CouleursApp.CaseVide
     }
 }
@@ -1661,7 +1651,6 @@ fun Grille3x3(
     val legumes = listOfNotNull(carre.case1, carre.case2, carre.case3, carre.case4, carre.case5, carre.case6, carre.case7, carre.case8, carre.case9)
     
     if (legumes.size == 9 && legumes.distinct().size == 1) {
-        // Grand carré : utilise la pire couleur parmi les 9 cases (avec voisins)
         val couleurGrandCarre = calculerCouleurPire(couleurs)
         
         Box(
@@ -1763,7 +1752,6 @@ fun InfoCard(titre: String, contenu: String) {
     }
 }
 
-// ============== FONCTIONS PLANTES ==============
 fun estPlanteVolumineuse(nomLegume: String): Boolean = nomLegume in listOf("Tomate", "Courgette", "Potiron", "Courge", "Aubergine", "Poivron", "Concombre", "Melon", "Chou pommé", "Brocoli", "Chou-fleur", "Topinambour")
 
 fun peutPlanterIci(carre: CarreEntity, caseNumero: Int, legumeNom: String): Boolean {
