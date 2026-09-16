@@ -79,9 +79,11 @@ import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.ThemePreferences
 import com.theshire.app.data.VarieteEntity
+import com.theshire.app.data.BrandingApp
 import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.ParametresScreen
 import com.theshire.app.ui.RappelCulturelRepository
 import com.theshire.app.ui.RappelRepository
 import com.theshire.app.ui.VarieteRepository
@@ -132,7 +134,11 @@ class MainActivity : ComponentActivity() {
         }
         if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 1000)
         
+        // Charger le thème depuis les préférences
         CouleursApp.changerModeSombre(ThemePreferences.chargerModeSombre(this))
+        
+        // Charger le branding depuis les préférences
+        BrandingApp.initialiser(this)
         
         setContent { PotagerShireTheme { MainScreen() } }
         planifierNotifications()
@@ -185,11 +191,21 @@ fun MainScreen() {
     }) {
         AnimatedContent(targetState = currentScreen, transitionSpec = { fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 3 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 3 } }) { screen ->
             when (screen) {
-                "accueil" -> AccueilScreen()
+                "accueil" -> AccueilScreen(onNavigateToParametres = { navigateTo("parametres") })
                 "bibliotheque" -> BibliothequeScreen(onBack = { goToAccueil() })
                 "jardin" -> JardinScreen(onBack = { goToAccueil() })
                 "calendrier" -> CalendrierScreen(onBack = { goToAccueil() })
                 "conservation" -> ConservationScreen(onBack = { goToAccueil() })
+                "parametres" -> ParametresScreen(
+                    onBack = { goBack() },
+                    onRevoirTutoriel = {
+                        // Reset du flag pour forcer l'affichage du tutoriel
+                        val prefs = context.getSharedPreferences("jardin_prefs", Context.MODE_PRIVATE)
+                        prefs.edit().putBoolean("tuto_vu_v5", false).apply()
+                        // Retour à l'accueil : le tutoriel s'affichera automatiquement
+                        goToAccueil()
+                    }
+                )
             }
         }
         Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).background(CouleursApp.Blanc.copy(alpha = 0.85f), RoundedCornerShape(20.dp)).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -204,7 +220,7 @@ fun MainScreen() {
 // ============== ACCUEIL ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccueilScreen() {
+fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     val context = LocalContext.current
     val meteoRepository = remember { MeteoRepository() }
     val localisationRepository = remember { LocalisationRepository(context) }
@@ -231,32 +247,29 @@ fun AccueilScreen() {
     LaunchedEffect(Unit) { try { val v = localisationRepository.getVille(); if (v != null) ville = v; meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" }) } catch (e: Exception) {} }
     
     Scaffold(
-        containerColor = CouleursApp.Creme,
-        floatingActionButton = { FloatingActionButton(onClick = { showTuto = true }, containerColor = CouleursApp.Terracotta, shape = CircleShape) { Text("❓", style = MaterialTheme.typography.titleLarge) } }
+        containerColor = CouleursApp.Creme
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
+            // ===== EN-TÊTE : Titre + Bouton Paramètres =====
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Potager Shire",
+                    BrandingApp.config.nomApp,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.headlineMedium,
                     color = CouleursApp.VertPrincipal
                 )
                 IconButton(
-                    onClick = {
-                        val nouveauMode = ThemePreferences.toggleModeSombre(context)
-                        CouleursApp.changerModeSombre(nouveauMode)
-                    },
+                    onClick = onNavigateToParametres,
                     modifier = Modifier
                         .background(CouleursApp.VertPale, CircleShape)
                         .size(48.dp)
                 ) {
                     Text(
-                        if (CouleursApp.isDarkMode) "☀️" else "🌙",
+                        "⚙️",
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
@@ -319,9 +332,9 @@ fun AccueilScreen() {
     if (showTuto) {
         AlertDialog(
             onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() },
-            title = { Text("🌱 Bienvenue dans Potager Shire !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
+            title = { Text("🌱 Bienvenue dans ${BrandingApp.config.nomApp} !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Basculez le mode sombre avec le bouton 🌙/☀️ en haut à droite.") } }
+                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Le bouton ⚙️ en haut à droite donne accès aux paramètres (mode sombre, tutoriel, à propos).") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
                 item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
@@ -330,7 +343,7 @@ fun AccueilScreen() {
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Quand vous plantez, des opérations culturales (tuteurage, buttage, éclaircissage...) sont générées automatiquement et affichées sur le calendrier sous forme de barres ←→ sur leur période. Cliquez pour voir les détails et marquer comme fait.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
-                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, cliquez sur les billes en bas pour accéder directement.") } }
+                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, cliquez sur les billes en bas pour accéder directement. Le bouton ⚙️ ouvre les paramètres.") } }
             } },
             confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
