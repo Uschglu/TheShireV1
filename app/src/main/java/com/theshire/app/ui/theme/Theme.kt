@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // ============================================================
-// PALETTE MATERIAL 3 — MODE CLAIR
+// PALETTE MATERIAL 3 - MODE CLAIR
 // ============================================================
 
 private val LightColors = lightColorScheme(
@@ -46,27 +46,23 @@ private val LightColors = lightColorScheme(
 )
 
 // ============================================================
-// PALETTE MATERIAL 3 — MODE SOMBRE
+// PALETTE MATERIAL 3 - MODE SOMBRE
 // ============================================================
 
 private val DarkColors = darkColorScheme(
-    // Vert plus lumineux pour ressortir sur fond sombre
     primary = Color(0xFF7FB87D),
     onPrimary = Color(0xFF0F2B0F),
     primaryContainer = Color(0xFF2E4A2D),
     onPrimaryContainer = Color(0xFFDCE8DC),
     
-    // Terracotta plus lumineux
     secondary = Color(0xFFE89B6B),
     onSecondary = Color(0xFF3D1F0F),
     secondaryContainer = Color(0xFF5A3520),
     onSecondaryContainer = Color(0xFFF5E6DC),
     
-    // Fonds sombres vert très foncé
     background = Color(0xFF1A1F1A),
     onBackground = Color(0xFFE8EFE8),
     
-    // Surface = cartes en vert foncé (utilisé par AlertDialog, TextField, etc.)
     surface = Color(0xFF252B25),
     onSurface = Color(0xFFE8EFE8),
     
@@ -88,19 +84,9 @@ private val DarkColors = darkColorScheme(
 )
 
 // ============================================================
-// THÈME POTAGER SHIRE
+// THEME PRINCIPAL
 // ============================================================
 
-/**
- * Thème principal de l'app.
- * 
- * Utilise automatiquement la palette Material 3 (claire ou sombre)
- * en fonction de `CouleursApp.isDarkMode`.
- * 
- * Quand l'utilisateur bascule le mode sombre via le bouton,
- * TOUS les composants Material 3 (AlertDialog, Card, TextField,
- * DropdownMenu, etc.) s'adaptent instantanément.
- */
 @Composable
 fun PotagerShireTheme(content: @Composable () -> Unit) {
     val colorScheme = if (CouleursApp.isDarkMode) DarkColors else LightColors
@@ -111,14 +97,17 @@ fun PotagerShireTheme(content: @Composable () -> Unit) {
 }
 
 // ============================================================
-// UTILITAIRE : ContextThemeWrapper pour dialogues natifs
+// UTILITAIRE POUR DIALOGUES NATIFS ANDROID
 // ============================================================
 
-/**
- * Enveloppe le contexte dans un thème sombre ou clair selon le mode actif.
- * 
- * Nécessaire pour les dialogues Android natifs (TimePickerDialog, DatePickerDialog)
- * qui n'héritent PAS du thème Compose/Material 3 et restent donc sur
- * le thème par défaut du système.
- * 
- * Usage :
+// Enveloppe le contexte dans un theme sombre ou clair selon le mode actif.
+// Necessaire pour les dialogues Android natifs (TimePickerDialog, DatePickerDialog)
+// qui n'heritent pas du theme Compose/Material 3.
+fun envelopperAvecTheme(context: Context): Context {
+    val themeRes = if (CouleursApp.isDarkMode) {
+        android.R.style.Theme_Material_Dialog_Alert
+    } else {
+        android.R.style.Theme_Material_Light_Dialog_Alert
+    }
+    return androidx.appcompat.view.ContextThemeWrapper(context, themeRes)
+}
