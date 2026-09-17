@@ -69,6 +69,7 @@ import com.theshire.app.data.LuneRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.NiveauRisque
+import com.theshire.app.data.OutilsApp
 import com.theshire.app.data.PhaseLune
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.PlantIdentification
@@ -81,8 +82,11 @@ import com.theshire.app.data.ThemePreferences
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.data.BrandingApp
 import com.theshire.app.ui.AdventiceRepository
+import com.theshire.app.ui.EcranOutils
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.Outil
+import com.theshire.app.ui.Outils
 import com.theshire.app.ui.ParametresScreen
 import com.theshire.app.ui.RappelCulturelRepository
 import com.theshire.app.ui.RappelRepository
@@ -140,6 +144,9 @@ class MainActivity : ComponentActivity() {
         // Charger le branding depuis les préférences
         BrandingApp.initialiser(this)
         
+        // Charger les outils possédés depuis les préférences
+        OutilsApp.initialiser(this)
+        
         setContent { PotagerShireTheme { MainScreen() } }
         planifierNotifications()
     }
@@ -171,7 +178,7 @@ fun MainScreen() {
     val context = LocalContext.current
     var lastBackPressTime by remember { mutableStateOf(0L) }
     val navigationStack = remember { mutableStateListOf("accueil") }
-    val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation")
+    val screens = listOf("accueil", "bibliotheque", "jardin", "calendrier", "conservation", "equipement")
     fun navigateTo(screen: String) { navigationStack.add(screen); currentScreen = screen }
     fun goBack() {
         if (navigationStack.size > 1) { navigationStack.removeAt(navigationStack.size - 1); currentScreen = navigationStack.last() }
@@ -196,13 +203,12 @@ fun MainScreen() {
                 "jardin" -> JardinScreen(onBack = { goToAccueil() })
                 "calendrier" -> CalendrierScreen(onBack = { goToAccueil() })
                 "conservation" -> ConservationScreen(onBack = { goToAccueil() })
+                "equipement" -> EcranOutils(onBack = { goToAccueil() })
                 "parametres" -> ParametresScreen(
                     onBack = { goBack() },
                     onRevoirTutoriel = {
-                        // Reset du flag pour forcer l'affichage du tutoriel
                         val prefs = context.getSharedPreferences("jardin_prefs", Context.MODE_PRIVATE)
                         prefs.edit().putBoolean("tuto_vu_v5", false).apply()
-                        // Retour à l'accueil : le tutoriel s'affichera automatiquement
                         goToAccueil()
                     }
                 )
@@ -250,7 +256,6 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         containerColor = CouleursApp.Creme
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
-            // ===== EN-TÊTE : Titre + Bouton Paramètres =====
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -341,6 +346,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                 item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise association. Les associations tiennent compte des carrés voisins (m² adjacents).") } }
                 item { Column { Text("🔍 Zoom sur les planches", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Pincez à deux doigts sur une planche dépliée pour zoomer et dézoomer. Glissez à deux doigts pour vous déplacer. Un bouton ↺ apparaît pour réinitialiser le zoom.") } }
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Quand vous plantez, des opérations culturales (tuteurage, buttage, éclaircissage...) sont générées automatiquement et affichées sur le calendrier sous forme de barres ←→ sur leur période. Cliquez pour voir les détails et marquer comme fait.") } }
+                item { Column { Text("🛠️ Équipement", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Gérez vos outils de jardinage : ajoutez ceux que vous possédez, consultez les tutos d'utilisation (comment bêcher, tailler...). Les outils manquants apparaissent en rouge dans le calendrier.") } }
                 item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
                 item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, cliquez sur les billes en bas pour accéder directement. Le bouton ⚙️ ouvre les paramètres.") } }
@@ -1011,6 +1017,14 @@ fun CalendrierScreen(onBack: () -> Unit) {
         val op = operationSelectionnee!!
         val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
         
+        // Récupérer les outils requis depuis OperationsCulturales
+        val operationCulturale = remember(op.typeOperation, op.legumeNom) {
+            OperationsCulturales.getOperationsPourLegume(op.legumeNom).find { it.nom == op.typeOperation }
+        }
+        val outilsRequis = remember(operationCulturale) {
+            operationCulturale?.outilsRequis?.let { Outils.getOutilsParIds(it) } ?: emptyList()
+        }
+        
         AlertDialog(
             onDismissRequest = { showDetailOperationDialog = false },
             title = { 
@@ -1036,6 +1050,44 @@ fun CalendrierScreen(onBack: () -> Unit) {
                             }
                         }
                     }
+                    
+                    // ===== OUTILS REQUIS =====
+                    if (outilsRequis.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("🛠️ Outils nécessaires :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        outilsRequis.forEach { outil ->
+                            val possede = OutilsApp.possede(outil.id)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(outil.emoji, style = MaterialTheme.typography.bodyLarge)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    outil.nom,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = CouleursApp.TexteFonce,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (!possede) {
+                                    Text(
+                                        "❌ Non possédé",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                } else {
+                                    Text(
+                                        "✅",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = CouleursApp.VertPrincipal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("📅 Période : ${dateFormat.format(Date(op.dateDebut))} → ${dateFormat.format(Date(op.dateFin))}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                     Text("📍 Case ${op.caseNumero}", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
