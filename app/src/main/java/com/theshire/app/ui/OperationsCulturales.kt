@@ -12,7 +12,7 @@ package com.theshire.app.ui
  * - @param jourFin : nombre de jours après plantation pour la fin de la fenêtre
  *   (si jourDebut == jourFin → opération ponctuelle, sinon opération sur plusieurs jours)
  * - @param couleurHex : couleur de la barre dans le calendrier
- * - @param dureeJours : durée totale de la fenêtre (dateFin - dateDebut)
+ * - @param outilsRequis : liste des IDs d'outils nécessaires (référence à Outils.kt)
  * 
  * Si dureeJours == 0 → fenêtre de ±2 jours autour de jourDebut
  * Sinon → période de jourDebut à jourFin
@@ -26,7 +26,8 @@ data class OperationCulturale(
     val conseil: String = "",
     val jourDebut: Int,
     val jourFin: Int = jourDebut,
-    val couleurHex: String = "#FFA726"
+    val couleurHex: String = "#FFA726",
+    val outilsRequis: List<String> = emptyList()
 )
 
 object OperationsCulturales {
@@ -63,7 +64,8 @@ object OperationsCulturales {
                     conseil = "Planter le tuteur AVANT la tomate pour ne pas blesser les racines. Hauteur recommandée : 1,5 à 2 m.",
                     jourDebut = 0,
                     jourFin = 2,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("tuteurs_bambou")
                 ),
                 OperationCulturale(
                     nom = "1er lien",
@@ -72,7 +74,8 @@ object OperationsCulturales {
                     conseil = "Toujours attacher sous un bouquet floral pour ne pas glisser.",
                     jourDebut = 15,
                     jourFin = 17,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Effeuillage",
@@ -81,7 +84,8 @@ object OperationsCulturales {
                     conseil = "Ne pas enlever plus de 2-3 feuilles à la fois pour ne pas fatiguer la plante.",
                     jourDebut = 30,
                     jourFin = 45,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Gourmands",
@@ -99,7 +103,8 @@ object OperationsCulturales {
                     conseil = "À faire fin août en climat tempéré pour concentrer l'énergie sur les fruits existants.",
                     jourDebut = 90,
                     jourFin = 100,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -112,7 +117,8 @@ object OperationsCulturales {
                     conseil = "Butter permet de protéger les tubercules du soleil (qui les rend verts et toxiques) et favorise le développement.",
                     jourDebut = 21,
                     jourFin = 25,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("serfouette", "binette")
                 ),
                 OperationCulturale(
                     nom = "2e buttage",
@@ -121,7 +127,8 @@ object OperationsCulturales {
                     conseil = "Utiliser une butteuse ou une binette. Butter haut (15-20 cm).",
                     jourDebut = 42,
                     jourFin = 48,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("serfouette", "binette")
                 ),
                 OperationCulturale(
                     nom = "Doryphores",
@@ -130,7 +137,8 @@ object OperationsCulturales {
                     conseil = "Passer tous les 2-3 jours. Ne pas utiliser de pesticide pour préserver les auxiliaires.",
                     jourDebut = 30,
                     jourFin = 75,
-                    couleurHex = COULEUR_TRAITEMENT
+                    couleurHex = COULEUR_TRAITEMENT,
+                    outilsRequis = listOf("gants")
                 ),
                 OperationCulturale(
                     nom = "Arrêt arrosage",
@@ -152,7 +160,8 @@ object OperationsCulturales {
                     conseil = "Éclaircir par temps humide pour limiter les odeurs qui attirent la mouche de la carotte.",
                     jourDebut = 21,
                     jourFin = 28,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -165,7 +174,8 @@ object OperationsCulturales {
                     conseil = "Les radis éclaircis peuvent être mangés en primeur.",
                     jourDebut = 10,
                     jourFin = 14,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -178,7 +188,8 @@ object OperationsCulturales {
                     conseil = "Les jeunes pousses éclaircies se mangent en salade.",
                     jourDebut = 21,
                     jourFin = 30,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -191,7 +202,8 @@ object OperationsCulturales {
                     conseil = "Raccourcir les racines et la pointe des feuilles avant repiquage pour favoriser la reprise.",
                     jourDebut = 60,
                     jourFin = 70,
-                    couleurHex = COULEUR_PLANTATION
+                    couleurHex = COULEUR_PLANTATION,
+                    outilsRequis = listOf("plantoir", "gants")
                 ),
                 OperationCulturale(
                     nom = "Buttage",
@@ -200,7 +212,8 @@ object OperationsCulturales {
                     conseil = "Butter tous les 15 jours environ, jusqu'à mi-octobre.",
                     jourDebut = 90,
                     jourFin = 150,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("serfouette")
                 )
             )
             
@@ -213,7 +226,8 @@ object OperationsCulturales {
                     conseil = "Arroser le matin, au pied, pour éviter les maladies.",
                     jourDebut = 7,
                     jourFin = 60,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("arrosoir")
                 )
             )
             
@@ -226,7 +240,8 @@ object OperationsCulturales {
                     conseil = "Butter quand les plants font 20 cm environ.",
                     jourDebut = 21,
                     jourFin = 28,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("serfouette", "binette")
                 )
             )
             
@@ -239,7 +254,8 @@ object OperationsCulturales {
                     conseil = "Placer les rames avant que les pois ne s'affalent.",
                     jourDebut = 30,
                     jourFin = 40,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("rames_filets")
                 )
             )
             
@@ -252,7 +268,8 @@ object OperationsCulturales {
                     conseil = "Pincer la sommité quand 5-6 gousses sont formées pour concentrer la sève.",
                     jourDebut = 30,
                     jourFin = 45,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Pincement",
@@ -261,7 +278,8 @@ object OperationsCulturales {
                     conseil = "Garder 5-6 étages de gousses.",
                     jourDebut = 60,
                     jourFin = 70,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -274,7 +292,8 @@ object OperationsCulturales {
                     conseil = "Les concombres au sol attrapent plus de maladies.",
                     jourDebut = 15,
                     jourFin = 21,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("rames_filets", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Taille",
@@ -283,7 +302,8 @@ object OperationsCulturales {
                     conseil = "Tailler les pousses latérales après 2 feuilles et 1 fruit.",
                     jourDebut = 30,
                     jourFin = 45,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -296,7 +316,8 @@ object OperationsCulturales {
                     conseil = "Ne pas arroser le feuillage pour éviter l'oïdium.",
                     jourDebut = 15,
                     jourFin = 21,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("paillage", "gants")
                 )
             )
             
@@ -309,7 +330,8 @@ object OperationsCulturales {
                     conseil = "Conserver 2-3 ramifications principales.",
                     jourDebut = 21,
                     jourFin = 28,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "2e taille",
@@ -318,7 +340,8 @@ object OperationsCulturales {
                     conseil = "Supprimer les fleurs mâles pour concentrer l'énergie.",
                     jourDebut = 45,
                     jourFin = 55,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Paillage",
@@ -327,7 +350,8 @@ object OperationsCulturales {
                     conseil = "Mettre une tuile ou une planche sous chaque melon.",
                     jourDebut = 60,
                     jourFin = 70,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("paillage")
                 )
             )
             
@@ -340,7 +364,8 @@ object OperationsCulturales {
                     conseil = "Installer le tuteur à la plantation ou peu après.",
                     jourDebut = 15,
                     jourFin = 21,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Effeuillage",
@@ -349,7 +374,8 @@ object OperationsCulturales {
                     conseil = "Ne garder qu'une tige principale et 2-3 ramifications.",
                     jourDebut = 45,
                     jourFin = 60,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -362,7 +388,8 @@ object OperationsCulturales {
                     conseil = "Utiliser des tuteurs discrets pour ne pas abîmer les racines.",
                     jourDebut = 15,
                     jourFin = 21,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
                 )
             )
             
@@ -375,7 +402,8 @@ object OperationsCulturales {
                     conseil = "Utiliser un voile anti-insectes dès la plantation pour éviter les pontes.",
                     jourDebut = 15,
                     jourFin = 60,
-                    couleurHex = COULEUR_TRAITEMENT
+                    couleurHex = COULEUR_TRAITEMENT,
+                    outilsRequis = listOf("voile_anti_insectes")
                 ),
                 OperationCulturale(
                     nom = "Buttage",
@@ -384,7 +412,8 @@ object OperationsCulturales {
                     conseil = "Butter quand les plants font 30 cm environ.",
                     jourDebut = 30,
                     jourFin = 45,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("serfouette", "binette")
                 )
             )
             
@@ -397,7 +426,8 @@ object OperationsCulturales {
                     conseil = "Laisser quelques stolons si on veut multiplier les plants.",
                     jourDebut = 30,
                     jourFin = 90,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Paillage",
@@ -406,7 +436,8 @@ object OperationsCulturales {
                     conseil = "Paille de blé ou copeaux de lin.",
                     jourDebut = 60,
                     jourFin = 75,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("paillage")
                 )
             )
             
@@ -445,7 +476,8 @@ object OperationsCulturales {
                     conseil = "Récolter régulièrement le haut des tiges pour stimuler la croissance.",
                     jourDebut = 30,
                     jourFin = 120,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
@@ -457,7 +489,8 @@ object OperationsCulturales {
                     conseil = "Planter la menthe dans un pot enterré pour limiter son expansion.",
                     jourDebut = 60,
                     jourFin = 120,
-                    couleurHex = COULEUR_TAILLE
+                    couleurHex = COULEUR_TAILLE,
+                    outilsRequis = listOf("beche", "gants")
                 )
             )
             
@@ -469,7 +502,8 @@ object OperationsCulturales {
                     conseil = "À faire au printemps ou à l'automne.",
                     jourDebut = 365,
                     jourFin = 400,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("beche", "gants")
                 )
             )
             
@@ -482,7 +516,8 @@ object OperationsCulturales {
                     conseil = "Pour certaines (souci, capucine), laisser quelques fleurs monter en graines pour un ressemis spontané.",
                     jourDebut = 60,
                     jourFin = 150,
-                    couleurHex = COULEUR_ENTRETIEN
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur")
                 )
             )
             
