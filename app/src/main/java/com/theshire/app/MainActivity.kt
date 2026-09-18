@@ -1,3 +1,5 @@
+package com.theshire.app
+
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
@@ -15,7 +17,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
@@ -146,9 +147,15 @@ class MainActivity : ComponentActivity() {
         OutilsApp.initialiser(this)
         
         setContent { PotagerShireTheme { MainScreen() } }
-        planifierNotifications()
+        // planifierNotifications()  // ← Désactivé temporairement (problème NotificationReceiver)
     }
     
+    // ===================================================================
+    // FONCTION TEMPORAIREMENT DÉSACTIVÉE
+    // Raison : NotificationReceiver n'est pas résolu à la compilation.
+    // À réactiver une fois le problème résolu.
+    // ===================================================================
+    /*
     private fun planifierNotifications() {
         val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
         val intent1 = android.content.Intent(this, NotificationReceiver::class.java).putExtra("type", "arrosage")
@@ -160,6 +167,7 @@ class MainActivity : ComponentActivity() {
         val cal2 = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 8); set(Calendar.MINUTE, 0); if (before(Calendar.getInstance())) add(Calendar.DAY_OF_MONTH, 1) }
         alarmManager.setRepeating(android.app.AlarmManager.RTC_WAKEUP, cal2.timeInMillis, android.app.AlarmManager.INTERVAL_DAY, pending2)
     }
+    */
 }
 
 object ImageLoaderProvider {
@@ -1015,7 +1023,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
         val op = operationSelectionnee!!
         val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE)
         
-        // Récupérer les outils requis depuis OperationsCulturales
         val operationCulturale = remember(op.typeOperation, op.legumeNom) {
             OperationsCulturales.getOperationsPourLegume(op.legumeNom).find { it.nom == op.typeOperation }
         }
@@ -1049,7 +1056,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         }
                     }
                     
-                    // ===== OUTILS REQUIS =====
                     if (outilsRequis.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("🛠️ Outils nécessaires :", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal, style = MaterialTheme.typography.bodySmall)
