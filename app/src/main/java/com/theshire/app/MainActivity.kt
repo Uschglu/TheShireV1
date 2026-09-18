@@ -890,7 +890,9 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
             item { Button(onClick = { calculer() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Analyser") } }
             if (typeSol.isNotEmpty()) item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Text(typeSol, modifier = Modifier.padding(20.dp), fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) } }
         }
-        
+    }
+}
+
 // ============== CALENDRIER ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1962,6 +1964,4 @@ fun getDensiteFromPlantation(legume: LegumeEntity): Int {
 fun getDistanceEntrePlants(legume: LegumeEntity): String {
     val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) cm entre plants").find(legume.plantation)
     return match?.groupValues?.get(1) ?: "20"
-}
-    }
 }
