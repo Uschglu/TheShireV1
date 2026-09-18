@@ -1,5 +1,3 @@
-package com.theshire.app
-
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Context
@@ -7,7 +5,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -85,6 +82,7 @@ import com.theshire.app.ui.AdventiceRepository
 import com.theshire.app.ui.EcranOutils
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.OperationsCulturales
 import com.theshire.app.ui.Outil
 import com.theshire.app.ui.Outils
 import com.theshire.app.ui.ParametresScreen
