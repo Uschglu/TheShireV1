@@ -80,6 +80,7 @@ import com.theshire.app.data.ThemePreferences
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.data.BrandingApp
 import com.theshire.app.ui.AdventiceRepository
+import com.theshire.app.ui.EcranAgricultureUrbaine
 import com.theshire.app.ui.EcranOutils
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
@@ -398,7 +399,8 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Le bouton ⚙️ en haut à droite donne accès aux paramètres.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Planches, Agriculture urbaine (nouveau !), Analyse du sol.") } }
+                item { Column { Text("🏙️ Agriculture urbaine", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Conseils, matériel et plantes adaptés à la culture en balcon, terrasse ou intérieur.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale : remplir tout le m² ou juste cette case.") } }
                 item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise.") } }
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Opérations culturales automatiques affichées en barres ←→.") } }
@@ -560,11 +562,57 @@ fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
 fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("planches") }
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = if (selectedOnglet == "planches") 0 else 1, containerColor = CouleursApp.VertPrincipal, contentColor = Color.White) {
-            Tab(selected = selectedOnglet == "planches", onClick = { selectedOnglet = "planches" }, text = { Text("🌱 Planches", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "planches") Color.White else Color.White.copy(alpha = 0.6f)) })
-            Tab(selected = selectedOnglet == "analyse", onClick = { selectedOnglet = "analyse" }, text = { Text("🔬 Analyse du sol", fontWeight = FontWeight.Bold, color = if (selectedOnglet == "analyse") Color.White else Color.White.copy(alpha = 0.6f)) })
+        TabRow(
+            selectedTabIndex = when (selectedOnglet) {
+                "planches" -> 0
+                "urbain" -> 1
+                else -> 2
+            },
+            containerColor = CouleursApp.VertPrincipal,
+            contentColor = Color.White
+        ) {
+            Tab(
+                selected = selectedOnglet == "planches",
+                onClick = { selectedOnglet = "planches" },
+                text = {
+                    Text(
+                        "🌱 Planches",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedOnglet == "planches") Color.White else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedOnglet == "urbain",
+                onClick = { selectedOnglet = "urbain" },
+                text = {
+                    Text(
+                        "🏙️ Urbain",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedOnglet == "urbain") Color.White else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedOnglet == "analyse",
+                onClick = { selectedOnglet = "analyse" },
+                text = {
+                    Text(
+                        "🔬 Sol",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedOnglet == "analyse") Color.White else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            )
         }
-        if (selectedOnglet == "planches") JardinPlanchesScreen(onBack) else AnalyseSolScreen(onBack)
+        when (selectedOnglet) {
+            "planches" -> JardinPlanchesScreen(onBack)
+            "urbain" -> EcranAgricultureUrbaine()
+            else -> AnalyseSolScreen(onBack)
+        }
     }
 }
 
@@ -842,9 +890,7 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
             item { Button(onClick = { calculer() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Analyser") } }
             if (typeSol.isNotEmpty()) item { Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)) { Text(typeSol, modifier = Modifier.padding(20.dp), fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce) } }
         }
-    }
-}
-
+        
 // ============== CALENDRIER ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1916,4 +1962,6 @@ fun getDensiteFromPlantation(legume: LegumeEntity): Int {
 fun getDistanceEntrePlants(legume: LegumeEntity): String {
     val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) cm entre plants").find(legume.plantation)
     return match?.groupValues?.get(1) ?: "20"
+}
+    }
 }
