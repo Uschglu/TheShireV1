@@ -100,6 +100,20 @@ object Outils {
                 conseil = "Binez par temps sec : les adventices sèchent et ne repoussent pas."
             ),
             Outil(
+                id = "brise_vent",
+                nom = "Brise-vent / Canisse",
+                emoji = "🎋",
+                description = "Canisse en bambou, filet brise-vue ou toile ajourée pour filtrer le vent.",
+                tuto = listOf(
+                    "Fixez sur la rambarde ou en hauteur",
+                    "Choisissez un modèle ajouré (l'air doit passer)",
+                    "Évitez les barrières pleines (créent des turbulences)",
+                    "Fixez solidement face aux vents dominants",
+                    "Nettoyez 1 fois par an"
+                ),
+                conseil = "Un brise-vent ajouré filtre le vent sans créer de turbulences. Indispensable en étage."
+            ),
+            Outil(
                 id = "brouette",
                 nom = "Brouette",
                 emoji = "🛒",
@@ -219,6 +233,62 @@ object Outils {
                 conseil = "Utile surtout pour l'intérieur (plantes d'appartement) et les serres."
             ),
             Outil(
+                id = "kit_goutte_a_goutte",
+                nom = "Kit goutte-à-goutte",
+                emoji = "💧",
+                description = "Système d'arrosage automatique pour pots et jardinières.",
+                tuto = listOf(
+                    "Déroulez le tuyau le long de vos pots",
+                    "Posez un goutteur au pied de chaque plante",
+                    "Branchez sur un robinet ou une pompe",
+                    "Réglez le débit (1 à 2 gouttes par seconde)",
+                    "Testez pendant 24h avant de partir en vacances"
+                ),
+                conseil = "Économie d'eau de 50-70%. Indispensable pour les absences et les balcons exposés plein sud."
+            ),
+            Outil(
+                id = "lampe_led_horticole",
+                nom = "Lampe LED horticole",
+                emoji = "💡",
+                description = "Éclairage artificiel spécial plantes (spectre rouge/bleu) pour l'intérieur.",
+                tuto = listOf(
+                    "Placez la lampe à 20-30 cm au-dessus des plantes",
+                    "Allumez 12-14h par jour en hiver",
+                    "Réduisez en été si les plantes reçoivent du soleil naturel",
+                    "Nettoyez régulièrement l'ampoule",
+                    "Ajustez la hauteur selon la croissance"
+                ),
+                conseil = "Choisissez un spectre complet (blanc + rouge + bleu) pour un usage polyvalent."
+            ),
+            Outil(
+                id = "minuteur_led",
+                nom = "Minuteur programmable",
+                emoji = "⏲️",
+                description = "Prise programmable qui gère automatiquement l'allumage des lampes.",
+                tuto = listOf(
+                    "Branchez le minuteur sur la prise murale",
+                    "Branchez la lampe sur le minuteur",
+                    "Programmez 12-16h d'éclairage par jour",
+                    "Évitez d'éclairer la nuit (perturbe les plantes)",
+                    "Vérifiez régulièrement le réglage"
+                ),
+                conseil = "Indispensable avec une lampe horticole : simule une journée naturelle."
+            ),
+            Outil(
+                id = "oya",
+                nom = "Oya (pot en terre cuite poreuse)",
+                emoji = "🏺",
+                description = "Pot en terre cuite non verni à enterrer, qui diffuse l'eau lentement.",
+                tuto = listOf(
+                    "Enterrez l'oya aux 2/3 près de la plante",
+                    "Remplissez-le d'eau",
+                    "Bouchez l'ouverture avec le couvercle",
+                    "Rechargez tous les 1-2 semaines en été",
+                    "Nettoyez entre deux saisons"
+                ),
+                conseil = "Système ancestral très efficace. Diffuse l'eau selon les besoins réels de la plante."
+            ),
+            Outil(
                 id = "paillage",
                 nom = "Paillage",
                 emoji = "🌾",
@@ -257,6 +327,20 @@ object Outils {
                     "Rebouchez et tassez légèrement autour"
                 ),
                 conseil = "Pour les bulbes : enterrez-les à 2-3 fois leur hauteur."
+            ),
+            Outil(
+                id = "programmateur_arrosage",
+                nom = "Programmateur d'arrosage",
+                emoji = "⏰",
+                description = "Se branche sur le robinet et déclenche l'arrosage automatiquement.",
+                tuto = listOf(
+                    "Branchez sur le robinet",
+                    "Programmez 1 à 2 arrosages par jour en été",
+                    "Réduisez à 1 arrosage tous les 3 jours en hiver",
+                    "Vérifiez régulièrement les piles",
+                    "Contrôlez le bon fonctionnement"
+                ),
+                conseil = "Modèles solaires ou à pile. Vérifiez le fonctionnement avant chaque départ en vacances."
             ),
             Outil(
                 id = "pulverisateur",
@@ -326,6 +410,20 @@ object Outils {
                 conseil = "Indispensable pour butter les pommes de terre et les poireaux."
             ),
             Outil(
+                id = "testeur_ph_humidite",
+                nom = "Testeur pH / humidité",
+                emoji = "📊",
+                description = "Appareil qui mesure le pH et l'humidité du terreau.",
+                tuto = listOf(
+                    "Enfoncez la sonde dans le terreau",
+                    "Attendez 1-2 minutes",
+                    "Lisez le pH et l'humidité",
+                    "Ajustez l'arrosage selon l'humidité",
+                    "Corrigez le pH si nécessaire (terreau trop acide/basique)"
+                ),
+                conseil = "La plupart des légumes aiment un pH entre 6 et 7. Utile pour détecter les carences."
+            ),
+            Outil(
                 id = "transplantoir",
                 nom = "Transplantoir",
                 emoji = "🥄",
@@ -377,6 +475,20 @@ object Outils {
                     "Soulevez-le pour arroser et désherber"
                 ),
                 conseil = "À poser dès la plantation. Très efficace contre la mouche de la carotte et la piéride du chou."
+            ),
+            Outil(
+                id = "voile_hivernage",
+                nom = "Voile d'hivernage",
+                emoji = "❄️",
+                description = "Toile non tissée qui protège les plantes du gel (jusqu'à -5°C en P17, -8°C en P30).",
+                tuto = listOf(
+                    "Posez avant les premières gelées",
+                    "Enveloppez les pots ou posez sur les plantes",
+                    "Retirez la journée pour aérer",
+                    "Remettez le soir si gel annoncé",
+                    "Retirez définitivement au printemps"
+                ),
+                conseil = "Choisissez P17 pour un gel léger, P30 pour un froid plus marqué. Ne jamais laisser en permanence."
             )
         )
     }
