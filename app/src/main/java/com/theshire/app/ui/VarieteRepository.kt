@@ -1476,7 +1476,423 @@ class VarieteRepository(context: Context) {
                 plantation = "Semis direct",
                 recolte = "Juin à septembre",
                 entretien = "Éclaircir, arroser",
-                particularites = "Intense, parfumé"
+                                particularites = "Intense, parfumé"
+            ),
+
+            // ===== BLETTE =====
+            VarieteEntity(
+                legumeParent = "Blette",
+                nom = "Verte à carde blanche",
+                description = "Variété classique, cardes blanches larges et feuilles vertes.",
+                semis = "Mars à juillet",
+                plantation = "Semis direct ou repiquage, 30x40 cm",
+                recolte = "Juillet à novembre",
+                entretien = "Arrosage régulier, éclaircir à 30 cm",
+                particularites = "Rustique, résiste au froid jusqu'à -5°C. Productive sur sols frais et riches."
+            ),
+            VarieteEntity(
+                legumeParent = "Blette",
+                nom = "Race de Nice",
+                description = "Cardes blanches larges, feuilles vert foncé.",
+                semis = "Mars à juillet",
+                plantation = "Semis direct ou repiquage, 30x40 cm",
+                recolte = "Juillet à novembre",
+                entretien = "Arroser régulièrement",
+                particularites = "Très productive, résiste à la chaleur. Sol frais et riche."
+            ),
+            VarieteEntity(
+                legumeParent = "Blette",
+                nom = "Race d'Ampuis",
+                description = "Variété ancienne, cardes fines et tendres.",
+                semis = "Mars à juillet",
+                plantation = "Semis direct ou repiquage, 30x40 cm",
+                recolte = "Juillet à novembre",
+                entretien = "Arroser régulièrement, pailler",
+                particularites = "Saveur fine, rustique. Résiste bien au froid."
+            ),
+            VarieteEntity(
+                legumeParent = "Blette",
+                nom = "Rhubarb Chard",
+                description = "Cardes rouges vives, feuilles vertes à nervures rouges.",
+                semis = "Mars à juillet",
+                plantation = "Semis direct ou repiquage, 30x40 cm",
+                recolte = "Juillet à novembre",
+                entretien = "Arroser régulièrement",
+                particularites = "Décorative, riche en bétalaïne. Résiste au gel léger."
+            ),
+            VarieteEntity(
+                legumeParent = "Blette",
+                nom = "Bright Lights",
+                description = "Mélange multicolore : cardes jaunes, roses, rouges, orange.",
+                semis = "Mars à juillet",
+                plantation = "Semis direct ou repiquage, 30x40 cm",
+                recolte = "Juillet à novembre",
+                entretien = "Arroser régulièrement, éclaircir",
+                particularites = "Très décorative au potager. Rustique et productive."
+            ),
+
+            // ===== CAPUCINE =====
+            VarieteEntity(
+                legumeParent = "Capucine",
+                nom = "Tom Pouce",
+                description = "Variété naine, fleurs jaunes et orangées.",
+                semis = "Avril à juin",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Aucun entretien particulier",
+                particularites = "Naine, parfaite en bordure. Plante piège à pucerons."
+            ),
+            VarieteEntity(
+                legumeParent = "Capucine",
+                nom = "Cherry Rose",
+                description = "Naine, fleurs rose cerise, compacte.",
+                semis = "Avril à juin",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Arroser modérément",
+                particularites = "Compacte, idéale en pot. Fleurs comestibles."
+            ),
+            VarieteEntity(
+                legumeParent = "Capucine",
+                nom = "De Lobb Spitfire",
+                description = "Grimpante, fleurs rouge orangé vif.",
+                semis = "Avril à juin",
+                plantation = "Semis direct, 40x50 cm",
+                recolte = "Juin à octobre",
+                entretien = "Tuteurer ou laisser grimper",
+                particularites = "Grimpante vigoureuse, attire les pollinisateurs."
+            ),
+            VarieteEntity(
+                legumeParent = "Capucine",
+                nom = "Jewel of Africa",
+                description = "Grimpante, feuillage panaché blanc et vert.",
+                semis = "Avril à juin",
+                plantation = "Semis direct, 40x50 cm",
+                recolte = "Juin à octobre",
+                entretien = "Arroser modérément",
+                particularites = "Feuillage panaché décoratif. Fleurs jaune-rouge."
+            ),
+            VarieteEntity(
+                legumeParent = "Capucine",
+                nom = "Impératrice des Indes",
+                description = "Grimpante, fleurs doubles rouges écarlates.",
+                semis = "Avril à juin",
+                plantation = "Semis direct, 40x50 cm",
+                recolte = "Juin à octobre",
+                entretien = "Tuteurer, arroser modérément",
+                particularites = "Fleurs doubles spectaculaires. Plante médicinale."
+            ),
+
+            // ===== CARDON =====
+            VarieteEntity(
+                legumeParent = "Cardon",
+                nom = "Vert de Vaulx-en-Velin",
+                description = "Cardes vertes, larges, très tendres.",
+                semis = "Avril à mai",
+                plantation = "Repiquage en juin, 80x100 cm",
+                recolte = "Octobre à décembre",
+                entretien = "Butter, blanchir les côtes",
+                particularites = "Variété de référence, très rustique."
+            ),
+            VarieteEntity(
+                legumeParent = "Cardon",
+                nom = "Plein blanc inerme",
+                description = "Cardes blanches, sans épines, tendres.",
+                semis = "Avril à mai",
+                plantation = "Repiquage en juin, 80x100 cm",
+                recolte = "Octobre à décembre",
+                entretien = "Butter, blanchir",
+                particularites = "Sans épines, facile à manipuler. Rustique."
+            ),
+            VarieteEntity(
+                legumeParent = "Cardon",
+                nom = "Épineux argenté de Plainpalais",
+                description = "Cardes argentées, épineuses, chair fine.",
+                semis = "Avril à mai",
+                plantation = "Repiquage en juin, 80x100 cm",
+                recolte = "Octobre à décembre",
+                entretien = "Butter, blanchir",
+                particularites = "Saveur fine, mais épines à manipuler avec gants."
+            ),
+            VarieteEntity(
+                legumeParent = "Cardon",
+                nom = "Rouge d'Alger",
+                description = "Cardes rouges, décoratives, tendres.",
+                semis = "Avril à mai",
+                plantation = "Repiquage en juin, 80x100 cm",
+                recolte = "Octobre à décembre",
+                entretien = "Butter, blanchir les côtes",
+                particularites = "Décoratif au potager. Résiste bien au froid."
+            ),
+            VarieteEntity(
+                legumeParent = "Cardon",
+                nom = "Plein blanc amélioré",
+                description = "Sélection récente, cardes larges et tendres.",
+                semis = "Avril à mai",
+                plantation = "Repiquage en juin, 80x100 cm",
+                recolte = "Octobre à décembre",
+                entretien = "Butter, arroser abondamment",
+                particularites = "Amélioration du Plein blanc inerme. Productif."
+            ),
+
+            // ===== CERFEUIL TUBÉREUX =====
+            VarieteEntity(
+                legumeParent = "Cerfeuil tubéreux",
+                nom = "Doléane",
+                description = "Variété sélectionnée, racines régulières, chair fine.",
+                semis = "Octobre à novembre",
+                plantation = "Semis direct, 15x30 cm",
+                recolte = "Juillet à septembre",
+                entretien = "Pailler, désherber",
+                particularites = "Sélection récente, bonne conservation. Goût de châtaigne."
+            ),
+            VarieteEntity(
+                legumeParent = "Cerfeuil tubéreux",
+                nom = "Altan",
+                description = "Variété productive, racines allongées.",
+                semis = "Octobre à novembre",
+                plantation = "Semis direct, 15x30 cm",
+                recolte = "Juillet à septembre",
+                entretien = "Pailler, arroser modérément",
+                particularites = "Productive, goût fin. Idéale gastronomie."
+            ),
+            VarieteEntity(
+                legumeParent = "Cerfeuil tubéreux",
+                nom = "Sativa",
+                description = "Sélection Semences Partagées, rustique.",
+                semis = "Octobre à novembre",
+                plantation = "Semis direct, 15x30 cm",
+                recolte = "Juillet à septembre",
+                entretien = "Pailler, désherber",
+                particularites = "Variété de conservation, goût intense."
+            ),
+            VarieteEntity(
+                legumeParent = "Cerfeuil tubéreux",
+                nom = "Dreschflegel",
+                description = "Variété allemande rustique.",
+                semis = "Octobre à novembre",
+                plantation = "Semis direct, 15x30 cm",
+                recolte = "Juillet à septembre",
+                entretien = "Pailler, arroser",
+                particularites = "Très rustique, bonne adaptation sols lourds."
+            ),
+            VarieteEntity(
+                legumeParent = "Cerfeuil tubéreux",
+                nom = "Danemark",
+                description = "Variété nordique, résistante au froid.",
+                semis = "Octobre à novembre",
+                plantation = "Semis direct, 15x30 cm",
+                recolte = "Juillet à septembre",
+                entretien = "Pailler, désherber",
+                particularites = "Résiste au gel. Saveur de noisette."
+            ),
+
+            // ===== CHOU FRISÉ (KALE) =====
+            VarieteEntity(
+                legumeParent = "Chou frisé (Kale)",
+                nom = "Moellier",
+                description = "Grande tige, feuilles tendres.",
+                semis = "Mars à juin",
+                plantation = "Avril à juillet, 40x60 cm",
+                recolte = "Septembre à mars",
+                entretien = "Pailler, arroser, voile anti-insectes",
+                particularites = "Rustique jusqu'à -15°C. Idéal fourrage ou cuisine."
+            ),
+            VarieteEntity(
+                legumeParent = "Chou frisé (Kale)",
+                nom = "Demi-moellier",
+                description = "Tige moyenne, feuilles frisées.",
+                semis = "Mars à juin",
+                plantation = "Avril à juillet, 40x60 cm",
+                recolte = "Septembre à mars",
+                entretien = "Pailler, arroser",
+                particularites = "Bon compromis tige/feuilles. Résiste au gel."
+            ),
+            VarieteEntity(
+                legumeParent = "Chou frisé (Kale)",
+                nom = "Cavalier",
+                description = "Tige fine, très feuillu.",
+                semis = "Mars à juin",
+                plantation = "Avril à juillet, 40x60 cm",
+                recolte = "Septembre à mars",
+                entretien = "Pailler, voile anti-insectes",
+                particularites = "Idéal pour récolte de feuilles tendres."
+            ),
+            VarieteEntity(
+                legumeParent = "Chou frisé (Kale)",
+                nom = "Miller-tête",
+                description = "Port branchu, nombreuses petites feuilles.",
+                semis = "Mars à juin",
+                plantation = "Avril à juillet, 40x60 cm",
+                recolte = "Septembre à mars",
+                entretien = "Pailler, arroser",
+                particularites = "Port buissonnant, productif. Très rustique."
+            ),
+            VarieteEntity(
+                legumeParent = "Chou frisé (Kale)",
+                nom = "Rouge",
+                description = "Feuillage rouge pourpre, décoratif.",
+                semis = "Mars à juin",
+                plantation = "Avril à juillet, 40x60 cm",
+                recolte = "Septembre à mars",
+                entretien = "Pailler, arroser",
+                particularites = "Décoratif au potager. Riche en anthocyanes."
+            ),
+
+            // ===== FRAISIER =====
+            VarieteEntity(
+                legumeParent = "Fraisier",
+                nom = "Gariguette",
+                description = "Fraise allongée, rouge vif, très parfumée.",
+                semis = "Mars à mai ou août à septembre",
+                plantation = "30x50 cm",
+                recolte = "Mai à juin",
+                entretien = "Pailler, supprimer les stolons",
+                particularites = "Précoce, la plus appréciée en France. Saveur intense."
+            ),
+            VarieteEntity(
+                legumeParent = "Fraisier",
+                nom = "Cléry",
+                description = "Fraise conique, rouge brillant, sucrée.",
+                semis = "Mars à mai ou août à septembre",
+                plantation = "30x50 cm",
+                recolte = "Mai à juin",
+                entretien = "Pailler, arroser régulièrement",
+                particularites = "Précoce, résistante aux maladies."
+            ),
+            VarieteEntity(
+                legumeParent = "Fraisier",
+                nom = "Ciflorette",
+                description = "Fraise allongée, orange-rouge, très sucrée.",
+                semis = "Mars à mai ou août à septembre",
+                plantation = "30x50 cm",
+                recolte = "Mai à juillet",
+                entretien = "Pailler, supprimer les stolons",
+                particularites = "Saveur exceptionnelle. Résistante à l'oïdium."
+            ),
+            VarieteEntity(
+                legumeParent = "Fraisier",
+                nom = "Charlotte",
+                description = "Fraise conique, rouge foncé, parfumée.",
+                semis = "Mars à mai ou août à septembre",
+                plantation = "30x50 cm",
+                recolte = "Juin à juillet",
+                entretien = "Pailler, arroser",
+                particularites = "Saveur équilibrée. Bonne conservation."
+            ),
+            VarieteEntity(
+                legumeParent = "Fraisier",
+                nom = "Mara des bois",
+                description = "Fraise des bois, petite, très parfumée.",
+                semis = "Mars à mai ou août à septembre",
+                plantation = "30x50 cm",
+                recolte = "Juin à septembre",
+                entretien = "Pailler, arroser régulièrement",
+                particularites = "Remontante, production étalée. Saveur sauvage."
+            ),
+
+            // ===== FÈVE =====
+            VarieteEntity(
+                legumeParent = "Fève",
+                nom = "Fève des marais",
+                description = "Gousse longue, grains moyens, rustique.",
+                semis = "Octobre à novembre ou février à mars",
+                plantation = "Semis direct, 20x50 cm",
+                recolte = "Mai à juillet",
+                entretien = "Tuteurer, pincer les sommités",
+                particularites = "Très rustique. Résiste au gel. Productive."
+            ),
+            VarieteEntity(
+                legumeParent = "Fève",
+                nom = "Aguadulce",
+                description = "Gousse longue, grains charnus, très productive.",
+                semis = "Octobre à novembre ou février à mars",
+                plantation = "Semis direct, 20x50 cm",
+                recolte = "Mai à juillet",
+                entretien = "Tuteurer, arroser",
+                particularites = "Très productive, précoce. Idéale potager familial."
+            ),
+            VarieteEntity(
+                legumeParent = "Fève",
+                nom = "Ite Beryl",
+                description = "Variété récente, très productive.",
+                semis = "Octobre à novembre ou février à mars",
+                plantation = "Semis direct, 20x50 cm",
+                recolte = "Mai à juillet",
+                entretien = "Tuteurer, pincer",
+                particularites = "Sélection moderne. Résistante aux maladies."
+            ),
+            VarieteEntity(
+                legumeParent = "Fève",
+                nom = "Séville",
+                description = "Longues gousses, grains tendres.",
+                semis = "Octobre à novembre ou février à mars",
+                plantation = "Semis direct, 20x50 cm",
+                recolte = "Mai à juillet",
+                entretien = "Tuteurer, arroser",
+                particularites = "Variété ancienne, goût prononcé."
+            ),
+            VarieteEntity(
+                legumeParent = "Fève",
+                nom = "Précoce d'Aquitaine",
+                description = "Précoce, grains tendres.",
+                semis = "Octobre à novembre ou février à mars",
+                plantation = "Semis direct, 20x50 cm",
+                recolte = "Mai à juin",
+                entretien = "Tuteurer, pincer les sommités",
+                particularites = "Précoce, idéale régions douces."
+            ),
+
+            // ===== COSMOS =====
+            VarieteEntity(
+                legumeParent = "Cosmos",
+                nom = "Sonata",
+                description = "Nain, fleurs blanches, roses ou pourpres.",
+                semis = "Avril à mai",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Supprimer les fleurs fanées",
+                particularites = "Nain, compact. Idéal bordure. Attire les pollinisateurs."
+            ),
+            VarieteEntity(
+                legumeParent = "Cosmos",
+                nom = "Cosmic",
+                description = "Fleurs jaune orangé, originales.",
+                semis = "Avril à mai",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Tuteurer si nécessaire",
+                particularites = "Couleur jaune orangé peu courante. Productif."
+            ),
+            VarieteEntity(
+                legumeParent = "Cosmos",
+                nom = "Sunny Gold",
+                description = "Fleurs jaune d'or, semi-doubles.",
+                semis = "Avril à mai",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Supprimer les fleurs fanées",
+                particularites = "Couleur dorée lumineuse. Très florifère."
+            ),
+            VarieteEntity(
+                legumeParent = "Cosmos",
+                nom = "Sunny Red",
+                description = "Fleurs rouge orangé, semi-doubles.",
+                semis = "Avril à mai",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Arroser modérément",
+                particularites = "Rouge orangé vif. Résiste à la sécheresse."
+            ),
+            VarieteEntity(
+                legumeParent = "Cosmos",
+                nom = "Polidor",
+                description = "Fleurs orange, variété ancienne.",
+                semis = "Avril à mai",
+                plantation = "Semis direct, 30x40 cm",
+                recolte = "Juin à octobre",
+                entretien = "Tuteurer, arroser",
+                particularites = "Variété ancienne, très florifère. Rustique."
             )
         )
     }
