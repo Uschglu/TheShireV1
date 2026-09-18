@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.theshire.app.InfoCard
 import com.theshire.app.data.AgricultureUrbaine
 import com.theshire.app.data.ConseilUrbain
 import com.theshire.app.data.MaterielUrbain
@@ -370,20 +371,13 @@ fun OngletMaterielUrbain() {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                // Bouton "Tous"
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    FilterChip(
-                        selected = categorieSelectionnee == null,
-                        onClick = { categorieSelectionnee = null },
-                        label = { Text("Tous", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
-                        modifier = Modifier.padding(vertical = 2.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-                // Boutons catégories
+                FilterChip(
+                    selected = categorieSelectionnee == null,
+                    onClick = { categorieSelectionnee = null },
+                    label = { Text("Tous", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                    modifier = Modifier.padding(vertical = 2.dp),
+                    shape = RoundedCornerShape(16.dp)
+                )
                 categories.forEach { cat ->
                     FilterChip(
                         selected = categorieSelectionnee == cat,
@@ -645,14 +639,13 @@ fun OngletPlantesUrbaines() {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FilterChip(
-                        selected = milieuFiltre == null,
-                        onClick = { milieuFiltre = null },
-                        label = { Text("Tous", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
+                FilterChip(
+                    selected = milieuFiltre == null,
+                    onClick = { milieuFiltre = null },
+                    label = { Text("Tous", fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                    modifier = Modifier.padding(vertical = 2.dp),
+                    shape = RoundedCornerShape(16.dp)
+                )
                 FilterChip(
                     selected = milieuFiltre == "Balcon",
                     onClick = { milieuFiltre = if (milieuFiltre == "Balcon") null else "Balcon" },
