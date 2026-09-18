@@ -137,25 +137,14 @@ class MainActivity : ComponentActivity() {
         }
         if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), 1000)
         
-        // Charger le thème depuis les préférences
         CouleursApp.changerModeSombre(ThemePreferences.chargerModeSombre(this))
-        
-        // Charger le branding depuis les préférences
         BrandingApp.initialiser(this)
-        
-        // Charger les outils possédés depuis les préférences
         OutilsApp.initialiser(this)
         
         setContent { PotagerShireTheme { MainScreen() } }
-        // planifierNotifications()  // ← Désactivé temporairement (problème NotificationReceiver)
+        planifierNotifications()
     }
     
-    // ===================================================================
-    // FONCTION TEMPORAIREMENT DÉSACTIVÉE
-    // Raison : NotificationReceiver n'est pas résolu à la compilation.
-    // À réactiver une fois le problème résolu.
-    // ===================================================================
-    /*
     private fun planifierNotifications() {
         val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
         val intent1 = android.content.Intent(this, NotificationReceiver::class.java).putExtra("type", "arrosage")
@@ -167,7 +156,6 @@ class MainActivity : ComponentActivity() {
         val cal2 = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 8); set(Calendar.MINUTE, 0); if (before(Calendar.getInstance())) add(Calendar.DAY_OF_MONTH, 1) }
         alarmManager.setRepeating(android.app.AlarmManager.RTC_WAKEUP, cal2.timeInMillis, android.app.AlarmManager.INTERVAL_DAY, pending2)
     }
-    */
 }
 
 object ImageLoaderProvider {
@@ -245,6 +233,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
+    var chargementPrevisions by remember { mutableStateOf(false) }
     var showTuto by remember { mutableStateOf(prefs.getBoolean("tuto_vu_v5", false) == false) }
     val dateFormat = remember { SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRANCE) }
     val phaseLune = remember { luneRepository.getPhaseLune() }
@@ -256,7 +245,25 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         if (uri != null) { try { val f = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg"); context.contentResolver.openInputStream(uri)?.use { input -> f.outputStream().use { output -> input.copyTo(output) } }; prefs.edit().putString("photo_path", f.absolutePath).apply(); imagePath = f.absolutePath } catch (e: Exception) {} }
     }
     
-    LaunchedEffect(Unit) { try { val v = localisationRepository.getVille(); if (v != null) ville = v; meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" }) } catch (e: Exception) {} }
+    LaunchedEffect(Unit) { 
+        try { 
+            val v = localisationRepository.getVille()
+            if (v != null) ville = v
+            meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" })
+        } catch (e: Exception) {} 
+    }
+    
+    LaunchedEffect(showPrevisions) {
+        if (showPrevisions && previsions.isEmpty()) {
+            chargementPrevisions = true
+            try {
+                previsions = meteoRepository.getPrevisions7Jours(ville.ifEmpty { "Paris" })
+            } catch (e: Exception) {
+                previsions = emptyList()
+            }
+            chargementPrevisions = false
+        }
+    }
     
     Scaffold(
         containerColor = CouleursApp.Creme
@@ -286,14 +293,30 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                 }
             }
             
-            Card(modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(28.dp)).clip(RoundedCornerShape(28.dp)).clickable { showPrevisions = true }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(28.dp))
+                    .clickable {
+                        showPrevisions = true
+                        chargementPrevisions = true
+                    },
+                colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)
+            ) {
                 Box(modifier = Modifier.background(Brush.linearGradient(listOf(CouleursApp.VertPale, CouleursApp.Blanc)))) {
                     Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(getEmojiMeteo(meteo), style = MaterialTheme.typography.displayLarge)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            if (meteo != null) { Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(meteo!!.description, color = CouleursApp.TexteFonce) }
-                            else { Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("Météo indisponible", color = CouleursApp.TexteFonce) }
+                            if (meteo != null) { 
+                                Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                                Text(meteo!!.description, color = CouleursApp.TexteFonce) 
+                            }
+                            else { 
+                                Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                                Text("Météo indisponible", color = CouleursApp.TexteFonce) 
+                            }
                             Text(dateFormat.format(Date()), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                             Text("${phaseLune.emoji} ${phaseLune.nom}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
                             if (ville.isNotEmpty()) Text("📍 $ville", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
@@ -324,9 +347,37 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     }
     
     if (showPrevisions) {
-        AlertDialog(onDismissRequest = { showPrevisions = false }, title = { Text("📅 Prévisions 7 jours", fontWeight = FontWeight.Bold) },
-            text = { if (previsions.isEmpty()) Text("Chargement...") else Column { previsions.forEach { p -> Row(modifier = Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text(p.date, fontWeight = FontWeight.Bold); Text(p.emoji); Text("${p.tempMin.toInt()}°/${p.tempMax.toInt()}°") } } } },
-            confirmButton = { TextButton(onClick = { showPrevisions = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } })
+        AlertDialog(
+            onDismissRequest = { showPrevisions = false },
+            title = { Text("📅 Prévisions 7 jours", fontWeight = FontWeight.Bold) },
+            text = {
+                if (chargementPrevisions) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(color = CouleursApp.VertPrincipal, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Chargement...", color = CouleursApp.TexteFonce)
+                    }
+                } else if (previsions.isEmpty()) {
+                    Text("Prévisions indisponibles", color = CouleursApp.TexteFonce)
+                } else {
+                    Column {
+                        previsions.forEach { p ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(p.date, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, modifier = Modifier.weight(1f))
+                                Text(p.emoji, style = MaterialTheme.typography.titleMedium)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("${p.tempMin.toInt()}° / ${p.tempMax.toInt()}°", color = CouleursApp.TexteFonce)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showPrevisions = false }) { Text("Fermer", color = CouleursApp.VertPrincipal) } }
+        )
     }
     
     if (showPhotoDialog) {
@@ -345,17 +396,16 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
             onDismissRequest = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() },
             title = { Text("🌱 Bienvenue dans ${BrandingApp.config.nomApp} !", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Le bouton ⚙️ en haut à droite donne accès aux paramètres (mode sombre, tutoriel, à propos).") } }
+                item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Le bouton ⚙️ en haut à droite donne accès aux paramètres.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes. Les distances de plantation sont automatiquement respectées.") } }
-                item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale d'un carré : un menu vous propose de remplir tout le m² (les 9 cases) avec la même plante, ou juste cette case.") } }
-                item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise association. Les associations tiennent compte des carrés voisins (m² adjacents).") } }
-                item { Column { Text("🔍 Zoom sur les planches", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Pincez à deux doigts sur une planche dépliée pour zoomer et dézoomer. Glissez à deux doigts pour vous déplacer. Un bouton ↺ apparaît pour réinitialiser le zoom.") } }
-                item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Quand vous plantez, des opérations culturales (tuteurage, buttage, éclaircissage...) sont générées automatiquement et affichées sur le calendrier sous forme de barres ←→ sur leur période. Cliquez pour voir les détails et marquer comme fait.") } }
-                item { Column { Text("🛠️ Équipement", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Gérez vos outils de jardinage : ajoutez ceux que vous possédez, consultez les tutos d'utilisation (comment bêcher, tailler...). Les outils manquants apparaissent en rouge dans le calendrier.") } }
-                item { Column { Text("🌿 Adventices = mauvaises herbes", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Les adventices indiquent la nature de votre sol.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Créez des planches et choisissez vos plantes.") } }
+                item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale : remplir tout le m² ou juste cette case.") } }
+                item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise.") } }
+                item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Opérations culturales automatiques affichées en barres ←→.") } }
+                item { Column { Text("🛠️ Équipement", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Gérez vos outils, consultez les tutos.") } }
+                item { Column { Text("🌿 Adventices", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Elles indiquent la nature de votre sol.") } }
                 item { Column { Text("🥫 Conservation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Guide détaillé avec le bouton ?.") } }
-                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe pour changer de page, cliquez sur les billes en bas pour accéder directement. Le bouton ⚙️ ouvre les paramètres.") } }
+                item { Column { Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Swipe ou clic sur les billes en bas.") } }
             } },
             confirmButton = { Button(onClick = { showTuto = false; prefs.edit().putBoolean("tuto_vu_v5", true).apply() }, shape = RoundedCornerShape(28.dp), colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)) { Text("Commencer 🌱") } }
         )
@@ -805,9 +855,10 @@ fun CalendrierScreen(onBack: () -> Unit) {
     val rappelCulturelRepository = remember { RappelCulturelRepository(context) }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     val meteoRepository = remember { MeteoRepository() }
+    val localisationRepository = remember { LocalisationRepository(context) }
     val luneRepository = remember { LuneRepository() }
     var meteo by remember { mutableStateOf<MeteoData?>(null) }
-    var ville by remember { mutableStateOf("Paris") }
+    var ville by remember { mutableStateOf("") }
     val phaseLune = remember { luneRepository.getPhaseLune() }
     var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
@@ -828,7 +879,13 @@ fun CalendrierScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
-    LaunchedEffect(Unit) { try { meteo = meteoRepository.getMeteo(ville) } catch (e: Exception) {} }
+    LaunchedEffect(Unit) {
+        try {
+            val v = localisationRepository.getVille()
+            if (v != null) ville = v
+            meteo = meteoRepository.getMeteo(ville.ifEmpty { "Paris" })
+        } catch (e: Exception) {}
+    }
     
     LaunchedEffect(currentMonth, currentYear) {
         val calDebut = Calendar.getInstance().apply {
@@ -850,7 +907,7 @@ fun CalendrierScreen(onBack: () -> Unit) {
         topBar = { TopAppBar(title = { Text("Calendrier 📅", fontWeight = FontWeight.Bold, color = Color.White) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Retour", tint = Color.White) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = CouleursApp.VertPrincipal, titleContentColor = Color.White)) }
     ) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item { MeteoCard(meteo, ville, true, phaseLune) }
+            item { MeteoCard(meteo, ville.ifEmpty { "Localisation..." }, true, phaseLune) }
             
             item { 
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc), shape = RoundedCornerShape(24.dp)) {
