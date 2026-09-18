@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.theshire.app.ui
 
 import androidx.compose.foundation.background
@@ -5,10 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -37,7 +37,6 @@ import com.theshire.app.ui.theme.CouleursApp
  * - Consulter le tuto d'un outil au clic
  * - Retirer un outil depuis sa fiche détaillée (icône 🗑️)
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EcranOutils(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("mes_outils") }
@@ -98,7 +97,6 @@ fun EcranOutils(onBack: () -> Unit) {
 /**
  * Onglet "Mes outils" : liste des outils possédés + FAB d'ajout.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MesOutilsScreen(
     onBack: () -> Unit,
@@ -228,7 +226,6 @@ fun AjoutOutilsDialog(
     onDismiss: () -> Unit,
     onValider: (Set<String>) -> Unit
 ) {
-    val context = LocalContext.current
     val tousLesOutils = remember { Outils.getTousLesOutils().sortedBy { it.nom } }
     val idsPossedes = remember { OutilsApp.outilsPossedes.toSet() }
     
@@ -386,7 +383,6 @@ fun CarteOutil(
 /**
  * Fiche détaillée d'un outil : description, tuto, conseil, bouton retirer.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FicheOutil(
     outil: Outil,
