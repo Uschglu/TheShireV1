@@ -22,6 +22,7 @@ import com.theshire.app.data.AgricultureUrbaine
 import com.theshire.app.data.ConseilUrbain
 import com.theshire.app.data.MaterielUrbain
 import com.theshire.app.data.PlanteUrbaine
+import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
