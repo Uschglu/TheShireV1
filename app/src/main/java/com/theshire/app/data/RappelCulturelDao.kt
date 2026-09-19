@@ -11,11 +11,12 @@ import kotlinx.coroutines.flow.Flow
  * DAO pour les rappels culturaux automatiques.
  * 
  * Fournit les opérations CRUD + requêtes spécifiques :
- * - Rappels d'un carré donné
+ * - Rappels d'un carré (pleine terre)
+ * - Rappels d'un contenant urbain
  * - Rappels d'une plante donnée
- * - Rappels dans une période donnée (pour le calendrier)
+ * - Rappels dans une période donnée (calendrier)
  * - Rappels en retard
- * - Rappels à notifier (actifs, non terminés, notif non envoyée)
+ * - Rappels à notifier
  */
 @Dao
 interface RappelCulturelDao {
@@ -38,6 +39,11 @@ interface RappelCulturelDao {
     @Delete
     suspend fun deleteRappel(rappel: RappelCulturelEntity)
     
+    @Query("DELETE FROM rappels_culturels WHERE id = :id")
+    suspend fun deleteRappelParId(id: Long)
+    
+    // --- Pleine terre ---
+    
     @Query("DELETE FROM rappels_culturels WHERE carreId = :carreId AND caseNumero = :caseNumero")
     suspend fun deleteRappelsPourCase(carreId: Long, caseNumero: Int)
     
@@ -47,8 +53,13 @@ interface RappelCulturelDao {
     @Query("DELETE FROM rappels_culturels WHERE plancheId = :plancheId")
     suspend fun deleteRappelsPourPlanche(plancheId: Long)
     
-    @Query("DELETE FROM rappels_culturels WHERE id = :id")
-    suspend fun deleteRappelParId(id: Long)
+    // --- Urbain ---
+    
+    @Query("DELETE FROM rappels_culturels WHERE contenantId = :contenantId AND emplacementNumero = :emplacementNumero")
+    suspend fun deleteRappelsPourEmplacement(contenantId: Long, emplacementNumero: Int)
+    
+    @Query("DELETE FROM rappels_culturels WHERE contenantId = :contenantId")
+    suspend fun deleteRappelsPourContenant(contenantId: Long)
     
     // ===== LECTURE =====
     
@@ -64,6 +75,8 @@ interface RappelCulturelDao {
     @Query("SELECT * FROM rappels_culturels WHERE id = :id")
     suspend fun getRappelParId(id: Long): RappelCulturelEntity?
     
+    // --- Pleine terre ---
+    
     @Query("SELECT * FROM rappels_culturels WHERE carreId = :carreId AND caseNumero = :caseNumero AND estActif = 1")
     suspend fun getRappelsPourCase(carreId: Long, caseNumero: Int): List<RappelCulturelEntity>
     
@@ -73,9 +86,18 @@ interface RappelCulturelDao {
     @Query("SELECT * FROM rappels_culturels WHERE plancheId = :plancheId AND estActif = 1 ORDER BY dateIdeale ASC")
     fun getRappelsPourPlanche(plancheId: Long): Flow<List<RappelCulturelEntity>>
     
+    // --- Urbain ---
+    
+    @Query("SELECT * FROM rappels_culturels WHERE contenantId = :contenantId AND emplacementNumero = :emplacementNumero AND estActif = 1")
+    suspend fun getRappelsPourEmplacement(contenantId: Long, emplacementNumero: Int): List<RappelCulturelEntity>
+    
+    @Query("SELECT * FROM rappels_culturels WHERE contenantId = :contenantId AND estActif = 1 ORDER BY dateIdeale ASC")
+    fun getRappelsPourContenant(contenantId: Long): Flow<List<RappelCulturelEntity>>
+    
+    // --- Période (calendrier) ---
+    
     /**
      * Récupère les rappels dont la période couvre la date donnée.
-     * Utilisé pour marquer les jours dans le calendrier.
      */
     @Query("""
         SELECT * FROM rappels_culturels 
@@ -87,8 +109,7 @@ interface RappelCulturelDao {
     suspend fun getRappelsEntreDates(dateDebut: Long, dateFin: Long): List<RappelCulturelEntity>
     
     /**
-     * Version Flow de la requête ci-dessus, pour observer les changements
-     * dans une plage de dates (typiquement un mois de calendrier).
+     * Version Flow de la requête ci-dessus.
      */
     @Query("""
         SELECT * FROM rappels_culturels 
@@ -100,8 +121,7 @@ interface RappelCulturelDao {
     fun getRappelsEntreDatesFlow(dateDebut: Long, dateFin: Long): Flow<List<RappelCulturelEntity>>
     
     /**
-     * Récupère tous les rappels dont la date idéale est passée mais non terminés.
-     * Utilisé pour afficher "en retard" dans le calendrier.
+     * Récupère les rappels en retard.
      */
     @Query("""
         SELECT * FROM rappels_culturels 
@@ -113,8 +133,7 @@ interface RappelCulturelDao {
     suspend fun getRappelsEnRetard(dateActuelle: Long): List<RappelCulturelEntity>
     
     /**
-     * Récupère les rappels à notifier (actifs, non terminés, notif non envoyée, 
-     * et dont la période est en cours ou approche).
+     * Récupère les rappels à notifier.
      */
     @Query("""
         SELECT * FROM rappels_culturels 
@@ -127,7 +146,7 @@ interface RappelCulturelDao {
     suspend fun getRappelsANotifier(dateActuelle: Long): List<RappelCulturelEntity>
     
     /**
-     * Récupère les rappels d'une plante donnée (pour afficher l'historique dans la fiche).
+     * Récupère les rappels d'une plante donnée.
      */
     @Query("SELECT * FROM rappels_culturels WHERE legumeNom = :legumeNom ORDER BY dateIdeale DESC")
     fun getRappelsPourLegume(legumeNom: String): Flow<List<RappelCulturelEntity>>
