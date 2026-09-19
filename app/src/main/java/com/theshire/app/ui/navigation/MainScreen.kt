@@ -35,7 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.theshire.app.data.CouleursApp
+import com.theshire.app.ui.theme.CouleursApp
 import com.theshire.app.ui.EcranOutils
 import com.theshire.app.ui.ParametresScreen
 import com.theshire.app.ui.screens.AccueilScreen
