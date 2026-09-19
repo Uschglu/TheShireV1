@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.theshire.app.InfoCard
+import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.data.AgricultureUrbaine
 import com.theshire.app.data.ConseilUrbain
 import com.theshire.app.data.MaterielUrbain
