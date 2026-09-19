@@ -362,7 +362,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Pleine terre (planches), Agriculture urbaine (contenants + conseils), Analyse du sol.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Pleine terre (planches + analyse du sol), Agriculture urbaine (contenants + conseils).") } }
                 item { Column { Text("🏙️ Agriculture urbaine", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Créez vos pots, jardinières et tours de culture.") } }
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Opérations culturales automatiques (pleine terre ET urbain).") } }
                 item { Column { Text("🛠️ Équipement", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Gérez vos outils, consultez les tutos.") } }
@@ -522,11 +522,7 @@ fun JardinScreen(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("pleine_terre") }
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
-            selectedTabIndex = when (selectedOnglet) {
-                "pleine_terre" -> 0
-                "urbain" -> 1
-                else -> 2
-            },
+            selectedTabIndex = if (selectedOnglet == "pleine_terre") 0 else 1,
             containerColor = CouleursApp.VertPrincipal,
             contentColor = Color.White
         ) {
@@ -554,22 +550,50 @@ fun JardinScreen(onBack: () -> Unit) {
                     )
                 }
             )
+        }
+        when (selectedOnglet) {
+            "pleine_terre" -> EcranPleineTerre(onBack)
+            "urbain" -> EcranUrbain()
+        }
+    }
+}
+
+@Composable
+fun EcranPleineTerre(onBack: () -> Unit) {
+    var selectedSousOnglet by remember { mutableStateOf("planches") }
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = if (selectedSousOnglet == "planches") 0 else 1,
+            containerColor = CouleursApp.VertClair,
+            contentColor = Color.White
+        ) {
             Tab(
-                selected = selectedOnglet == "analyse",
-                onClick = { selectedOnglet = "analyse" },
+                selected = selectedSousOnglet == "planches",
+                onClick = { selectedSousOnglet = "planches" },
                 text = {
                     Text(
-                        "🔬 Sol",
+                        "🌿 Planches",
                         fontWeight = FontWeight.Bold,
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        color = if (selectedOnglet == "analyse") Color.White else Color.White.copy(alpha = 0.6f)
+                        color = if (selectedSousOnglet == "planches") Color.White else Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedSousOnglet == "analyse",
+                onClick = { selectedSousOnglet = "analyse" },
+                text = {
+                    Text(
+                        "🔬 Analyse du sol",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedSousOnglet == "analyse") Color.White else Color.White.copy(alpha = 0.7f)
                     )
                 }
             )
         }
-        when (selectedOnglet) {
-            "pleine_terre" -> JardinPlanchesScreen(onBack)
-            "urbain" -> EcranUrbain()
+        when (selectedSousOnglet) {
+            "planches" -> JardinPlanchesScreen(onBack)
             else -> AnalyseSolScreen(onBack)
         }
     }
