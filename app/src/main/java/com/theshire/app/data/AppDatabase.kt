@@ -13,9 +13,11 @@ import androidx.room.RoomDatabase
         VarieteEntity::class,
         AdventiceEntity::class,
         RappelEntity::class,
-        RappelCulturelEntity::class        // ← 🆕 AJOUT
+        RappelCulturelEntity::class,
+        ContenantEntity::class,              // ← 🆕 AJOUT
+        EmplacementContenantEntity::class    // ← 🆕 AJOUT
     ],
-    version = 9,                            // ← 🆕 Version augmentée (8 → 9)
+    version = 10,                            // ← 🆕 Version augmentée (9 → 10)
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,7 +25,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun legumeDao(): LegumeDao
     abstract fun plancheDao(): PlancheDao
     abstract fun rappelDao(): RappelDao
-    abstract fun rappelCulturelDao(): RappelCulturelDao   // ← 🆕 AJOUT
+    abstract fun rappelCulturelDao(): RappelCulturelDao
+    abstract fun contenantDao(): ContenantDao   // ← 🆕 AJOUT
     
     companion object {
         @Volatile
