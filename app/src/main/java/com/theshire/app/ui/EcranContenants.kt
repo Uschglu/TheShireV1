@@ -32,6 +32,8 @@ import com.theshire.app.data.ContenantEntity
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.NiveauRisque
+import com.theshire.app.ui.components.InfoCard
+import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
