@@ -2,291 +2,269 @@ package com.theshire.app.ui
 
 import android.content.Context
 import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.CalculEmplacements
-import com.theshire.app.data.ContenantEntity
-import com.theshire.app.data.EmplacementContenantEntity
-import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.RappelCulturelEntity
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import java.util.Calendar
 
 /**
- * Repository pour les contenants urbains et leurs emplacements.
+ * Repository pour les rappels culturaux automatiques.
  * 
- * Gère :
- * - La création de contenants avec calcul automatique des emplacements
- * - L'installation de plantes dans les emplacements (AVEC génération
- *   automatique des rappels culturaux comme en pleine terre)
- * - Les associations de culture au sein d'un même contenant
- * - La suppression en cascade
+ * Génère automatiquement les rappels (tuteurage, buttage, éclaircissage...)
+ * quand on plante un légume :
+ * - Dans un CARRÉ de pleine terre (planche)
+ * - Dans un EMPLACEMENT de contenant urbain
+ * 
+ * Fournit aussi les requêtes pour l'affichage dans le calendrier.
  */
-class ContenantRepository(context: Context) {
+class RappelCulturelRepository(context: Context) {
     
-    private val appContext = context.applicationContext
-    private val contenantDao = AppDatabase.getDatabase(context).contenantDao()
-    private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
+    private val rappelCulturelDao = AppDatabase.getDatabase(context).rappelCulturelDao()
     
-    // Repository pour générer automatiquement les rappels culturaux (comme en pleine terre)
-    private val rappelCulturelRepository = RappelCulturelRepository(context)
-    
-    companion object {
-        private val mutexCreation = Mutex()
-    }
+    private val FENETRE_JOURS = 2L
+    private val MILLIS_PAR_JOUR = 24L * 60L * 60L * 1000L
     
     // ============================================================
-    // CONTENANTS
+    // GÉNÉRATION AUTOMATIQUE
     // ============================================================
-    
-    val contenants: Flow<List<ContenantEntity>> = contenantDao.getAllContenants()
-    
-    suspend fun getContenantParId(id: Long): ContenantEntity? {
-        return contenantDao.getContenantParId(id)
-    }
-    
-    suspend fun getTousContenants(): List<ContenantEntity> {
-        return contenantDao.getAllContenantsSync()
-    }
-    
-    suspend fun creerContenant(
-        nom: String,
-        type: String,
-        emoji: String,
-        dimension1: Int,
-        dimension2: Int = 0,
-        dimension3: Int = 0,
-        nombreEtages: Int = 1,
-        milieu: String = "Balcon",
-        notes: String = ""
-    ): Long {
-        mutexCreation.withLock {
-            val contenant = ContenantEntity(
-                nom = nom,
-                type = type,
-                emoji = emoji,
-                dimension1 = dimension1,
-                dimension2 = dimension2,
-                dimension3 = dimension3,
-                nombreEtages = nombreEtages,
-                milieu = milieu,
-                notes = notes
-            )
-            return contenantDao.insertContenant(contenant)
-        }
-    }
-    
-    suspend fun modifierNom(contenantId: Long, nouveauNom: String) {
-        val contenant = contenantDao.getContenantParId(contenantId) ?: return
-        contenantDao.updateContenant(contenant.copy(nom = nouveauNom))
-    }
-    
-    suspend fun modifierDimensions(
-        contenantId: Long,
-        dimension1: Int,
-        dimension2: Int = 0,
-        dimension3: Int = 0,
-        nombreEtages: Int = 1
-    ) {
-        val contenant = contenantDao.getContenantParId(contenantId) ?: return
-        contenantDao.updateContenant(
-            contenant.copy(
-                dimension1 = dimension1,
-                dimension2 = dimension2,
-                dimension3 = dimension3,
-                nombreEtages = nombreEtages
-            )
-        )
-    }
-    
-    suspend fun modifierNotes(contenantId: Long, nouvellesNotes: String) {
-        val contenant = contenantDao.getContenantParId(contenantId) ?: return
-        contenantDao.updateContenant(contenant.copy(notes = nouvellesNotes))
-    }
     
     /**
-     * Supprime un contenant ainsi que :
-     * - Tous ses emplacements (CASCADE)
-     * - Tous les rappels culturaux associés
-     */
-    suspend fun supprimerContenant(contenant: ContenantEntity) {
-        // Supprimer les rappels culturaux associés
-        rappelCulturelRepository.supprimerRappelsPourContenant(contenant.id)
-        // Supprimer le contenant (les emplacements suivent par CASCADE)
-        contenantDao.deleteContenant(contenant)
-    }
-    
-    // ============================================================
-    // EMPLACEMENTS
-    // ============================================================
-    
-    fun getEmplacementsPourContenant(contenantId: Long): Flow<List<EmplacementContenantEntity>> {
-        return contenantDao.getEmplacementsPourContenant(contenantId)
-    }
-    
-    suspend fun getEmplacementsSync(contenantId: Long): List<EmplacementContenantEntity> {
-        return contenantDao.getEmplacementsPourContenantSync(contenantId)
-    }
-    
-    suspend fun countEmplacements(contenantId: Long): Int {
-        return contenantDao.countEmplacementsPourContenant(contenantId)
-    }
-    
-    suspend fun countEmplacementsOccupes(contenantId: Long): Int {
-        return contenantDao.countEmplacementsOccupes(contenantId)
-    }
-    
-    /**
-     * Installe une plante dans un emplacement donné.
+     * Génère automatiquement les rappels culturaux pour une plantation.
      * 
-     * Génère AUTOMATIQUEMENT les rappels culturaux urbains
-     * (rempotage progressif pour PDT et poireau, buttage-tige pour tomate, etc.)
-     * exactement comme pour les planches en pleine terre.
+     * Fonctionne dans DEUX contextes :
+     * 
+     * 1. PLEINE TERRE : passer carreId, caseNumero, plancheId
+     * 2. URBAIN : passer contenantId, emplacementNumero
+     * 
+     * Le contexte est déterminé automatiquement selon les paramètres fournis.
+     * Les opérations sont filtrées selon le contexte (voir OperationsCulturales.getOperationsPourContexte).
+     * 
+     * @param legumeNom Nom du légume
+     * @param datePlantation Timestamp de plantation (millis)
+     * @param carreId ID du carré (null si urbain)
+     * @param caseNumero Numéro de la case 1-9 (null si urbain)
+     * @param plancheId ID de la planche (null si urbain)
+     * @param contenantId ID du contenant (null si pleine terre)
+     * @param emplacementNumero Numéro d'emplacement (null si pleine terre)
      */
-    suspend fun planterDansEmplacement(
-        contenant: ContenantEntity,
-        numeroEmplacement: Int,
+    suspend fun genererRappelsPourPlantation(
         legumeNom: String,
-        legume: LegumeEntity
+        datePlantation: Long,
+        carreId: Long? = null,
+        caseNumero: Int? = null,
+        plancheId: Long? = null,
+        contenantId: Long? = null,
+        emplacementNumero: Int? = null
     ) {
-        val dateActuelle = System.currentTimeMillis()
+        // 1. Déterminer le contexte
+        val urbain = contenantId != null && emplacementNumero != null
         
-        val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
-        
-        if (emplacements.isEmpty()) {
-            // Première plantation : créer tous les emplacements d'un coup
-            val nombreEmplacements = CalculEmplacements.calculerNombreEmplacements(
-                contenant = contenant,
-                legume = legume
-            )
-            
-            val nouveauxEmplacements = (1..nombreEmplacements).map { numero ->
-                EmplacementContenantEntity(
-                    contenantId = contenant.id,
-                    numero = numero,
-                    legumeNom = if (numero == numeroEmplacement) legumeNom else null,
-                    datePlantation = if (numero == numeroEmplacement) dateActuelle else null
-                )
-            }
-            contenantDao.insertEmplacements(nouveauxEmplacements)
-        } else {
-            // Emplacement existant : mettre à jour
-            val emplacement = emplacements.find { it.numero == numeroEmplacement }
-            if (emplacement != null) {
-                contenantDao.updateEmplacement(
-                    emplacement.copy(
-                        legumeNom = legumeNom,
-                        datePlantation = dateActuelle
-                    )
-                )
-            }
+        // 2. Supprimer les anciens rappels de cet emplacement
+        if (urbain) {
+            rappelCulturelDao.deleteRappelsPourEmplacement(contenantId!!, emplacementNumero!!)
+        } else if (carreId != null && caseNumero != null) {
+            rappelCulturelDao.deleteRappelsPourCase(carreId, caseNumero)
         }
         
-        // ===== GÉNÉRATION DES RAPPELS CULTURAUX URBAINS =====
-        rappelCulturelRepository.genererRappelsPourPlantation(
-            legumeNom = legumeNom,
-            datePlantation = dateActuelle,
-            carreId = null,
-            caseNumero = null,
-            plancheId = null,
-            contenantId = contenant.id,
-            emplacementNumero = numeroEmplacement
-        )
+        // 3. Récupérer les opérations culturelles FILTRÉES par contexte
+        val operations = OperationsCulturales.getOperationsPourContexte(legumeNom, urbain)
+        if (operations.isEmpty()) return
+        
+        // 4. Créer un rappel pour chaque opération
+        val rappels = operations.map { operation ->
+            val dateIdeale = datePlantation + (operation.jourDebut * MILLIS_PAR_JOUR)
+            
+            val dateDebut = dateIdeale - (FENETRE_JOURS * MILLIS_PAR_JOUR)
+            val dateFin = if (operation.jourFin > operation.jourDebut) {
+                datePlantation + (operation.jourFin * MILLIS_PAR_JOUR) + (FENETRE_JOURS * MILLIS_PAR_JOUR)
+            } else {
+                dateIdeale + (FENETRE_JOURS * MILLIS_PAR_JOUR)
+            }
+            
+            RappelCulturelEntity(
+                legumeNom = legumeNom,
+                typeOperation = operation.nom,
+                emoji = operation.emoji,
+                description = operation.description,
+                conseil = operation.conseil,
+                couleurHex = operation.couleurHex,
+                dateIdeale = dateIdeale,
+                dateDebut = dateDebut,
+                dateFin = dateFin,
+                carreId = carreId,
+                caseNumero = caseNumero,
+                plancheId = plancheId,
+                contenantId = contenantId,
+                emplacementNumero = emplacementNumero,
+                estActif = true,
+                estTermine = false
+            )
+        }
+        
+        // 5. Insérer tous les rappels d'un coup
+        rappelCulturelDao.insertRappels(rappels)
+    }
+    
+    // ============================================================
+    // SUPPRESSION
+    // ============================================================
+    
+    /**
+     * Supprime les rappels culturaux d'une case (pleine terre).
+     */
+    suspend fun supprimerRappelsPourCase(carreId: Long, caseNumero: Int) {
+        rappelCulturelDao.deleteRappelsPourCase(carreId, caseNumero)
     }
     
     /**
-     * Vide un emplacement (retire la plante).
-     * Supprime également les rappels culturaux associés.
+     * Supprime les rappels culturaux d'un carré entier.
      */
-    suspend fun viderEmplacement(emplacementId: Long) {
-        val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
-        
-        // Supprimer les rappels culturaux de cet emplacement
-        rappelCulturelRepository.supprimerRappelsPourEmplacement(
-            contenantId = emplacement.contenantId,
-            emplacementNumero = emplacement.numero
-        )
-        
-        // Vider l'emplacement
-        contenantDao.updateEmplacement(
-            emplacement.copy(
-                legumeNom = null,
-                datePlantation = null
+    suspend fun supprimerRappelsPourCarre(carreId: Long) {
+        rappelCulturelDao.deleteRappelsPourCarre(carreId)
+    }
+    
+    /**
+     * Supprime les rappels culturaux d'une planche entière.
+     */
+    suspend fun supprimerRappelsPourPlanche(plancheId: Long) {
+        rappelCulturelDao.deleteRappelsPourPlanche(plancheId)
+    }
+    
+    /**
+     * Supprime les rappels culturaux d'un emplacement (urbain).
+     */
+    suspend fun supprimerRappelsPourEmplacement(contenantId: Long, emplacementNumero: Int) {
+        rappelCulturelDao.deleteRappelsPourEmplacement(contenantId, emplacementNumero)
+    }
+    
+    /**
+     * Supprime les rappels culturaux d'un contenant entier.
+     */
+    suspend fun supprimerRappelsPourContenant(contenantId: Long) {
+        rappelCulturelDao.deleteRappelsPourContenant(contenantId)
+    }
+    
+    // ============================================================
+    // ACCÈS POUR LE CALENDRIER
+    // ============================================================
+    
+    fun getRappelsActifs(): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsActifs()
+    }
+    
+    fun getRappelsEntreDatesFlow(dateDebut: Long, dateFin: Long): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsEntreDatesFlow(dateDebut, dateFin)
+    }
+    
+    suspend fun getRappelsEntreDates(dateDebut: Long, dateFin: Long): List<RappelCulturelEntity> {
+        return rappelCulturelDao.getRappelsEntreDates(dateDebut, dateFin)
+    }
+    
+    suspend fun getRappelsEnRetard(): List<RappelCulturelEntity> {
+        return rappelCulturelDao.getRappelsEnRetard(System.currentTimeMillis())
+    }
+    
+    fun getRappelsPourCarre(carreId: Long): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsPourCarre(carreId)
+    }
+    
+    fun getRappelsPourPlanche(plancheId: Long): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsPourPlanche(plancheId)
+    }
+    
+    fun getRappelsPourContenant(contenantId: Long): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsPourContenant(contenantId)
+    }
+    
+    fun getRappelsPourLegume(legumeNom: String): Flow<List<RappelCulturelEntity>> {
+        return rappelCulturelDao.getRappelsPourLegume(legumeNom)
+    }
+    
+    // ============================================================
+    // GESTION DU STATUT
+    // ============================================================
+    
+    suspend fun marquerTermine(rappelId: Long) {
+        val rappel = rappelCulturelDao.getRappelParId(rappelId) ?: return
+        rappelCulturelDao.updateRappel(
+            rappel.copy(
+                estTermine = true,
+                dateRealisation = System.currentTimeMillis()
             )
         )
     }
     
-    suspend fun ajouterEmplacements(contenantId: Long, nombre: Int) {
-        val existants = contenantDao.getEmplacementsPourContenantSync(contenantId)
-        val dernierNumero = existants.maxOfOrNull { it.numero } ?: 0
-        
-        val nouveaux = (1..nombre).map { i ->
-            EmplacementContenantEntity(
-                contenantId = contenantId,
-                numero = dernierNumero + i
+    suspend fun marquerNonTermine(rappelId: Long) {
+        val rappel = rappelCulturelDao.getRappelParId(rappelId) ?: return
+        rappelCulturelDao.updateRappel(
+            rappel.copy(
+                estTermine = false,
+                dateRealisation = null
             )
-        }
-        contenantDao.insertEmplacements(nouveaux)
+        )
     }
     
-    suspend fun modifierNotesEmplacement(emplacementId: Long, nouvellesNotes: String) {
-        val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
-        contenantDao.updateEmplacement(emplacement.copy(notes = nouvellesNotes))
+    suspend fun reporterRappel(rappelId: Long, joursDeReport: Int) {
+        val rappel = rappelCulturelDao.getRappelParId(rappelId) ?: return
+        val decalage = joursDeReport * MILLIS_PAR_JOUR
+        rappelCulturelDao.updateRappel(
+            rappel.copy(
+                dateIdeale = rappel.dateIdeale + decalage,
+                dateDebut = rappel.dateDebut + decalage,
+                dateFin = rappel.dateFin + decalage
+            )
+        )
     }
     
-    // ============================================================
-    // VALIDATION DES ASSOCIATIONS
-    // ============================================================
+    suspend fun supprimerRappel(rappelId: Long) {
+        rappelCulturelDao.deleteRappelParId(rappelId)
+    }
     
-    suspend fun verifierAssociationsContenant(
-        contenant: ContenantEntity,
-        numeroEmplacement: Int,
-        legumeNom: String
-    ): List<Pair<String, String>> {
-        val resultats = mutableListOf<Pair<String, String>>()
-        
-        val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
-        
-        val nomBase = if (legumeNom.contains("(")) legumeNom.substringBefore("(").trim() else legumeNom
-        val legume = legumeDao.getLegumeByNom(nomBase) ?: return emptyList()
-        
-        emplacements.forEach { emp ->
-            if (emp.numero != numeroEmplacement && emp.legumeNom != null) {
-                val base2 = if (emp.legumeNom!!.contains("(")) emp.legumeNom.substringBefore("(").trim() else emp.legumeNom
-                when {
-                    legume.bonnesAssociations.contains(base2, true) -> {
-                        resultats.add(Pair(emp.legumeNom!!, "bonne"))
-                    }
-                    legume.mauvaisesAssociations.contains(base2, true) -> {
-                        resultats.add(Pair(emp.legumeNom!!, "mauvaise"))
-                    }
-                }
-            }
-        }
-        
-        return resultats
+    suspend fun getRappelParId(rappelId: Long): RappelCulturelEntity? {
+        return rappelCulturelDao.getRappelParId(rappelId)
     }
     
     // ============================================================
-    // STATISTIQUES
+    // NOTIFICATIONS
     // ============================================================
     
-    suspend fun countContenants(): Int {
-        return contenantDao.countContenants()
+    suspend fun getRappelsANotifier(): List<RappelCulturelEntity> {
+        return rappelCulturelDao.getRappelsANotifier(System.currentTimeMillis())
     }
     
-    suspend fun countAllEmplacements(): Int {
-        return contenantDao.countAllEmplacements()
+    suspend fun marquerNotificationEnvoyee(rappelId: Long) {
+        val rappel = rappelCulturelDao.getRappelParId(rappelId) ?: return
+        rappelCulturelDao.updateRappel(rappel.copy(notificationEnvoyee = true))
     }
     
-    suspend fun countAllEmplacementsOccupes(): Int {
-        return contenantDao.countAllEmplacementsOccupes()
+    // ============================================================
+    // UTILITAIRES
+    // ============================================================
+    
+    fun countRappelsEnCours(): Flow<Int> {
+        return rappelCulturelDao.countRappelsEnCours()
     }
     
-    suspend fun getAllEmplacementsOccupes(): List<EmplacementContenantEntity> {
-        return contenantDao.getAllEmplacementsOccupes()
+    fun debutDeJournee(timestamp: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = timestamp
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
     
-    suspend fun getEmplacementsPourLegume(legumeNom: String): List<EmplacementContenantEntity> {
-        return contenantDao.getEmplacementsPourLegume(legumeNom)
+    fun estEnRetard(rappel: RappelCulturelEntity): Boolean {
+        return !rappel.estTermine && rappel.dateFin < System.currentTimeMillis()
+    }
+    
+    fun estEnCours(rappel: RappelCulturelEntity): Boolean {
+        val now = System.currentTimeMillis()
+        return !rappel.estTermine && now >= rappel.dateDebut && now <= rappel.dateFin
+    }
+    
+    fun estProche(rappel: RappelCulturelEntity): Boolean {
+        val now = System.currentTimeMillis()
+        return !rappel.estTermine && now < rappel.dateDebut
     }
 }
