@@ -383,6 +383,20 @@ object Outils {
                 conseil = "Utilisez un râteau à dents fines pour les semis, à dents larges pour ramasser."
             ),
             Outil(
+                id = "sac_terreau",
+                nom = "Sac de terreau",
+                emoji = "🌱",
+                description = "Substrat pour rempotage progressif et enrichissement des cultures en pot.",
+                tuto = listOf(
+                    "Choisissez un terreau universel de qualité",
+                    "Mélangez avec 20% de compost et 10% de perlite",
+                    "Ajoutez une poignée à chaque rempotage",
+                    "Ne tassez pas trop : les racines ont besoin d'air",
+                    "Laissez 2-3 cm de marge en haut du contenant"
+                ),
+                conseil = "Indispensable en agriculture urbaine : les nutriments s'épuisent vite en pot. Renouvelez 1/3 du terreau chaque année."
+            ),
+            Outil(
                 id = "secateur",
                 nom = "Sécateur",
                 emoji = "✂️",
