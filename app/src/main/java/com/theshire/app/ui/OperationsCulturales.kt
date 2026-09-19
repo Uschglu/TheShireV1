@@ -10,9 +10,9 @@ package com.theshire.app.ui
  * - @param conseil : conseil supplémentaire (optionnel)
  * - @param jourDebut : nombre de jours après plantation pour le début de la fenêtre
  * - @param jourFin : nombre de jours après plantation pour la fin de la fenêtre
- *   (si jourDebut == jourFin → opération ponctuelle, sinon opération sur plusieurs jours)
  * - @param couleurHex : couleur de la barre dans le calendrier
- * - @param outilsRequis : liste des IDs d'outils nécessaires (référence à Outils.kt)
+ * - @param outilsRequis : outils nécessaires en PLEINE TERRE
+ * - @param outilsRequisUrbain : outils nécessaires en AGRICULTURE URBAINE (contenant)
  * 
  * Si dureeJours == 0 → fenêtre de ±2 jours autour de jourDebut
  * Sinon → période de jourDebut à jourFin
@@ -27,24 +27,21 @@ data class OperationCulturale(
     val jourDebut: Int,
     val jourFin: Int = jourDebut,
     val couleurHex: String = "#FFA726",
-    val outilsRequis: List<String> = emptyList()
+    val outilsRequis: List<String> = emptyList(),
+    val outilsRequisUrbain: List<String> = emptyList()
 )
 
 object OperationsCulturales {
     
     // ========== PALETTE DE COULEURS ==========
-    // Pour faciliter la lecture, chaque type d'opération a une couleur associée
-    private const val COULEUR_PLANTATION = "#66BB6A"      // Vert : plantation, semis, repiquage
-    private const val COULEUR_ENTRETIEN = "#FFA726"       // Orange : tuteurage, buttage, éclaircissage
-    private const val COULEUR_TAILLE = "#AB47BC"          // Violet : taille, effeuillage, pincement
-    private const val COULEUR_TRAITEMENT = "#EF5350"      // Rouge : traitement, surveillance maladies
-    private const val COULEUR_RECOLTE = "#42A5F5"         // Bleu : récolte, arrêt arrosage
+    private const val COULEUR_PLANTATION = "#66BB6A"      // Vert
+    private const val COULEUR_ENTRETIEN = "#FFA726"       // Orange
+    private const val COULEUR_TAILLE = "#AB47BC"          // Violet
+    private const val COULEUR_TRAITEMENT = "#EF5350"      // Rouge
+    private const val COULEUR_RECOLTE = "#42A5F5"         // Bleu
     
     /**
      * Retourne la liste des opérations culturales pour un légume donné.
-     * 
-     * Les délais sont comptés à partir de la date de plantation (ou semis direct).
-     * Pour les légumes non listés, retourne une liste vide.
      */
     fun getOperationsPourLegume(legumeNom: String): List<OperationCulturale> {
         val nomBase = if (legumeNom.contains("(")) {
@@ -65,7 +62,8 @@ object OperationsCulturales {
                     jourDebut = 0,
                     jourFin = 2,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("tuteurs_bambou")
+                    outilsRequis = listOf("tuteurs_bambou"),
+                    outilsRequisUrbain = listOf("tuteurs_bambou")
                 ),
                 OperationCulturale(
                     nom = "1er lien",
@@ -75,7 +73,18 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 17,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("attaches_raphia")
+                    outilsRequis = listOf("attaches_raphia"),
+                    outilsRequisUrbain = listOf("attaches_raphia")
+                ),
+                OperationCulturale(
+                    nom = "Buttage-tige",
+                    emoji = "🌱",
+                    description = "Ajouter progressivement du terreau au pied de la tige pour favoriser l'apparition de racines adventives. Enterrer 5-8 cm à chaque fois.",
+                    conseil = "En contenant urbain : c'est excellent pour renforcer le plant et augmenter l'absorption. Arrêter quand la tige atteint le bord du pot.",
+                    jourDebut = 30,
+                    jourFin = 50,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
                 ),
                 OperationCulturale(
                     nom = "Effeuillage",
@@ -85,7 +94,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 45,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Gourmands",
@@ -104,12 +114,14 @@ object OperationsCulturales {
                     jourDebut = 90,
                     jourFin = 100,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
             // ========== POMME DE TERRE ==========
             "Pomme de terre" -> listOf(
+                // Opérations PLEINE TERRE
                 OperationCulturale(
                     nom = "1er buttage",
                     emoji = "⛰️",
@@ -130,6 +142,38 @@ object OperationsCulturales {
                     couleurHex = COULEUR_ENTRETIEN,
                     outilsRequis = listOf("serfouette", "binette")
                 ),
+                // Opérations URBAINES (rempotage progressif)
+                OperationCulturale(
+                    nom = "1er rempotage",
+                    emoji = "🪴",
+                    description = "Ajouter 10 cm de substrat au fur et à mesure que les tiges grandissent. Planter les tubercules dans 10-15 cm de terreau, puis recouvrir progressivement.",
+                    conseil = "En sac ou tour : c'est ce qui permet d'obtenir une « grappe » verticale de pommes de terre. Rendement 3-4× supérieur.",
+                    jourDebut = 21,
+                    jourFin = 25,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
+                ),
+                OperationCulturale(
+                    nom = "2e rempotage",
+                    emoji = "🪴",
+                    description = "Ajouter à nouveau 10 cm de substrat quand les tiges ont grandi de 15-20 cm.",
+                    conseil = "Couvrir toutes les tiges sauf les 3-4 feuilles du sommet.",
+                    jourDebut = 35,
+                    jourFin = 40,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
+                ),
+                OperationCulturale(
+                    nom = "3e rempotage",
+                    emoji = "🪴",
+                    description = "Dernier ajout de substrat. Laisser 5 cm de marge en haut du contenant pour arroser facilement.",
+                    conseil = "Après ce 3e rempotage, arrêter d'ajouter pour laisser les tubercules grossir.",
+                    jourDebut = 50,
+                    jourFin = 55,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
+                ),
+                // Commun
                 OperationCulturale(
                     nom = "Doryphores",
                     emoji = "🐛",
@@ -138,7 +182,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 75,
                     couleurHex = COULEUR_TRAITEMENT,
-                    outilsRequis = listOf("gants")
+                    outilsRequis = listOf("gants"),
+                    outilsRequisUrbain = listOf("gants")
                 ),
                 OperationCulturale(
                     nom = "Arrêt arrosage",
@@ -151,50 +196,9 @@ object OperationsCulturales {
                 )
             )
             
-            // ========== CAROTTE ==========
-            "Carotte" -> listOf(
-                OperationCulturale(
-                    nom = "Éclaircissage",
-                    emoji = "✂️",
-                    description = "Éclaircir pour ne garder qu'un plant tous les 3-5 cm. Les carottes ont besoin d'espace pour se développer.",
-                    conseil = "Éclaircir par temps humide pour limiter les odeurs qui attirent la mouche de la carotte.",
-                    jourDebut = 21,
-                    jourFin = 28,
-                    couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("secateur")
-                )
-            )
-            
-            // ========== RADIS ==========
-            "Radis" -> listOf(
-                OperationCulturale(
-                    nom = "Éclaircissage",
-                    emoji = "✂️",
-                    description = "Éclaircir à 3-5 cm pour que les radis grossissent bien.",
-                    conseil = "Les radis éclaircis peuvent être mangés en primeur.",
-                    jourDebut = 10,
-                    jourFin = 14,
-                    couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("secateur")
-                )
-            )
-            
-            // ========== BETTERAVE ==========
-            "Betterave" -> listOf(
-                OperationCulturale(
-                    nom = "Éclaircissage",
-                    emoji = "✂️",
-                    description = "Éclaircir à 10-15 cm pour permettre aux racines de grossir.",
-                    conseil = "Les jeunes pousses éclaircies se mangent en salade.",
-                    jourDebut = 21,
-                    jourFin = 30,
-                    couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("secateur")
-                )
-            )
-            
             // ========== POIREAU ==========
             "Poireau" -> listOf(
+                // Opération PLEINE TERRE
                 OperationCulturale(
                     nom = "Repiquage",
                     emoji = "🌱",
@@ -214,6 +218,72 @@ object OperationsCulturales {
                     jourFin = 150,
                     couleurHex = COULEUR_ENTRETIEN,
                     outilsRequis = listOf("serfouette")
+                ),
+                // Opérations URBAINES (rempotage progressif)
+                OperationCulturale(
+                    nom = "1er rempotage",
+                    emoji = "🪴",
+                    description = "Ajouter du substrat jusqu'à mi-hauteur du contenant pour commencer à blanchir le fût.",
+                    conseil = "En pot profond ou tour : c'est ce qui permet d'obtenir un beau blanc sur toute la hauteur.",
+                    jourDebut = 30,
+                    jourFin = 40,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
+                ),
+                OperationCulturale(
+                    nom = "2e rempotage",
+                    emoji = "🪴",
+                    description = "Ajouter du substrat jusqu'à 3 cm du bord du contenant.",
+                    conseil = "Arrêter ensuite d'ajouter pour laisser le fût blanchir et grossir.",
+                    jourDebut = 60,
+                    jourFin = 70,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequisUrbain = listOf("sac_terreau", "gants")
+                )
+            )
+            
+            // ========== CAROTTE ==========
+            "Carotte" -> listOf(
+                OperationCulturale(
+                    nom = "Éclaircissage",
+                    emoji = "✂️",
+                    description = "Éclaircir pour ne garder qu'un plant tous les 3-5 cm. Les carottes ont besoin d'espace pour se développer.",
+                    conseil = "Éclaircir par temps humide pour limiter les odeurs qui attirent la mouche de la carotte.",
+                    jourDebut = 21,
+                    jourFin = 28,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
+                )
+            )
+            
+            // ========== RADIS ==========
+            "Radis" -> listOf(
+                OperationCulturale(
+                    nom = "Éclaircissage",
+                    emoji = "✂️",
+                    description = "Éclaircir à 3-5 cm pour que les radis grossissent bien.",
+                    conseil = "Les radis éclaircis peuvent être mangés en primeur.",
+                    jourDebut = 10,
+                    jourFin = 14,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
+                )
+            )
+            
+            // ========== BETTERAVE ==========
+            "Betterave" -> listOf(
+                OperationCulturale(
+                    nom = "Éclaircissage",
+                    emoji = "✂️",
+                    description = "Éclaircir à 10-15 cm pour permettre aux racines de grossir.",
+                    conseil = "Les jeunes pousses éclaircies se mangent en salade.",
+                    jourDebut = 21,
+                    jourFin = 30,
+                    couleurHex = COULEUR_ENTRETIEN,
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -227,7 +297,8 @@ object OperationsCulturales {
                     jourDebut = 7,
                     jourFin = 60,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("arrosoir")
+                    outilsRequis = listOf("arrosoir"),
+                    outilsRequisUrbain = listOf("arrosoir")
                 )
             )
             
@@ -255,7 +326,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 40,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("rames_filets")
+                    outilsRequis = listOf("rames_filets"),
+                    outilsRequisUrbain = listOf("rames_filets")
                 )
             )
             
@@ -269,7 +341,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 45,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia"),
+                    outilsRequisUrbain = listOf("tuteurs_bambou", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Pincement",
@@ -279,7 +352,8 @@ object OperationsCulturales {
                     jourDebut = 60,
                     jourFin = 70,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -293,7 +367,8 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 21,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("rames_filets", "attaches_raphia")
+                    outilsRequis = listOf("rames_filets", "attaches_raphia"),
+                    outilsRequisUrbain = listOf("rames_filets", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Taille",
@@ -303,7 +378,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 45,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -317,7 +393,8 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 21,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("paillage", "gants")
+                    outilsRequis = listOf("paillage", "gants"),
+                    outilsRequisUrbain = listOf("paillage", "gants")
                 )
             )
             
@@ -331,7 +408,8 @@ object OperationsCulturales {
                     jourDebut = 21,
                     jourFin = 28,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "2e taille",
@@ -341,7 +419,8 @@ object OperationsCulturales {
                     jourDebut = 45,
                     jourFin = 55,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Paillage",
@@ -365,7 +444,8 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 21,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia"),
+                    outilsRequisUrbain = listOf("tuteurs_bambou", "attaches_raphia")
                 ),
                 OperationCulturale(
                     nom = "Effeuillage",
@@ -375,7 +455,8 @@ object OperationsCulturales {
                     jourDebut = 45,
                     jourFin = 60,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -389,7 +470,8 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 21,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia")
+                    outilsRequis = listOf("tuteurs_bambou", "attaches_raphia"),
+                    outilsRequisUrbain = listOf("tuteurs_bambou", "attaches_raphia")
                 )
             )
             
@@ -403,7 +485,8 @@ object OperationsCulturales {
                     jourDebut = 15,
                     jourFin = 60,
                     couleurHex = COULEUR_TRAITEMENT,
-                    outilsRequis = listOf("voile_anti_insectes")
+                    outilsRequis = listOf("voile_anti_insectes"),
+                    outilsRequisUrbain = listOf("voile_anti_insectes")
                 ),
                 OperationCulturale(
                     nom = "Buttage",
@@ -427,7 +510,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 90,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 ),
                 OperationCulturale(
                     nom = "Paillage",
@@ -437,7 +521,8 @@ object OperationsCulturales {
                     jourDebut = 60,
                     jourFin = 75,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("paillage")
+                    outilsRequis = listOf("paillage"),
+                    outilsRequisUrbain = listOf("paillage")
                 )
             )
             
@@ -477,7 +562,8 @@ object OperationsCulturales {
                     jourDebut = 30,
                     jourFin = 120,
                     couleurHex = COULEUR_TAILLE,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -517,7 +603,8 @@ object OperationsCulturales {
                     jourDebut = 60,
                     jourFin = 150,
                     couleurHex = COULEUR_ENTRETIEN,
-                    outilsRequis = listOf("secateur")
+                    outilsRequis = listOf("secateur"),
+                    outilsRequisUrbain = listOf("secateur")
                 )
             )
             
@@ -531,5 +618,36 @@ object OperationsCulturales {
      */
     fun getOperationsTriees(legumeNom: String): List<OperationCulturale> {
         return getOperationsPourLegume(legumeNom).sortedBy { it.jourDebut }
+    }
+    
+    /**
+     * Filtre les opérations selon le contexte (pleine terre vs urbain).
+     * 
+     * - En pleine terre : on garde les opérations qui ont des outilsRequis ou qui sont génériques
+     * - En urbain : on garde les opérations qui ont des outilsRequisUrbain ou qui sont génériques
+     * 
+     * Une opération est "générique" si elle n'a NI outilsRequis NI outilsRequisUrbain.
+     * 
+     * @param legumeNom Nom du légume
+     * @param urbain true = contenant urbain, false = pleine terre
+     */
+    fun getOperationsPourContexte(legumeNom: String, urbain: Boolean): List<OperationCulturale> {
+        val toutes = getOperationsPourLegume(legumeNom)
+        
+        return toutes.filter { op ->
+            val aOutilsPleineTerre = op.outilsRequis.isNotEmpty()
+            val aOutilsUrbain = op.outilsRequisUrbain.isNotEmpty()
+            
+            when {
+                // Opération avec UNIQUEMENT des outils pleine terre → seulement en pleine terre
+                aOutilsPleineTerre && !aOutilsUrbain -> !urbain
+                
+                // Opération avec UNIQUEMENT des outils urbains → seulement en urbain
+                !aOutilsPleineTerre && aOutilsUrbain -> urbain
+                
+                // Opération avec les deux (ou aucune) → dans les deux contextes
+                else -> true
+            }
+        }
     }
 }
