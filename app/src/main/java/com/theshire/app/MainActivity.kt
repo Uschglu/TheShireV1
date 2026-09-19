@@ -515,6 +515,8 @@ fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
             item { InfoCard("Ce qu'elle indique", adventice.indicationSol) }
             item { InfoCard("Type de sol", adventice.typeSol) }
         }
+    }
+}
 
 // ============== JARDIN ==============
 @OptIn(ExperimentalMaterial3Api::class)
@@ -576,11 +578,6 @@ fun JardinScreen(onBack: () -> Unit) {
     }
 }
 
-/**
- * Écran Urbain avec 2 sous-onglets :
- * - 🪴 Mes contenants
- * - 📖 Conseils
- */
 @Composable
 fun EcranUrbain() {
     var selectedSousOnglet by remember { mutableStateOf("contenants") }
@@ -1953,6 +1950,4 @@ fun getDensiteFromPlantation(legume: LegumeEntity): Int {
 fun getDistanceEntrePlants(legume: LegumeEntity): String {
     val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) cm entre plants").find(legume.plantation)
     return match?.groupValues?.get(1) ?: "20"
-}
-    }
 }
