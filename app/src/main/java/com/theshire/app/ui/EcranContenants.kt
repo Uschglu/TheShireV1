@@ -1,0 +1,972 @@
+package com.theshire.app.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.theshire.app.data.CalculEmplacements
+import com.theshire.app.data.ContenantEntity
+import com.theshire.app.data.EmplacementContenantEntity
+import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.AvertissementRotation
+import com.theshire.app.data.NiveauRisque
+import com.theshire.app.ui.theme.CouleursApp
+import kotlinx.coroutines.launch
+
+/**
+ * Données des types de contenants disponibles.
+ */
+data class TypeContenant(
+    val id: String,
+    val nom: String,
+    val emoji: String,
+    val description: String,
+    val champsDimensions: List<ChampDimension>
+)
+
+data class ChampDimension(
+    val id: String,
+    val label: String,
+    val unite: String = "cm",
+    val defaut: String = ""
+)
+
+/**
+ * Liste des 8 types de contenants proposés au "+".
+ */
+val TYPES_CONTENANTS = listOf(
+    TypeContenant(
+        id = "pot",
+        nom = "Pot classique",
+        emoji = "🪴",
+        description = "Pot rond standard, pour une plante isolée",
+        champsDimensions = listOf(
+            ChampDimension("diametre", "Diamètre", "cm", "25")
+        )
+    ),
+    TypeContenant(
+        id = "jardiniere",
+        nom = "Jardinière",
+        emoji = "📦",
+        description = "Rectangle allongé, pour plusieurs plants alignés",
+        champsDimensions = listOf(
+            ChampDimension("longueur", "Longueur", "cm", "60"),
+            ChampDimension("largeur", "Largeur", "cm", "20")
+        )
+    ),
+    TypeContenant(
+        id = "suspendu",
+        nom = "Pot suspendu",
+        emoji = "🪝",
+        description = "Suspendu à un crochet, pour retombantes",
+        champsDimensions = listOf(
+            ChampDimension("diametre", "Diamètre", "cm", "25")
+        )
+    ),
+    TypeContenant(
+        id = "tour",
+        nom = "Tour empilable",
+        emoji = "🗼",
+        description = "Plusieurs étages empilés verticalement",
+        champsDimensions = listOf(
+            ChampDimension("diametre", "Diamètre d'un étage", "cm", "30"),
+            ChampDimension("etages", "Nombre d'étages", "", "3")
+        )
+    ),
+    TypeContenant(
+        id = "sac",
+        nom = "Sac géotextile",
+        emoji = "🛍️",
+        description = "Sac en tissu, idéal pour tomates et courgettes",
+        champsDimensions = listOf(
+            ChampDimension("diametre", "Diamètre", "cm", "40")
+        )
+    ),
+    TypeContenant(
+        id = "bac",
+        nom = "Bac sur pied",
+        emoji = "🌿",
+        description = "Grand bac rectangulaire, surélevé du sol",
+        champsDimensions = listOf(
+            ChampDimension("longueur", "Longueur", "cm", "80"),
+            ChampDimension("largeur", "Largeur", "cm", "40")
+        )
+    ),
+    TypeContenant(
+        id = "mur",
+        nom = "Mur végétal",
+        emoji = "🧱",
+        description = "Poches fixées sur un mur, culture verticale",
+        champsDimensions = listOf(
+            ChampDimension("longueur", "Largeur", "cm", "60"),
+            ChampDimension("hauteur", "Hauteur", "cm", "80")
+        )
+    ),
+    TypeContenant(
+        id = "reserve",
+        nom = "Pot à réserve d'eau",
+        emoji = "💧",
+        description = "Pot avec réservoir, arrosage automatique",
+        champsDimensions = listOf(
+            ChampDimension("diametre", "Diamètre", "cm", "30")
+        )
+    )
+)
+
+/**
+ * Écran principal : Mes contenants urbains.
+ * 
+ * Affiche la liste des contenants avec un bouton + pour en ajouter.
+ * Clic sur un contenant → détail avec ses emplacements.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EcranContenants() {
+    val context = LocalContext.current
+    val repository = remember { ContenantRepository(context) }
+    val contenants by repository.contenants.collectAsState(initial = emptyList())
+    var showAjoutDialog by remember { mutableStateOf(false) }
+    var contenantSelectionne by remember { mutableStateOf<ContenantEntity?>(null) }
+    
+    // Si un contenant est sélectionné, afficher son détail
+    if (contenantSelectionne != null) {
+        // On rafraîchit le contenant sélectionné depuis la liste (au cas où il change)
+        val contenantActuel = contenants.find { it.id == contenantSelectionne!!.id } ?: contenantSelectionne!!
+        FicheContenant(
+            contenant = contenantActuel,
+            repository = repository,
+            onBack = { contenantSelectionne = null }
+        )
+        return
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (contenants.isEmpty()) {
+            // Écran vide
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("🪴", style = MaterialTheme.typography.displayLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Aucun contenant",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = CouleursApp.TexteFonce
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Cliquez sur + pour ajouter votre premier pot, jardinière ou tour de culture.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text(
+                        "${contenants.size} contenant(s) urbain(s)",
+                        color = CouleursApp.TexteFonce,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                items(contenants, key = { it.id }) { contenant ->
+                    CardContenant(
+                        contenant = contenant,
+                        repository = repository,
+                        onClick = { contenantSelectionne = contenant }
+                    )
+                }
+            }
+        }
+        
+        // FAB +
+        FloatingActionButton(
+            onClick = { showAjoutDialog = true },
+            containerColor = CouleursApp.VertClair,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Ajouter un contenant")
+        }
+    }
+    
+    // Boîte de dialogue d'ajout
+    if (showAjoutDialog) {
+        AjoutContenantDialog(
+            onDismiss = { showAjoutDialog = false },
+            onValider = { typeId, nom, dim1, dim2, dim3, etages, milieu ->
+                val type = TYPES_CONTENANTS.find { it.id == typeId } ?: TYPES_CONTENANTS[0]
+                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+                scope.launch {
+                    repository.creerContenant(
+                        nom = nom,
+                        type = type.id,
+                        emoji = type.emoji,
+                        dimension1 = dim1,
+                        dimension2 = dim2,
+                        dimension3 = dim3,
+                        nombreEtages = etages,
+                        milieu = milieu
+                    )
+                }
+                showAjoutDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Carte d'un contenant dans la liste.
+ */
+@Composable
+fun CardContenant(
+    contenant: ContenantEntity,
+    repository: ContenantRepository,
+    onClick: () -> Unit
+) {
+    // État pour le nombre d'emplacements (chargé de manière asynchrone)
+    var emplacements by remember { mutableStateOf<List<EmplacementContenantEntity>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(contenant.id) {
+        emplacements = repository.getEmplacementsSync(contenant.id)
+    }
+    
+    val nombreOccupes = emplacements.count { it.estOccupe() }
+    val nombreTotal = emplacements.size
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(contenant.emoji, style = MaterialTheme.typography.displayMedium)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    contenant.nom,
+                    fontWeight = FontWeight.Bold,
+                    color = CouleursApp.TexteFonce,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    contenant.dimensionsTexte(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.VertPrincipal,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    contenant.milieu,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
+                )
+                if (nombreTotal > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "$nombreOccupes / $nombreTotal planté(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (nombreOccupes == 0) CouleursApp.TexteFonce.copy(alpha = 0.5f) else CouleursApp.VertPrincipal,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
+        }
+        
+/**
+ * Boîte de dialogue d'ajout d'un nouveau contenant.
+ * L'utilisateur choisit le type, saisit le nom et les dimensions.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AjoutContenantDialog(
+    onDismiss: () -> Unit,
+    onValider: (typeId: String, nom: String, dim1: Int, dim2: Int, dim3: Int, etages: Int, milieu: String) -> Unit
+) {
+    var etape by remember { mutableStateOf(1) } // 1 = choix du type, 2 = nom + dimensions
+    var typeSelectionne by remember { mutableStateOf<TypeContenant?>(null) }
+    var nom by remember { mutableStateOf("") }
+    var milieu by remember { mutableStateOf("Balcon") }
+    val valeurs = remember { mutableStateMapOf<String, String>() }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (etape == 1) "Choisir un type de contenant" else "Configurer le contenant",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            if (etape == 1) {
+                // Étape 1 : Choix du type
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(TYPES_CONTENANTS, key = { it.id }) { type ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    typeSelectionne = type
+                                    // Pré-remplir les valeurs par défaut
+                                    type.champsDimensions.forEach { champ ->
+                                        valeurs[champ.id] = champ.defaut
+                                    }
+                                    etape = 2
+                                },
+                            colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(type.emoji, style = MaterialTheme.typography.headlineMedium)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        type.nom,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CouleursApp.TexteFonce
+                                    )
+                                    Text(
+                                        type.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Étape 2 : Nom + dimensions
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Nom
+                    OutlinedTextField(
+                        value = nom,
+                        onValueChange = { nom = it },
+                        label = { Text("Nom (ex : Balcon Sud)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Milieu
+                    Text(
+                        "Emplacement :",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CouleursApp.TexteFonce,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf("Balcon", "Terrasse", "Intérieur").forEach { m ->
+                            FilterChip(
+                                selected = milieu == m,
+                                onClick = { milieu = m },
+                                label = { Text(m, fontSize = MaterialTheme.typography.bodySmall.fontSize) },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Dimensions
+                    Text(
+                        "Dimensions :",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CouleursApp.TexteFonce,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    
+                    typeSelectionne?.champsDimensions?.forEach { champ ->
+                        OutlinedTextField(
+                            value = valeurs[champ.id] ?: "",
+                            onValueChange = { valeurs[champ.id] = it.filter { c -> c.isDigit() } },
+                            label = { Text("${champ.label} ${if (champ.unite.isNotEmpty()) "(${champ.unite})" else ""}") },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Aperçu du nom auto si vide
+                    if (nom.isBlank() && typeSelectionne != null) {
+                        Text(
+                            "💡 Nom suggéré : ${typeSelectionne!!.emoji} ${typeSelectionne!!.nom}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.VertPrincipal,
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (etape == 1) {
+                TextButton(onClick = onDismiss) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val type = typeSelectionne ?: return@Button
+                        
+                        // Générer un nom automatique si vide
+                        val nomFinal = if (nom.isBlank()) {
+                            "${type.nom}"  // ex : "Pot classique"
+                        } else {
+                            nom
+                        }
+                        
+                        // Récupérer les dimensions selon le type
+                        val dim1 = valeurs["diametre"]?.toIntOrNull() 
+                            ?: valeurs["longueur"]?.toIntOrNull() 
+                            ?: 20
+                        val dim2 = valeurs["largeur"]?.toIntOrNull() ?: 0
+                        val dim3 = valeurs["hauteur"]?.toIntOrNull() ?: 0
+                        val etages = valeurs["etages"]?.toIntOrNull() ?: 1
+                        
+                        onValider(type.id, nomFinal, dim1, dim2, dim3, etages, milieu)
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                ) {
+                    Text("Créer")
+                }
+            }
+        },
+        dismissButton = {
+            if (etape == 2) {
+                TextButton(onClick = { etape = 1 }) {
+                    Text("Retour", color = CouleursApp.VertPrincipal)
+                }
+            }
+        }
+    )
+}
+
+/**
+ * Fiche détaillée d'un contenant : affiche ses emplacements.
+ * Clic sur un emplacement vide → propose une plante.
+ * Clic sur un emplacement occupé → propose de vider ou changer.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FicheContenant(
+    contenant: ContenantEntity,
+    repository: ContenantRepository,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val legumeRepository = remember { LegumeRepository(context) }
+    val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
+    
+    val emplacements by repository.getEmplacementsPourContenant(contenant.id)
+        .collectAsState(initial = emptyList())
+    
+    var emplacementSelectionne by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
+    var showAjoutPlante by remember { mutableStateOf(false) }
+    var showMenuEmplacement by remember { mutableStateOf(false) }
+    var showSuppression by remember { mutableStateOf(false) }
+    var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
+    var showAvertissement by remember { mutableStateOf(false) }
+    
+    Scaffold(
+        containerColor = CouleursApp.Creme,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "${contenant.emoji} ${contenant.nom}",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Retour",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showSuppression = true }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Supprimer",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CouleursApp.VertPrincipal,
+                    titleContentColor = Color.White
+                )
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // En-tête : type, dimensions, milieu
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(contenant.emoji, style = MaterialTheme.typography.displayLarge)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            contenant.nom,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = CouleursApp.TexteFonce
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "${contenant.dimensionsTexte()} · ${contenant.milieu}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.VertPrincipal,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Surface utile : ${String.format("%.2f", contenant.surfaceM2())} m²",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            // Titre section emplacements
+            item {
+                Text(
+                    "🪴 Emplacements (${emplacements.size})",
+                    fontWeight = FontWeight.Bold,
+                    color = CouleursApp.VertPrincipal,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            // Liste des emplacements
+            if (emplacements.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "Aucun emplacement pour l'instant",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CouleursApp.TexteFonce
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Plantez votre première plante : les emplacements seront créés automatiquement.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    emplacementSelectionne = EmplacementContenantEntity(
+                                        contenantId = contenant.id,
+                                        numero = 1
+                                    )
+                                    showAjoutPlante = true
+                                },
+                                shape = RoundedCornerShape(28.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                            ) {
+                                Text("Planter")
+                            }
+                        }
+                    }
+                }
+            } else {
+                items(emplacements, key = { it.id }) { emp ->
+                    CardEmplacement(
+                        emplacement = emp,
+                        onClick = {
+                            emplacementSelectionne = emp
+                            if (emp.estVide()) {
+                                showAjoutPlante = true
+                            } else {
+                                showMenuEmplacement = true
+                            }
+                        }
+                    )
+                }
+            }
+            
+            // Notes
+            if (contenant.notes.isNotEmpty()) {
+                item {
+                    InfoCard("📝 Notes", contenant.notes)
+                }
+            }
+        }
+    }
+    
+    // Dialogue : choix de la plante
+    if (showAjoutPlante && emplacementSelectionne != null) {
+        ChoixPlanteDialog(
+            contenant = contenant,
+            legumeRepository = legumeRepository,
+            legumes = legumes,
+            onPlanteChoisie = { legume ->
+                scope.launch {
+                    // Vérifier les associations
+                    val associations = repository.verifierAssociationsContenant(
+                        contenant = contenant,
+                        numeroEmplacement = emplacementSelectionne!!.numero,
+                        legumeNom = legume.nom
+                    )
+                    val mauvaises = associations.filter { it.second == "mauvaise" }
+                    
+                    if (mauvaises.isNotEmpty()) {
+                        avertissement = AvertissementRotation(
+                            niveau = NiveauRisque.MOYEN,
+                            message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
+                        )
+                        showAvertissement = true
+                        showAjoutPlante = false
+                    } else {
+                        repository.planterDansEmplacement(
+                            contenant = contenant,
+                            numeroEmplacement = emplacementSelectionne!!.numero,
+                            legumeNom = legume.nom,
+                            legume = legume
+                        )
+                        showAjoutPlante = false
+                        emplacementSelectionne = null
+                    }
+                }
+            },
+            onDismiss = {
+                showAjoutPlante = false
+                emplacementSelectionne = null
+            }
+        )
+    }
+    
+    // Dialogue : menu emplacement occupé
+    if (showMenuEmplacement && emplacementSelectionne != null) {
+        AlertDialog(
+            onDismissRequest = { showMenuEmplacement = false },
+            title = { Text(emplacementSelectionne!!.legumeNom ?: "Emplacement", fontWeight = FontWeight.Bold) },
+            text = { Text("Que souhaitez-vous faire ?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            repository.viderEmplacement(emplacementSelectionne!!.id)
+                        }
+                        showMenuEmplacement = false
+                        emplacementSelectionne = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("🗑️ Vider l'emplacement")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showMenuEmplacement = false
+                    emplacementSelectionne = null
+                }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // Dialogue : confirmation suppression contenant
+    if (showSuppression) {
+        AlertDialog(
+            onDismissRequest = { showSuppression = false },
+            title = { Text("Supprimer le contenant ?", fontWeight = FontWeight.Bold) },
+            text = { Text("Le contenant \"${contenant.nom}\" et tous ses emplacements seront supprimés.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            repository.supprimerContenant(contenant)
+                        }
+                        showSuppression = false
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Supprimer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuppression = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // Dialogue : avertissement association
+    if (showAvertissement && avertissement != null) {
+        AlertDialog(
+            onDismissRequest = { showAvertissement = false; avertissement = null },
+            title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
+            text = { Text(avertissement!!.message) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val legumeNom = avertissement!!.message.substringAfter("avec : ").substringBefore(",").trim()
+                            // Replanter quand même si l'utilisateur valide
+                            // (nécessite de retrouver la plante choisie)
+                            avertissement = null
+                            showAvertissement = false
+                            emplacementSelectionne = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Carte d'un emplacement dans la liste.
+ */
+@Composable
+fun CardEmplacement(
+    emplacement: EmplacementContenantEntity,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (emplacement.estVide()) CouleursApp.Blanc else CouleursApp.VertPale
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Numéro
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        if (emplacement.estVide()) CouleursApp.VertPrincipal.copy(alpha = 0.15f) else CouleursApp.VertPrincipal,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "${emplacement.numero}",
+                    fontWeight = FontWeight.Bold,
+                    color = if (emplacement.estVide()) CouleursApp.VertPrincipal else Color.White
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                if (emplacement.estVide()) {
+                    Text(
+                        "Emplacement vide",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CouleursApp.TexteFonce.copy(alpha = 0.6f),
+                        fontStyle = FontStyle.Italic
+                    )
+                    Text(
+                        "Appuyez pour planter",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CouleursApp.VertPrincipal
+                    )
+                } else {
+                    Text(
+                        emplacement.legumeNom!!,
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.TexteFonce,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (emplacement.datePlantation != null) {
+                        val dateFormat = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.FRANCE)
+                        Text(
+                            "Planté le ${dateFormat.format(java.util.Date(emplacement.datePlantation!!))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
+        }
+    }
+}
+
+/**
+ * Boîte de dialogue pour choisir une plante à installer.
+ */
+@Composable
+fun ChoixPlanteDialog(
+    contenant: ContenantEntity,
+    legumeRepository: LegumeRepository,
+    legumes: List<LegumeEntity>,
+    onPlanteChoisie: (LegumeEntity) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
+    
+    val plantesFiltrees = legumes.filter {
+        searchQuery.isEmpty() || it.nom.contains(searchQuery, ignoreCase = true)
+    }.sortedBy { it.nom }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choisir une plante", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
+                // Info contenant
+                Text(
+                    "${contenant.emoji} ${contenant.nom} · ${contenant.dimensionsTexte()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.VertPrincipal,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Recherche
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("🔍 Rechercher...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Liste
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                ) {
+                    items(plantesFiltrees, key = { it.id }) { legume ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPlanteChoisie(legume) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    legume.nom,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CouleursApp.TexteFonce
+                                )
+                                Text(
+                                    "${legume.categorie} · ${legume.difficulte}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.VertPrincipal
+                                )
+                            }
+                            Text("›", style = MaterialTheme.typography.titleMedium, color = CouleursApp.VertPrincipal)
+                        }
+                        HorizontalDivider(color = CouleursApp.VertPale)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler", color = CouleursApp.VertPrincipal)
+            }
+        }
+    )
+}
+    }
+}
