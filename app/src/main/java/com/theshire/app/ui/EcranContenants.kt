@@ -24,8 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.theshire.app.InfoCard
-import com.theshire.app.VarieteSelectionDialog
+import com.theshire.app.ui.components.InfoCard
+import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
