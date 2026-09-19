@@ -1,6 +1,7 @@
 package com.theshire.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.theshire.app.InfoCard
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
@@ -52,18 +54,13 @@ data class ChampDimension(
     val defaut: String = ""
 )
 
-/**
- * Liste des 8 types de contenants proposés au "+".
- */
 val TYPES_CONTENANTS = listOf(
     TypeContenant(
         id = "pot",
         nom = "Pot classique",
         emoji = "🪴",
         description = "Pot rond standard, pour une plante isolée",
-        champsDimensions = listOf(
-            ChampDimension("diametre", "Diamètre", "cm", "25")
-        )
+        champsDimensions = listOf(ChampDimension("diametre", "Diamètre", "cm", "25"))
     ),
     TypeContenant(
         id = "jardiniere",
@@ -80,9 +77,7 @@ val TYPES_CONTENANTS = listOf(
         nom = "Pot suspendu",
         emoji = "🪝",
         description = "Suspendu à un crochet, pour retombantes",
-        champsDimensions = listOf(
-            ChampDimension("diametre", "Diamètre", "cm", "25")
-        )
+        champsDimensions = listOf(ChampDimension("diametre", "Diamètre", "cm", "25"))
     ),
     TypeContenant(
         id = "tour",
@@ -99,9 +94,7 @@ val TYPES_CONTENANTS = listOf(
         nom = "Sac géotextile",
         emoji = "🛍️",
         description = "Sac en tissu, idéal pour tomates et courgettes",
-        champsDimensions = listOf(
-            ChampDimension("diametre", "Diamètre", "cm", "40")
-        )
+        champsDimensions = listOf(ChampDimension("diametre", "Diamètre", "cm", "40"))
     ),
     TypeContenant(
         id = "bac",
@@ -128,17 +121,12 @@ val TYPES_CONTENANTS = listOf(
         nom = "Pot à réserve d'eau",
         emoji = "💧",
         description = "Pot avec réservoir, arrosage automatique",
-        champsDimensions = listOf(
-            ChampDimension("diametre", "Diamètre", "cm", "30")
-        )
+        champsDimensions = listOf(ChampDimension("diametre", "Diamètre", "cm", "30"))
     )
 )
 
 /**
  * Écran principal : Mes contenants urbains.
- * 
- * Affiche la liste des contenants avec un bouton + pour en ajouter.
- * Clic sur un contenant → détail avec ses emplacements.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,7 +137,6 @@ fun EcranContenants() {
     var showAjoutDialog by remember { mutableStateOf(false) }
     var contenantSelectionne by remember { mutableStateOf<ContenantEntity?>(null) }
     
-    // Si un contenant est sélectionné, afficher son détail
     if (contenantSelectionne != null) {
         val contenantActuel = contenants.find { it.id == contenantSelectionne!!.id } ?: contenantSelectionne!!
         FicheContenant(
@@ -163,20 +150,13 @@ fun EcranContenants() {
     Box(modifier = Modifier.fillMaxSize()) {
         if (contenants.isEmpty()) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text("🪴", style = MaterialTheme.typography.displayLarge)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Aucun contenant",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = CouleursApp.TexteFonce
-                )
+                Text("Aucun contenant", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = CouleursApp.TexteFonce)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "Cliquez sur + pour ajouter votre premier pot, jardinière ou tour de culture.",
@@ -187,9 +167,7 @@ fun EcranContenants() {
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp),
+                modifier = Modifier.fillMaxSize().padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
@@ -210,20 +188,16 @@ fun EcranContenants() {
             }
         }
         
-        // FAB +
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un contenant")
         }
     }
     
-    // Boîte de dialogue d'ajout
     if (showAjoutDialog) {
         AjoutContenantDialog(
             onDismiss = { showAjoutDialog = false },
@@ -232,14 +206,9 @@ fun EcranContenants() {
                 val scope = CoroutineScope(Dispatchers.Main)
                 scope.launch {
                     repository.creerContenant(
-                        nom = nom,
-                        type = type.id,
-                        emoji = type.emoji,
-                        dimension1 = dim1,
-                        dimension2 = dim2,
-                        dimension3 = dim3,
-                        nombreEtages = etages,
-                        milieu = milieu
+                        nom = nom, type = type.id, emoji = type.emoji,
+                        dimension1 = dim1, dimension2 = dim2, dimension3 = dim3,
+                        nombreEtages = etages, milieu = milieu
                     )
                 }
                 showAjoutDialog = false
@@ -267,38 +236,19 @@ fun CardContenant(
     val nombreTotal = emplacements.size
     
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(contenant.emoji, style = MaterialTheme.typography.displayMedium)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    contenant.nom,
-                    fontWeight = FontWeight.Bold,
-                    color = CouleursApp.TexteFonce,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    contenant.dimensionsTexte(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CouleursApp.VertPrincipal,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    contenant.milieu,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
-                )
+                Text(contenant.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, style = MaterialTheme.typography.bodyLarge)
+                Text(contenant.dimensionsTexte(), style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
+                Text(contenant.milieu, style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce.copy(alpha = 0.6f))
                 if (nombreTotal > 0) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -316,7 +266,6 @@ fun CardContenant(
 
 /**
  * Boîte de dialogue d'ajout d'un nouveau contenant.
- * L'utilisateur choisit le type, saisit le nom et les dimensions.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -332,12 +281,7 @@ fun AjoutContenantDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                if (etape == 1) "Choisir un type de contenant" else "Configurer le contenant",
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text(if (etape == 1) "Choisir un type de contenant" else "Configurer le contenant", fontWeight = FontWeight.Bold) },
         text = {
             if (etape == 1) {
                 LazyColumn(
@@ -346,35 +290,19 @@ fun AjoutContenantDialog(
                 ) {
                     items(TYPES_CONTENANTS, key = { it.id }) { type ->
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    typeSelectionne = type
-                                    type.champsDimensions.forEach { champ ->
-                                        valeurs[champ.id] = champ.defaut
-                                    }
-                                    etape = 2
-                                },
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+                                typeSelectionne = type
+                                type.champsDimensions.forEach { champ -> valeurs[champ.id] = champ.defaut }
+                                etape = 2
+                            },
                             colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(type.emoji, style = MaterialTheme.typography.headlineMedium)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        type.nom,
-                                        fontWeight = FontWeight.Bold,
-                                        color = CouleursApp.TexteFonce
-                                    )
-                                    Text(
-                                        type.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
-                                    )
+                                    Text(type.nom, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
+                                    Text(type.description, style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce.copy(alpha = 0.7f))
                                 }
                             }
                         }
@@ -383,65 +311,39 @@ fun AjoutContenantDialog(
             } else {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = nom,
-                        onValueChange = { nom = it },
+                        value = nom, onValueChange = { nom = it },
                         label = { Text("Nom (ex : Balcon Sud)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true
                     )
-                    
                     Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        "Emplacement :",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = CouleursApp.TexteFonce,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    Text("Emplacement :", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce, fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("Balcon", "Terrasse", "Intérieur").forEach { m ->
                             FilterChip(
-                                selected = milieu == m,
-                                onClick = { milieu = m },
+                                selected = milieu == m, onClick = { milieu = m },
                                 label = { Text(m, fontSize = MaterialTheme.typography.bodySmall.fontSize) },
                                 shape = RoundedCornerShape(16.dp)
                             )
                         }
                     }
-                    
                     Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        "Dimensions :",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = CouleursApp.TexteFonce,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Dimensions :", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(6.dp))
-                    
                     typeSelectionne?.champsDimensions?.forEach { champ ->
                         OutlinedTextField(
                             value = valeurs[champ.id] ?: "",
                             onValueChange = { valeurs[champ.id] = it.filter { c -> c.isDigit() } },
                             label = { Text("${champ.label} ${if (champ.unite.isNotEmpty()) "(${champ.unite})" else ""}") },
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            singleLine = true
+                            shape = RoundedCornerShape(16.dp), singleLine = true
                         )
                     }
-                    
                     Spacer(modifier = Modifier.height(8.dp))
-                    
                     if (nom.isBlank() && typeSelectionne != null) {
                         Text(
                             "💡 Nom suggéré : ${typeSelectionne!!.emoji} ${typeSelectionne!!.nom}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = CouleursApp.VertPrincipal,
-                            fontStyle = FontStyle.Italic
+                            color = CouleursApp.VertPrincipal, fontStyle = FontStyle.Italic
                         )
                     }
                 }
@@ -449,48 +351,204 @@ fun AjoutContenantDialog(
         },
         confirmButton = {
             if (etape == 1) {
-                TextButton(onClick = onDismiss) {
-                    Text("Annuler", color = CouleursApp.VertPrincipal)
-                }
+                TextButton(onClick = onDismiss) { Text("Annuler", color = CouleursApp.VertPrincipal) }
             } else {
                 Button(
                     onClick = {
                         val type = typeSelectionne ?: return@Button
-                        
-                        val nomFinal = if (nom.isBlank()) {
-                            "${type.nom}"
-                        } else {
-                            nom
-                        }
-                        
-                        val dim1 = valeurs["diametre"]?.toIntOrNull() 
-                            ?: valeurs["longueur"]?.toIntOrNull() 
-                            ?: 20
+                        val nomFinal = if (nom.isBlank()) "${type.nom}" else nom
+                        val dim1 = valeurs["diametre"]?.toIntOrNull() ?: valeurs["longueur"]?.toIntOrNull() ?: 20
                         val dim2 = valeurs["largeur"]?.toIntOrNull() ?: 0
                         val dim3 = valeurs["hauteur"]?.toIntOrNull() ?: 0
                         val etages = valeurs["etages"]?.toIntOrNull() ?: 1
-                        
                         onValider(type.id, nomFinal, dim1, dim2, dim3, etages, milieu)
                     },
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
-                ) {
-                    Text("Créer")
-                }
+                ) { Text("Créer") }
             }
         },
         dismissButton = {
             if (etape == 2) {
-                TextButton(onClick = { etape = 1 }) {
-                    Text("Retour", color = CouleursApp.VertPrincipal)
-                }
+                TextButton(onClick = { etape = 1 }) { Text("Retour", color = CouleursApp.VertPrincipal) }
             }
         }
     )
 }
 
 /**
- * Fiche détaillée d'un contenant : affiche ses emplacements.
+ * Calcule les couleurs des emplacements d'un contenant.
+ * 
+ * Logique : pour chaque emplacement occupé, on regarde TOUS les autres emplacements
+ * occupés du même contenant et on applique la priorité Rouge > Vert > Orange.
+ * 
+ * @param emplacements Liste des emplacements du contenant
+ * @param legumes Liste des légumes (pour accéder aux associations)
+ * @return Map (numero_emplacement -> couleur)
+ */
+fun calculerCouleursEmplacements(
+    emplacements: List<EmplacementContenantEntity>,
+    legumes: List<LegumeEntity>
+): Map<Int, Color> {
+    val resultat = mutableMapOf<Int, Color>()
+    
+    fun nomBase(nom: String?): String? {
+        if (nom == null) return null
+        return if (nom.contains("(")) nom.substringBefore("(").trim() else nom
+    }
+    
+    fun infosLegume(nom: String?): LegumeEntity? {
+        val base = nomBase(nom) ?: return null
+        return legumes.find { it.nom == base }
+    }
+    
+    fun verifierAssociation(plante1: String?, plante2: String?): String {
+        if (plante1 == null || plante2 == null) return "neutre"
+        val leg1 = infosLegume(plante1) ?: return "neutre"
+        val base2 = nomBase(plante2) ?: return "neutre"
+        if (leg1.bonnesAssociations.contains(base2, true)) return "bonne"
+        if (leg1.mauvaisesAssociations.contains(base2, true)) return "mauvaise"
+        return "neutre"
+    }
+    
+    emplacements.forEach { emp ->
+        if (emp.estVide()) {
+            resultat[emp.numero] = CouleursApp.CaseVide
+            return@forEach
+        }
+        
+        val plante = emp.legumeNom
+        var aBonne = false
+        var aMauvaise = false
+        
+        // Regarder tous les autres emplacements occupés
+        emplacements.forEach { autre ->
+            if (autre.numero != emp.numero && autre.estOccupe()) {
+                when (verifierAssociation(plante, autre.legumeNom)) {
+                    "bonne" -> aBonne = true
+                    "mauvaise" -> aMauvaise = true
+                }
+            }
+        }
+        
+        resultat[emp.numero] = when {
+            aMauvaise -> CouleursApp.MauvaiseAssociation
+            aBonne -> CouleursApp.BonneAssociation
+            else -> CouleursApp.NeutreAssociation
+        }
+    }
+    
+    return resultat
+}
+
+/**
+ * Grille visuelle des emplacements d'un contenant.
+ * 
+ * Affiche chaque emplacement comme une case colorée avec :
+ * - Emoji de la plante (si occupé) ou numéro (si vide)
+ * - Couleur d'association (vert/orange/rouge)
+ * - Numéro en dessous
+ * 
+ * La grille s'adapte au nombre d'emplacements :
+ * - 1-3 : grandes cases
+ * - 4-9 : cases moyennes (3 par ligne)
+ * - 10+ : petites cases (4-5 par ligne)
+ */
+@Composable
+fun GrilleEmplacements(
+    emplacements: List<EmplacementContenantEntity>,
+    couleurs: Map<Int, Color>,
+    legumes: List<LegumeEntity>,
+    onEmplacementClick: (EmplacementContenantEntity) -> Unit
+) {
+    if (emplacements.isEmpty()) return
+    
+    val nombre = emplacements.size
+    
+    // Adapter le nombre de colonnes et la taille selon le nombre d'emplacements
+    val (colonnes, taille) = when {
+        nombre <= 3 -> Pair(nombre, 80.dp)
+        nombre <= 6 -> Pair(3, 70.dp)
+        nombre <= 12 -> Pair(4, 60.dp)
+        nombre <= 20 -> Pair(5, 50.dp)
+        else -> Pair(6, 45.dp)
+    }
+    
+    // Grouper les emplacements par lignes
+    val lignes = emplacements.chunked(colonnes)
+    
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        lignes.forEach { ligne ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+            ) {
+                ligne.forEach { emp ->
+                    val couleur = couleurs[emp.numero] ?: CouleursApp.CaseVide
+                    val emoji = if (emp.estOccupe()) {
+                        // Récupérer l'emoji de la catégorie du légume
+                        val nomBase = if (emp.legumeNom!!.contains("(")) emp.legumeNom.substringBefore("(").trim() else emp.legumeNom
+                        val legume = legumes.find { it.nom == nomBase }
+                        getEmojiCategorieLegume(legume?.categorie ?: "")
+                    } else {
+                        "·"
+                    }
+                    
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(taille)
+                                .background(couleur, RoundedCornerShape(8.dp))
+                                .border(1.dp, CouleursApp.VertPrincipal.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .clickable { onEmplacementClick(emp) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                emoji,
+                                fontSize = (taille.value / 3.5f).sp,
+                                color = if (emp.estVide()) CouleursApp.TexteFonce.copy(alpha = 0.4f) else Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            "${emp.numero}",
+                            fontSize = 10.sp,
+                            color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Emoji selon la catégorie du légume.
+ */
+fun getEmojiCategorieLegume(categorie: String): String = when {
+    categorie.contains("Racine", true) -> "🥕"
+    categorie.contains("Tubercule", true) -> "🥔"
+    categorie.contains("Fruit", true) -> "🍅"
+    categorie.contains("Feuille", true) -> "🥬"
+    categorie.contains("Légumineuse", true) -> "🫘"
+    categorie.contains("Alliacé", true) -> "🧅"
+    categorie.contains("Chou", true) -> "🥦"
+    categorie.contains("Cucurbitacée", true) -> "🎃"
+    categorie.contains("Fleur", true) -> "🌸"
+    categorie.contains("Aromatique", true) -> "🌿"
+    else -> "🌱"
+}
+
+/**
+ * Fiche détaillée d'un contenant : affiche ses emplacements avec aperçu visuel.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -515,6 +573,11 @@ fun FicheContenant(
     var showAvertissement by remember { mutableStateOf(false) }
     var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
     
+    // Calcul des couleurs d'association
+    val couleurs = remember(emplacements, legumes) {
+        calculerCouleursEmplacements(emplacements, legumes)
+    }
+    
     Scaffold(
         containerColor = CouleursApp.Creme,
         topBar = {
@@ -528,20 +591,12 @@ fun FicheContenant(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Retour",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour", tint = Color.White)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSuppression = true }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Supprimer",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -558,6 +613,7 @@ fun FicheContenant(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // En-tête : infos du contenant
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -590,6 +646,48 @@ fun FicheContenant(
                 }
             }
             
+            // Aperçu visuel des emplacements (si au moins un existe)
+            if (emplacements.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "🎨 Aperçu des emplacements",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Vert = bonne association · Orange = neutre · Rouge = mauvaise",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            GrilleEmplacements(
+                                emplacements = emplacements,
+                                couleurs = couleurs,
+                                legumes = legumes,
+                                onEmplacementClick = { emp ->
+                                    emplacementSelectionne = emp
+                                    if (emp.estVide()) {
+                                        showAjoutPlante = true
+                                    } else {
+                                        showMenuEmplacement = true
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Titre section emplacements détaillés
             item {
                 Text(
                     "🪴 Emplacements (${emplacements.size})",
@@ -599,6 +697,7 @@ fun FicheContenant(
                 )
             }
             
+            // Liste détaillée des emplacements (cartes)
             if (emplacements.isEmpty()) {
                 item {
                     Card(
@@ -606,7 +705,10 @@ fun FicheContenant(
                         colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
                                 "Aucun emplacement pour l'instant",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -640,6 +742,8 @@ fun FicheContenant(
                 items(emplacements, key = { it.id }) { emp ->
                     CardEmplacement(
                         emplacement = emp,
+                        couleur = couleurs[emp.numero],
+                        legumes = legumes,
                         onClick = {
                             emplacementSelectionne = emp
                             if (emp.estVide()) {
@@ -766,7 +870,7 @@ fun FicheContenant(
     // Dialogue : avertissement association
     if (showAvertissement && avertissement != null && legumeEnAttente != null) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showAvertissement = false
                 avertissement = null
                 legumeEnAttente = null
@@ -799,7 +903,7 @@ fun FicheContenant(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showAvertissement = false
                     avertissement = null
                     legumeEnAttente = null
@@ -813,20 +917,33 @@ fun FicheContenant(
 }
 
 /**
- * Carte d'un emplacement dans la liste.
+ * Carte d'un emplacement dans la liste détaillée.
  */
 @Composable
 fun CardEmplacement(
     emplacement: EmplacementContenantEntity,
+    couleur: Color?,
+    legumes: List<LegumeEntity>,
     onClick: () -> Unit
 ) {
+    val couleurAffichee = couleur ?: CouleursApp.CaseVide
+    
+    // Emoji selon la catégorie
+    val emoji = if (emplacement.estOccupe()) {
+        val nomBase = if (emplacement.legumeNom!!.contains("(")) emplacement.legumeNom.substringBefore("(").trim() else emplacement.legumeNom
+        val legume = legumes.find { it.nom == nomBase }
+        getEmojiCategorieLegume(legume?.categorie ?: "")
+    } else {
+        ""
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (emplacement.estVide()) CouleursApp.Blanc else CouleursApp.VertPale
+            containerColor = if (emplacement.estVide()) CouleursApp.Blanc else couleurAffichee.copy(alpha = 0.5f)
         )
     ) {
         Row(
@@ -835,18 +952,23 @@ fun CardEmplacement(
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .background(
-                        if (emplacement.estVide()) CouleursApp.VertPrincipal.copy(alpha = 0.15f) else CouleursApp.VertPrincipal,
+                        if (emplacement.estVide()) CouleursApp.VertPrincipal.copy(alpha = 0.15f) else couleurAffichee,
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "${emplacement.numero}",
-                    fontWeight = FontWeight.Bold,
-                    color = if (emplacement.estVide()) CouleursApp.VertPrincipal else Color.White
-                )
+                if (emplacement.estVide()) {
+                    Text(
+                        "${emplacement.numero}",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                } else {
+                    Text(emoji, style = MaterialTheme.typography.titleLarge)
+                }
             }
             
             Spacer(modifier = Modifier.width(12.dp))
@@ -854,7 +976,7 @@ fun CardEmplacement(
             Column(modifier = Modifier.weight(1f)) {
                 if (emplacement.estVide()) {
                     Text(
-                        "Emplacement vide",
+                        "Emplacement ${emplacement.numero} vide",
                         style = MaterialTheme.typography.bodyMedium,
                         color = CouleursApp.TexteFonce.copy(alpha = 0.6f),
                         fontStyle = FontStyle.Italic
