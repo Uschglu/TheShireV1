@@ -36,9 +36,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/**
- * Données des types de contenants disponibles.
- */
 data class TypeContenant(
     val id: String,
     val nom: String,
@@ -125,9 +122,6 @@ val TYPES_CONTENANTS = listOf(
     )
 )
 
-/**
- * Écran principal : Mes contenants urbains.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EcranContenants() {
@@ -217,9 +211,6 @@ fun EcranContenants() {
     }
 }
 
-/**
- * Carte d'un contenant dans la liste.
- */
 @Composable
 fun CardContenant(
     contenant: ContenantEntity,
@@ -264,9 +255,6 @@ fun CardContenant(
     }
 }
 
-/**
- * Boîte de dialogue d'ajout d'un nouveau contenant.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AjoutContenantDialog(
@@ -376,16 +364,6 @@ fun AjoutContenantDialog(
     )
 }
 
-/**
- * Calcule les couleurs des emplacements d'un contenant.
- * 
- * Logique : pour chaque emplacement occupé, on regarde TOUS les autres emplacements
- * occupés du même contenant et on applique la priorité Rouge > Vert > Orange.
- * 
- * @param emplacements Liste des emplacements du contenant
- * @param legumes Liste des légumes (pour accéder aux associations)
- * @return Map (numero_emplacement -> couleur)
- */
 fun calculerCouleursEmplacements(
     emplacements: List<EmplacementContenantEntity>,
     legumes: List<LegumeEntity>
@@ -421,7 +399,6 @@ fun calculerCouleursEmplacements(
         var aBonne = false
         var aMauvaise = false
         
-        // Regarder tous les autres emplacements occupés
         emplacements.forEach { autre ->
             if (autre.numero != emp.numero && autre.estOccupe()) {
                 when (verifierAssociation(plante, autre.legumeNom)) {
@@ -441,19 +418,6 @@ fun calculerCouleursEmplacements(
     return resultat
 }
 
-/**
- * Grille visuelle des emplacements d'un contenant.
- * 
- * Affiche chaque emplacement comme une case colorée avec :
- * - Emoji de la plante (si occupé) ou numéro (si vide)
- * - Couleur d'association (vert/orange/rouge)
- * - Numéro en dessous
- * 
- * La grille s'adapte au nombre d'emplacements :
- * - 1-3 : grandes cases
- * - 4-9 : cases moyennes (3 par ligne)
- * - 10+ : petites cases (4-5 par ligne)
- */
 @Composable
 fun GrilleEmplacements(
     emplacements: List<EmplacementContenantEntity>,
@@ -465,7 +429,6 @@ fun GrilleEmplacements(
     
     val nombre = emplacements.size
     
-    // Adapter le nombre de colonnes et la taille selon le nombre d'emplacements
     val (colonnes, taille) = when {
         nombre <= 3 -> Pair(nombre, 80.dp)
         nombre <= 6 -> Pair(3, 70.dp)
@@ -474,7 +437,6 @@ fun GrilleEmplacements(
         else -> Pair(6, 45.dp)
     }
     
-    // Grouper les emplacements par lignes
     val lignes = emplacements.chunked(colonnes)
     
     Column(
@@ -490,7 +452,6 @@ fun GrilleEmplacements(
                 ligne.forEach { emp ->
                     val couleur = couleurs[emp.numero] ?: CouleursApp.CaseVide
                     val emoji = if (emp.estOccupe()) {
-                        // Récupérer l'emoji de la catégorie du légume
                         val nomBase = if (emp.legumeNom!!.contains("(")) emp.legumeNom.substringBefore("(").trim() else emp.legumeNom
                         val legume = legumes.find { it.nom == nomBase }
                         getEmojiCategorieLegume(legume?.categorie ?: "")
@@ -530,9 +491,6 @@ fun GrilleEmplacements(
     }
 }
 
-/**
- * Emoji selon la catégorie du légume.
- */
 fun getEmojiCategorieLegume(categorie: String): String = when {
     categorie.contains("Racine", true) -> "🥕"
     categorie.contains("Tubercule", true) -> "🥔"
@@ -547,9 +505,6 @@ fun getEmojiCategorieLegume(categorie: String): String = when {
     else -> "🌱"
 }
 
-/**
- * Fiche détaillée d'un contenant : affiche ses emplacements avec aperçu visuel.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FicheContenant(
@@ -573,7 +528,6 @@ fun FicheContenant(
     var showAvertissement by remember { mutableStateOf(false) }
     var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
     
-    // Calcul des couleurs d'association
     val couleurs = remember(emplacements, legumes) {
         calculerCouleursEmplacements(emplacements, legumes)
     }
@@ -613,7 +567,6 @@ fun FicheContenant(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // En-tête : infos du contenant
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -646,7 +599,6 @@ fun FicheContenant(
                 }
             }
             
-            // Aperçu visuel des emplacements (si au moins un existe)
             if (emplacements.isNotEmpty()) {
                 item {
                     Card(
@@ -674,8 +626,9 @@ fun FicheContenant(
                                 couleurs = couleurs,
                                 legumes = legumes,
                                 onEmplacementClick = { emp ->
-                                    emplacementSelectionne = emp
-                                    if (emp.estVide()) {
+                                    val empFixe = emp
+                                    emplacementSelectionne = empFixe
+                                    if (empFixe.estVide()) {
                                         showAjoutPlante = true
                                     } else {
                                         showMenuEmplacement = true
@@ -687,7 +640,6 @@ fun FicheContenant(
                 }
             }
             
-            // Titre section emplacements détaillés
             item {
                 Text(
                     "🪴 Emplacements (${emplacements.size})",
@@ -697,7 +649,6 @@ fun FicheContenant(
                 )
             }
             
-            // Liste détaillée des emplacements (cartes)
             if (emplacements.isEmpty()) {
                 item {
                     Card(
@@ -745,8 +696,9 @@ fun FicheContenant(
                         couleur = couleurs[emp.numero],
                         legumes = legumes,
                         onClick = {
-                            emplacementSelectionne = emp
-                            if (emp.estVide()) {
+                            val empFixe = emp
+                            emplacementSelectionne = empFixe
+                            if (empFixe.estVide()) {
                                 showAjoutPlante = true
                             } else {
                                 showMenuEmplacement = true
@@ -766,15 +718,18 @@ fun FicheContenant(
     
     // Dialogue : choix de la plante
     if (showAjoutPlante && emplacementSelectionne != null) {
+        val empCible = emplacementSelectionne!!
         ChoixPlanteDialog(
             contenant = contenant,
             legumeRepository = legumeRepository,
             legumes = legumes,
             onPlanteChoisie = { legume ->
+                showAjoutPlante = false
+                val empPourPlante = empCible
                 scope.launch {
                     val associations = repository.verifierAssociationsContenant(
                         contenant = contenant,
-                        numeroEmplacement = emplacementSelectionne!!.numero,
+                        numeroEmplacement = empPourPlante.numero,
                         legumeNom = legume.nom
                     )
                     val mauvaises = associations.filter { it.second == "mauvaise" }
@@ -786,15 +741,13 @@ fun FicheContenant(
                         )
                         legumeEnAttente = legume
                         showAvertissement = true
-                        showAjoutPlante = false
                     } else {
                         repository.planterDansEmplacement(
                             contenant = contenant,
-                            numeroEmplacement = emplacementSelectionne!!.numero,
+                            numeroEmplacement = empPourPlante.numero,
                             legumeNom = legume.nom,
                             legume = legume
                         )
-                        showAjoutPlante = false
                         emplacementSelectionne = null
                     }
                 }
@@ -808,18 +761,23 @@ fun FicheContenant(
     
     // Dialogue : menu emplacement occupé
     if (showMenuEmplacement && emplacementSelectionne != null) {
+        val empAUtiliser = emplacementSelectionne!!
         AlertDialog(
             onDismissRequest = { showMenuEmplacement = false },
-            title = { Text(emplacementSelectionne!!.legumeNom ?: "Emplacement", fontWeight = FontWeight.Bold) },
+            title = { Text(empAUtiliser.legumeNom ?: "Emplacement", fontWeight = FontWeight.Bold) },
             text = { Text("Que souhaitez-vous faire ?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            repository.viderEmplacement(emplacementSelectionne!!.id)
-                        }
+                        // Capturer l'ID avant de nullifier
+                        val id = empAUtiliser.id
+                        // Fermer le dialogue et nullifier d'abord
                         showMenuEmplacement = false
                         emplacementSelectionne = null
+                        // Puis lancer la coroutine avec l'ID capturé
+                        scope.launch {
+                            repository.viderEmplacement(id)
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(28.dp)
@@ -847,10 +805,11 @@ fun FicheContenant(
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            repository.supprimerContenant(contenant)
-                        }
+                        val contenantASupprimer = contenant
                         showSuppression = false
+                        scope.launch {
+                            repository.supprimerContenant(contenantASupprimer)
+                        }
                         onBack()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
@@ -869,6 +828,10 @@ fun FicheContenant(
     
     // Dialogue : avertissement association
     if (showAvertissement && avertissement != null && legumeEnAttente != null) {
+        val av = avertissement!!
+        val legumeCible = legumeEnAttente!!
+        val empCible = emplacementSelectionne
+        
         AlertDialog(
             onDismissRequest = {
                 showAvertissement = false
@@ -877,23 +840,23 @@ fun FicheContenant(
                 emplacementSelectionne = null
             },
             title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
-            text = { Text(avertissement!!.message) },
+            text = { Text(av.message) },
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            if (emplacementSelectionne != null && legumeEnAttente != null) {
+                        showAvertissement = false
+                        avertissement = null
+                        legumeEnAttente = null
+                        emplacementSelectionne = null
+                        if (empCible != null) {
+                            scope.launch {
                                 repository.planterDansEmplacement(
                                     contenant = contenant,
-                                    numeroEmplacement = emplacementSelectionne!!.numero,
-                                    legumeNom = legumeEnAttente!!.nom,
-                                    legume = legumeEnAttente!!
+                                    numeroEmplacement = empCible.numero,
+                                    legumeNom = legumeCible.nom,
+                                    legume = legumeCible
                                 )
                             }
-                            showAvertissement = false
-                            avertissement = null
-                            legumeEnAttente = null
-                            emplacementSelectionne = null
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
@@ -916,9 +879,6 @@ fun FicheContenant(
     }
 }
 
-/**
- * Carte d'un emplacement dans la liste détaillée.
- */
 @Composable
 fun CardEmplacement(
     emplacement: EmplacementContenantEntity,
@@ -928,7 +888,6 @@ fun CardEmplacement(
 ) {
     val couleurAffichee = couleur ?: CouleursApp.CaseVide
     
-    // Emoji selon la catégorie
     val emoji = if (emplacement.estOccupe()) {
         val nomBase = if (emplacement.legumeNom!!.contains("(")) emplacement.legumeNom.substringBefore("(").trim() else emplacement.legumeNom
         val legume = legumes.find { it.nom == nomBase }
@@ -1009,9 +968,6 @@ fun CardEmplacement(
     }
 }
 
-/**
- * Boîte de dialogue pour choisir une plante à installer.
- */
 @Composable
 fun ChoixPlanteDialog(
     contenant: ContenantEntity,
