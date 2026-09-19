@@ -74,16 +74,17 @@ import com.theshire.app.data.PlantIdentification
 import com.theshire.app.data.PlantNetRepository
 import com.theshire.app.data.PrevisionJour
 import com.theshire.app.data.RappelCulturelEntity
-import com.theshire.app.data.ReseauRepository
 import com.theshire.app.data.RotationRepository
 import com.theshire.app.data.ThemePreferences
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.data.BrandingApp
 import com.theshire.app.ui.AdventiceRepository
-import com.theshire.app.ui.EcranAgricultureUrbaine
+import com.theshire.app.ui.ContenantRepository
+import com.theshire.app.ui.EcranContenants
 import com.theshire.app.ui.EcranOutils
 import com.theshire.app.ui.JardinRepository
 import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.ui.OngletConseilsUrbains
 import com.theshire.app.ui.OperationsCulturales
 import com.theshire.app.ui.Outil
 import com.theshire.app.ui.Outils
@@ -266,58 +267,23 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         }
     }
     
-    Scaffold(
-        containerColor = CouleursApp.Creme
-    ) { innerPadding ->
+    Scaffold(containerColor = CouleursApp.Creme) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    BrandingApp.config.nomApp,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = CouleursApp.VertPrincipal
-                )
-                IconButton(
-                    onClick = onNavigateToParametres,
-                    modifier = Modifier
-                        .background(CouleursApp.VertPale, CircleShape)
-                        .size(48.dp)
-                ) {
-                    Text(
-                        "⚙️",
-                        style = MaterialTheme.typography.titleLarge
-                    )
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(BrandingApp.config.nomApp, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineMedium, color = CouleursApp.VertPrincipal)
+                IconButton(onClick = onNavigateToParametres, modifier = Modifier.background(CouleursApp.VertPale, CircleShape).size(48.dp)) {
+                    Text("⚙️", style = MaterialTheme.typography.titleLarge)
                 }
             }
             
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(28.dp))
-                    .clip(RoundedCornerShape(28.dp))
-                    .clickable {
-                        showPrevisions = true
-                        chargementPrevisions = true
-                    },
-                colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(28.dp)).clip(RoundedCornerShape(28.dp)).clickable { showPrevisions = true; chargementPrevisions = true }, colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)) {
                 Box(modifier = Modifier.background(Brush.linearGradient(listOf(CouleursApp.VertPale, CouleursApp.Blanc)))) {
                     Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(getEmojiMeteo(meteo), style = MaterialTheme.typography.displayLarge)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            if (meteo != null) { 
-                                Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                                Text(meteo!!.description, color = CouleursApp.TexteFonce) 
-                            }
-                            else { 
-                                Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce)
-                                Text("Météo indisponible", color = CouleursApp.TexteFonce) 
-                            }
+                            if (meteo != null) { Text("${meteo!!.temperature}°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text(meteo!!.description, color = CouleursApp.TexteFonce) }
+                            else { Text("--°C", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce); Text("Météo indisponible", color = CouleursApp.TexteFonce) }
                             Text(dateFormat.format(Date()), style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
                             Text("${phaseLune.emoji} ${phaseLune.nom}", color = CouleursApp.VertPrincipal, fontWeight = FontWeight.Bold)
                             if (ville.isNotEmpty()) Text("📍 $ville", style = MaterialTheme.typography.bodySmall, color = CouleursApp.TexteFonce)
@@ -363,11 +329,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                 } else {
                     Column {
                         previsions.forEach { p ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text(p.date, fontWeight = FontWeight.Bold, color = CouleursApp.TexteFonce, modifier = Modifier.weight(1f))
                                 Text(p.emoji, style = MaterialTheme.typography.titleMedium)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -399,8 +361,8 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 item { Column { Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Météo, phase de lune et photo de votre jardin. Le bouton ⚙️ en haut à droite donne accès aux paramètres.") } }
                 item { Column { Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Plantes, Adventices, Reconnaissance photo.") } }
-                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Planches, Agriculture urbaine (nouveau !), Analyse du sol.") } }
-                item { Column { Text("🏙️ Agriculture urbaine", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Conseils, matériel et plantes adaptés à la culture en balcon, terrasse ou intérieur.") } }
+                item { Column { Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Pleine terre (planches), Agriculture urbaine (contenants + conseils), Analyse du sol.") } }
+                item { Column { Text("🏙️ Agriculture urbaine", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Créez vos pots, jardinières et tours de culture. Plantez y vos légumes adaptés.") } }
                 item { Column { Text("🌱 Case centrale", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta); Text("Appuyez sur la case centrale : remplir tout le m² ou juste cette case.") } }
                 item { Column { Text("🎨 Couleurs des cases", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Vert = bonne association, Orange = neutre, Rouge = mauvaise.") } }
                 item { Column { Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal); Text("Opérations culturales automatiques affichées en barres ←→.") } }
@@ -553,18 +515,16 @@ fun AdventiceDetailScreen(adventice: AdventiceEntity, onBack: () -> Unit) {
             item { InfoCard("Ce qu'elle indique", adventice.indicationSol) }
             item { InfoCard("Type de sol", adventice.typeSol) }
         }
-    }
-}
 
 // ============== JARDIN ==============
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
-    var selectedOnglet by remember { mutableStateOf("planches") }
+    var selectedOnglet by remember { mutableStateOf("pleine_terre") }
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
             selectedTabIndex = when (selectedOnglet) {
-                "planches" -> 0
+                "pleine_terre" -> 0
                 "urbain" -> 1
                 else -> 2
             },
@@ -572,14 +532,14 @@ fun JardinScreen(onBack: () -> Unit) {
             contentColor = Color.White
         ) {
             Tab(
-                selected = selectedOnglet == "planches",
-                onClick = { selectedOnglet = "planches" },
+                selected = selectedOnglet == "pleine_terre",
+                onClick = { selectedOnglet = "pleine_terre" },
                 text = {
                     Text(
-                        "🌱 Planches",
+                        "🌱 Pleine terre",
                         fontWeight = FontWeight.Bold,
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        color = if (selectedOnglet == "planches") Color.White else Color.White.copy(alpha = 0.6f)
+                        color = if (selectedOnglet == "pleine_terre") Color.White else Color.White.copy(alpha = 0.6f)
                     )
                 }
             )
@@ -609,9 +569,55 @@ fun JardinScreen(onBack: () -> Unit) {
             )
         }
         when (selectedOnglet) {
-            "planches" -> JardinPlanchesScreen(onBack)
-            "urbain" -> EcranAgricultureUrbaine()
+            "pleine_terre" -> JardinPlanchesScreen(onBack)
+            "urbain" -> EcranUrbain()
             else -> AnalyseSolScreen(onBack)
+        }
+    }
+}
+
+/**
+ * Écran Urbain avec 2 sous-onglets :
+ * - 🪴 Mes contenants
+ * - 📖 Conseils
+ */
+@Composable
+fun EcranUrbain() {
+    var selectedSousOnglet by remember { mutableStateOf("contenants") }
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = if (selectedSousOnglet == "contenants") 0 else 1,
+            containerColor = CouleursApp.VertClair,
+            contentColor = Color.White
+        ) {
+            Tab(
+                selected = selectedSousOnglet == "contenants",
+                onClick = { selectedSousOnglet = "contenants" },
+                text = {
+                    Text(
+                        "🪴 Mes contenants",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedSousOnglet == "contenants") Color.White else Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            )
+            Tab(
+                selected = selectedSousOnglet == "conseils",
+                onClick = { selectedSousOnglet = "conseils" },
+                text = {
+                    Text(
+                        "📖 Conseils",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedSousOnglet == "conseils") Color.White else Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            )
+        }
+        when (selectedSousOnglet) {
+            "contenants" -> EcranContenants()
+            else -> OngletConseilsUrbains()
         }
     }
 }
@@ -1167,31 +1173,14 @@ fun CalendrierScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(6.dp))
                         outilsRequis.forEach { outil ->
                             val possede = OutilsApp.possede(outil.id)
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(outil.emoji, style = MaterialTheme.typography.bodyLarge)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    outil.nom,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = CouleursApp.TexteFonce,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text(outil.nom, style = MaterialTheme.typography.bodyMedium, color = CouleursApp.TexteFonce, modifier = Modifier.weight(1f))
                                 if (!possede) {
-                                    Text(
-                                        "❌ Non possédé",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    Text("❌ Non possédé", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                                 } else {
-                                    Text(
-                                        "✅",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = CouleursApp.VertPrincipal
-                                    )
+                                    Text("✅", style = MaterialTheme.typography.bodySmall, color = CouleursApp.VertPrincipal)
                                 }
                             }
                         }
@@ -1964,4 +1953,6 @@ fun getDensiteFromPlantation(legume: LegumeEntity): Int {
 fun getDistanceEntrePlants(legume: LegumeEntity): String {
     val match = Regex("(\\d+-\\d+|\\d+,\\d+|\\d+) cm entre plants").find(legume.plantation)
     return match?.groupValues?.get(1) ?: "20"
+}
+    }
 }
