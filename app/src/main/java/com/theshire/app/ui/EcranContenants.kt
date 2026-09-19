@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theshire.app.InfoCard
+import com.theshire.app.VarieteSelectionDialog
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
@@ -515,6 +516,7 @@ fun FicheContenant(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val legumeRepository = remember { LegumeRepository(context) }
+    val varieteRepository = remember { VarieteRepository(context) }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     val emplacements by repository.getEmplacementsPourContenant(contenant.id)
@@ -527,6 +529,11 @@ fun FicheContenant(
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
     var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
+    
+    // Nouveaux états pour le choix de variété (BUG 3)
+    var showVarieteSelection by remember { mutableStateOf(false) }
+    var legumeChoisi by remember { mutableStateOf<LegumeEntity?>(null) }
+    var emplacementPourVariete by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
     
     val couleurs = remember(emplacements, legumes) {
         calculerCouleursEmplacements(emplacements, legumes)
@@ -716,7 +723,7 @@ fun FicheContenant(
         }
     }
     
-    // ===== Dialogue : choix de la plante =====
+    // ===== Dialogue 1 : choix de la plante =====
     if (showAjoutPlante && emplacementSelectionne != null) {
         val empCible = emplacementSelectionne!!
         ChoixPlanteDialog(
@@ -724,34 +731,10 @@ fun FicheContenant(
             legumeRepository = legumeRepository,
             legumes = legumes,
             onPlanteChoisie = { legume ->
-                val numeroCible = empCible.numero
                 showAjoutPlante = false
-                scope.launch {
-                    val associations = repository.verifierAssociationsContenant(
-                        contenant = contenant,
-                        numeroEmplacement = numeroCible,
-                        legumeNom = legume.nom
-                    )
-                    val mauvaises = associations.filter { it.second == "mauvaise" }
-                    
-                    if (mauvaises.isNotEmpty()) {
-                        avertissement = AvertissementRotation(
-                            niveau = NiveauRisque.MOYEN,
-                            message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
-                        )
-                        legumeEnAttente = legume
-                        emplacementSelectionne = empCible
-                        showAvertissement = true
-                    } else {
-                        repository.planterDansEmplacement(
-                            contenant = contenant,
-                            numeroEmplacement = numeroCible,
-                            legumeNom = legume.nom,
-                            legume = legume
-                        )
-                        emplacementSelectionne = null
-                    }
-                }
+                legumeChoisi = legume
+                emplacementPourVariete = empCible
+                showVarieteSelection = true
             },
             onDismiss = {
                 showAjoutPlante = false
@@ -760,7 +743,56 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue : menu emplacement occupé =====
+    // ===== Dialogue 2 : choix de la variété (BUG 3) =====
+    if (showVarieteSelection && legumeChoisi != null && emplacementPourVariete != null) {
+        val legumeCible = legumeChoisi!!
+        val empCible = emplacementPourVariete!!
+        
+        VarieteSelectionDialog(
+            legumeNom = legumeCible.nom,
+            varieteRepository = varieteRepository,
+            onVarieteChoisie = { nomComplet ->
+                showVarieteSelection = false
+                
+                scope.launch {
+                    val associations = repository.verifierAssociationsContenant(
+                        contenant = contenant,
+                        numeroEmplacement = empCible.numero,
+                        legumeNom = legumeCible.nom
+                    )
+                    val mauvaises = associations.filter { it.second == "mauvaise" }
+                    
+                    if (mauvaises.isNotEmpty()) {
+                        avertissement = AvertissementRotation(
+                            niveau = NiveauRisque.MOYEN,
+                            message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
+                        )
+                        legumeEnAttente = legumeCible.copy(nom = nomComplet)
+                        emplacementSelectionne = empCible
+                        showAvertissement = true
+                    } else {
+                        repository.planterDansEmplacement(
+                            contenant = contenant,
+                            numeroEmplacement = empCible.numero,
+                            legumeNom = nomComplet,
+                            legume = legumeCible
+                        )
+                        legumeChoisi = null
+                        emplacementPourVariete = null
+                        emplacementSelectionne = null
+                    }
+                }
+            },
+            onDismiss = {
+                showVarieteSelection = false
+                legumeChoisi = null
+                emplacementPourVariete = null
+                emplacementSelectionne = null
+            }
+        )
+    }
+    
+    // ===== Dialogue 3 : menu emplacement occupé =====
     if (showMenuEmplacement && emplacementSelectionne != null) {
         val empAUtiliser = emplacementSelectionne!!
         AlertDialog(
@@ -794,7 +826,7 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue : confirmation suppression contenant =====
+    // ===== Dialogue 4 : confirmation suppression contenant =====
     if (showSuppression) {
         val contenantASupprimer = contenant
         AlertDialog(
@@ -824,7 +856,7 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue : avertissement association =====
+    // ===== Dialogue 5 : avertissement association =====
     if (showAvertissement && avertissement != null && legumeEnAttente != null && emplacementSelectionne != null) {
         val av = avertissement!!
         val legumeCible = legumeEnAttente!!
@@ -837,6 +869,8 @@ fun FicheContenant(
                 avertissement = null
                 legumeEnAttente = null
                 emplacementSelectionne = null
+                legumeChoisi = null
+                emplacementPourVariete = null
             },
             title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
             text = { Text(av.message) },
@@ -844,18 +878,20 @@ fun FicheContenant(
                 Button(
                     onClick = {
                         val numero = empCible.numero
-                        val nom = legumeCible.nom
+                        val nomComplet = legumeCible.nom
                         
                         showAvertissement = false
                         avertissement = null
                         legumeEnAttente = null
                         emplacementSelectionne = null
+                        legumeChoisi = null
+                        emplacementPourVariete = null
                         
                         scope.launch {
                             repository.planterDansEmplacement(
                                 contenant = contenantFixe,
                                 numeroEmplacement = numero,
-                                legumeNom = nom,
+                                legumeNom = nomComplet,
                                 legume = legumeCible
                             )
                         }
@@ -872,6 +908,8 @@ fun FicheContenant(
                     avertissement = null
                     legumeEnAttente = null
                     emplacementSelectionne = null
+                    legumeChoisi = null
+                    emplacementPourVariete = null
                 }) {
                     Text("Annuler", color = CouleursApp.VertPrincipal)
                 }
