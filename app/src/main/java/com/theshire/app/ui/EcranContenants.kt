@@ -1,18 +1,15 @@
 package com.theshire.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,15 +21,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.theshire.app.InfoCard
+import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
-import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.ui.theme.CouleursApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -152,7 +151,6 @@ fun EcranContenants() {
     
     // Si un contenant est sélectionné, afficher son détail
     if (contenantSelectionne != null) {
-        // On rafraîchit le contenant sélectionné depuis la liste (au cas où il change)
         val contenantActuel = contenants.find { it.id == contenantSelectionne!!.id } ?: contenantSelectionne!!
         FicheContenant(
             contenant = contenantActuel,
@@ -164,7 +162,6 @@ fun EcranContenants() {
     
     Box(modifier = Modifier.fillMaxSize()) {
         if (contenants.isEmpty()) {
-            // Écran vide
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -232,7 +229,7 @@ fun EcranContenants() {
             onDismiss = { showAjoutDialog = false },
             onValider = { typeId, nom, dim1, dim2, dim3, etages, milieu ->
                 val type = TYPES_CONTENANTS.find { it.id == typeId } ?: TYPES_CONTENANTS[0]
-                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+                val scope = CoroutineScope(Dispatchers.Main)
                 scope.launch {
                     repository.creerContenant(
                         nom = nom,
@@ -260,9 +257,7 @@ fun CardContenant(
     repository: ContenantRepository,
     onClick: () -> Unit
 ) {
-    // État pour le nombre d'emplacements (chargé de manière asynchrone)
     var emplacements by remember { mutableStateOf<List<EmplacementContenantEntity>>(emptyList()) }
-    val scope = rememberCoroutineScope()
     
     LaunchedEffect(contenant.id) {
         emplacements = repository.getEmplacementsSync(contenant.id)
@@ -316,7 +311,9 @@ fun CardContenant(
             }
             Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
         }
-        
+    }
+}
+
 /**
  * Boîte de dialogue d'ajout d'un nouveau contenant.
  * L'utilisateur choisit le type, saisit le nom et les dimensions.
@@ -327,7 +324,7 @@ fun AjoutContenantDialog(
     onDismiss: () -> Unit,
     onValider: (typeId: String, nom: String, dim1: Int, dim2: Int, dim3: Int, etages: Int, milieu: String) -> Unit
 ) {
-    var etape by remember { mutableStateOf(1) } // 1 = choix du type, 2 = nom + dimensions
+    var etape by remember { mutableStateOf(1) }
     var typeSelectionne by remember { mutableStateOf<TypeContenant?>(null) }
     var nom by remember { mutableStateOf("") }
     var milieu by remember { mutableStateOf("Balcon") }
@@ -343,7 +340,6 @@ fun AjoutContenantDialog(
         },
         text = {
             if (etape == 1) {
-                // Étape 1 : Choix du type
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -355,7 +351,6 @@ fun AjoutContenantDialog(
                                 .clip(RoundedCornerShape(12.dp))
                                 .clickable {
                                     typeSelectionne = type
-                                    // Pré-remplir les valeurs par défaut
                                     type.champsDimensions.forEach { champ ->
                                         valeurs[champ.id] = champ.defaut
                                     }
@@ -386,9 +381,7 @@ fun AjoutContenantDialog(
                     }
                 }
             } else {
-                // Étape 2 : Nom + dimensions
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Nom
                     OutlinedTextField(
                         value = nom,
                         onValueChange = { nom = it },
@@ -400,7 +393,6 @@ fun AjoutContenantDialog(
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    // Milieu
                     Text(
                         "Emplacement :",
                         style = MaterialTheme.typography.bodySmall,
@@ -423,7 +415,6 @@ fun AjoutContenantDialog(
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    // Dimensions
                     Text(
                         "Dimensions :",
                         style = MaterialTheme.typography.bodySmall,
@@ -445,7 +436,6 @@ fun AjoutContenantDialog(
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    // Aperçu du nom auto si vide
                     if (nom.isBlank() && typeSelectionne != null) {
                         Text(
                             "💡 Nom suggéré : ${typeSelectionne!!.emoji} ${typeSelectionne!!.nom}",
@@ -467,14 +457,12 @@ fun AjoutContenantDialog(
                     onClick = {
                         val type = typeSelectionne ?: return@Button
                         
-                        // Générer un nom automatique si vide
                         val nomFinal = if (nom.isBlank()) {
-                            "${type.nom}"  // ex : "Pot classique"
+                            "${type.nom}"
                         } else {
                             nom
                         }
                         
-                        // Récupérer les dimensions selon le type
                         val dim1 = valeurs["diametre"]?.toIntOrNull() 
                             ?: valeurs["longueur"]?.toIntOrNull() 
                             ?: 20
@@ -503,8 +491,6 @@ fun AjoutContenantDialog(
 
 /**
  * Fiche détaillée d'un contenant : affiche ses emplacements.
- * Clic sur un emplacement vide → propose une plante.
- * Clic sur un emplacement occupé → propose de vider ou changer.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -527,6 +513,7 @@ fun FicheContenant(
     var showSuppression by remember { mutableStateOf(false) }
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
+    var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
     
     Scaffold(
         containerColor = CouleursApp.Creme,
@@ -571,7 +558,6 @@ fun FicheContenant(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // En-tête : type, dimensions, milieu
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -604,7 +590,6 @@ fun FicheContenant(
                 }
             }
             
-            // Titre section emplacements
             item {
                 Text(
                     "🪴 Emplacements (${emplacements.size})",
@@ -614,7 +599,6 @@ fun FicheContenant(
                 )
             }
             
-            // Liste des emplacements
             if (emplacements.isEmpty()) {
                 item {
                     Card(
@@ -668,7 +652,6 @@ fun FicheContenant(
                 }
             }
             
-            // Notes
             if (contenant.notes.isNotEmpty()) {
                 item {
                     InfoCard("📝 Notes", contenant.notes)
@@ -685,7 +668,6 @@ fun FicheContenant(
             legumes = legumes,
             onPlanteChoisie = { legume ->
                 scope.launch {
-                    // Vérifier les associations
                     val associations = repository.verifierAssociationsContenant(
                         contenant = contenant,
                         numeroEmplacement = emplacementSelectionne!!.numero,
@@ -698,6 +680,7 @@ fun FicheContenant(
                             niveau = NiveauRisque.MOYEN,
                             message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
                         )
+                        legumeEnAttente = legume
                         showAvertissement = true
                         showAjoutPlante = false
                     } else {
@@ -781,27 +764,48 @@ fun FicheContenant(
     }
     
     // Dialogue : avertissement association
-    if (showAvertissement && avertissement != null) {
+    if (showAvertissement && avertissement != null && legumeEnAttente != null) {
         AlertDialog(
-            onDismissRequest = { showAvertissement = false; avertissement = null },
+            onDismissRequest = { 
+                showAvertissement = false
+                avertissement = null
+                legumeEnAttente = null
+                emplacementSelectionne = null
+            },
             title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
             text = { Text(avertissement!!.message) },
             confirmButton = {
                 Button(
                     onClick = {
                         scope.launch {
-                            val legumeNom = avertissement!!.message.substringAfter("avec : ").substringBefore(",").trim()
-                            // Replanter quand même si l'utilisateur valide
-                            // (nécessite de retrouver la plante choisie)
-                            avertissement = null
+                            if (emplacementSelectionne != null && legumeEnAttente != null) {
+                                repository.planterDansEmplacement(
+                                    contenant = contenant,
+                                    numeroEmplacement = emplacementSelectionne!!.numero,
+                                    legumeNom = legumeEnAttente!!.nom,
+                                    legume = legumeEnAttente!!
+                                )
+                            }
                             showAvertissement = false
+                            avertissement = null
+                            legumeEnAttente = null
                             emplacementSelectionne = null
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text("Annuler")
+                    Text("Planter quand même")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showAvertissement = false
+                    avertissement = null
+                    legumeEnAttente = null
+                    emplacementSelectionne = null
+                }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
                 }
             }
         )
@@ -829,7 +833,6 @@ fun CardEmplacement(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Numéro
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -909,7 +912,6 @@ fun ChoixPlanteDialog(
         title = { Text("Choisir une plante", fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
-                // Info contenant
                 Text(
                     "${contenant.emoji} ${contenant.nom} · ${contenant.dimensionsTexte()}",
                     style = MaterialTheme.typography.bodySmall,
@@ -918,7 +920,6 @@ fun ChoixPlanteDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Recherche
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -930,7 +931,6 @@ fun ChoixPlanteDialog(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Liste
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                 ) {
@@ -967,6 +967,4 @@ fun ChoixPlanteDialog(
             }
         }
     )
-}
-    }
 }
