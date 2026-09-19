@@ -716,7 +716,7 @@ fun FicheContenant(
         }
     }
     
-    // Dialogue : choix de la plante
+    // ===== Dialogue : choix de la plante =====
     if (showAjoutPlante && emplacementSelectionne != null) {
         val empCible = emplacementSelectionne!!
         ChoixPlanteDialog(
@@ -724,12 +724,12 @@ fun FicheContenant(
             legumeRepository = legumeRepository,
             legumes = legumes,
             onPlanteChoisie = { legume ->
+                val numeroCible = empCible.numero
                 showAjoutPlante = false
-                val empPourPlante = empCible
                 scope.launch {
                     val associations = repository.verifierAssociationsContenant(
                         contenant = contenant,
-                        numeroEmplacement = empPourPlante.numero,
+                        numeroEmplacement = numeroCible,
                         legumeNom = legume.nom
                     )
                     val mauvaises = associations.filter { it.second == "mauvaise" }
@@ -740,11 +740,12 @@ fun FicheContenant(
                             message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
                         )
                         legumeEnAttente = legume
+                        emplacementSelectionne = empCible
                         showAvertissement = true
                     } else {
                         repository.planterDansEmplacement(
                             contenant = contenant,
-                            numeroEmplacement = empPourPlante.numero,
+                            numeroEmplacement = numeroCible,
                             legumeNom = legume.nom,
                             legume = legume
                         )
@@ -759,7 +760,7 @@ fun FicheContenant(
         )
     }
     
-    // Dialogue : menu emplacement occupé
+    // ===== Dialogue : menu emplacement occupé =====
     if (showMenuEmplacement && emplacementSelectionne != null) {
         val empAUtiliser = emplacementSelectionne!!
         AlertDialog(
@@ -769,12 +770,9 @@ fun FicheContenant(
             confirmButton = {
                 Button(
                     onClick = {
-                        // Capturer l'ID avant de nullifier
                         val id = empAUtiliser.id
-                        // Fermer le dialogue et nullifier d'abord
                         showMenuEmplacement = false
                         emplacementSelectionne = null
-                        // Puis lancer la coroutine avec l'ID capturé
                         scope.launch {
                             repository.viderEmplacement(id)
                         }
@@ -796,8 +794,9 @@ fun FicheContenant(
         )
     }
     
-    // Dialogue : confirmation suppression contenant
+    // ===== Dialogue : confirmation suppression contenant =====
     if (showSuppression) {
+        val contenantASupprimer = contenant
         AlertDialog(
             onDismissRequest = { showSuppression = false },
             title = { Text("Supprimer le contenant ?", fontWeight = FontWeight.Bold) },
@@ -805,7 +804,6 @@ fun FicheContenant(
             confirmButton = {
                 Button(
                     onClick = {
-                        val contenantASupprimer = contenant
                         showSuppression = false
                         scope.launch {
                             repository.supprimerContenant(contenantASupprimer)
@@ -826,11 +824,12 @@ fun FicheContenant(
         )
     }
     
-    // Dialogue : avertissement association
-    if (showAvertissement && avertissement != null && legumeEnAttente != null) {
+    // ===== Dialogue : avertissement association =====
+    if (showAvertissement && avertissement != null && legumeEnAttente != null && emplacementSelectionne != null) {
         val av = avertissement!!
         val legumeCible = legumeEnAttente!!
-        val empCible = emplacementSelectionne
+        val empCible = emplacementSelectionne!!
+        val contenantFixe = contenant
         
         AlertDialog(
             onDismissRequest = {
@@ -844,19 +843,21 @@ fun FicheContenant(
             confirmButton = {
                 Button(
                     onClick = {
+                        val numero = empCible.numero
+                        val nom = legumeCible.nom
+                        
                         showAvertissement = false
                         avertissement = null
                         legumeEnAttente = null
                         emplacementSelectionne = null
-                        if (empCible != null) {
-                            scope.launch {
-                                repository.planterDansEmplacement(
-                                    contenant = contenant,
-                                    numeroEmplacement = empCible.numero,
-                                    legumeNom = legumeCible.nom,
-                                    legume = legumeCible
-                                )
-                            }
+                        
+                        scope.launch {
+                            repository.planterDansEmplacement(
+                                contenant = contenantFixe,
+                                numeroEmplacement = numero,
+                                legumeNom = nom,
+                                legume = legumeCible
+                            )
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
