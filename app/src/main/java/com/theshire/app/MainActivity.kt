@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -937,7 +938,6 @@ fun CalendrierScreen(onBack: () -> Unit) {
     }
     
     LaunchedEffect(Unit) {
-        // Charger les noms des contenants pour l'affichage
         try {
             val contenants = contenantRepository.getTousContenants()
             nomContenantsMap = contenants.associate { it.id to it.nom }
@@ -1309,15 +1309,123 @@ fun SemaineCalendrier(
         }
         
         if (nombreEnPlus > 0) {
+            var showPopup by remember { mutableStateOf(false) }
+            
             Text(
                 "+$nombreEnPlus autre(s)...",
                 style = MaterialTheme.typography.labelSmall,
                 color = CouleursApp.VertPrincipal,
                 fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier
+                    .padding(start = 4.dp, top = 2.dp)
+                    .clickable { showPopup = true }
             )
+            
+            if (showPopup) {
+                PopupListeOperations(
+                    rappels = rappelsTries,
+                    onDismiss = { showPopup = false }
+                )
+            }
         }
     }
+}
+
+@Composable
+fun PopupListeOperations(
+    rappels: List<RappelCulturelEntity>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("📋", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Opérations de la semaine",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(rappels, key = { it.id }) { op ->
+                    val couleurBase = try {
+                        Color(android.graphics.Color.parseColor(op.couleurHex))
+                    } catch (e: Exception) {
+                        Color(0xFFFFA726)
+                    }
+                    
+                    val dateFormat = SimpleDateFormat("dd/MM", Locale.FRANCE)
+                    val dateDebutTexte = dateFormat.format(Date(op.dateDebut))
+                    val dateFinTexte = dateFormat.format(Date(op.dateFin))
+                    
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onDismiss() },
+                        colors = CardDefaults.cardColors(
+                            containerColor = couleurBase.copy(alpha = if (CouleursApp.isDarkMode) 0.35f else 0.20f)
+                        ),
+                        border = BorderStroke(1.dp, couleurBase.copy(alpha = 0.6f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(40.dp)
+                                    .background(couleurBase, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            
+                            Text(op.emoji, style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    op.typeOperation,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CouleursApp.TexteFonce,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    op.legumeNom,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    "Du $dateDebutTexte au $dateFinTexte",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
+                                )
+                            }
+                            
+                            if (op.estTermine) {
+                                Text(
+                                    "✅",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Fermer", color = CouleursApp.VertPrincipal)
+            }
+        }
+    )
 }
 
 @Composable
