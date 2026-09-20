@@ -209,10 +209,20 @@ fun Etape2DetailsPlant(
     val scope = rememberCoroutineScope()
     val varieteRepository = remember { VarieteRepository(context) }
     
-    val varietes by varieteRepository.getVarietesForLegume(legumeChoisi.nom)
-        .collectAsState(initial = emptyList())
-    
-    LaunchedEffect(Unit) { varieteRepository.ajouterVarietesPredefinies() }
+    // État pour déclencher le rechargement des variétés
+var varietesPredefiniesChargees by remember { mutableStateOf(false) }
+
+// 1. D'abord, ajouter les variétés prédéfinies en base (si pas déjà fait)
+LaunchedEffect(legumeChoisi.nom) {
+    varieteRepository.ajouterVarietesPredefinies()
+    varietesPredefiniesChargees = true
+}
+
+// 2. Ensuite, charger les variétés du légume choisi (déclenché une fois les prédéfinies chargées)
+val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
+    varieteRepository.getVarietesForLegume(legumeChoisi.nom)
+}.collectAsState(initial = emptyList())
+
     
     // États du formulaire
     var varieteSelectionnee by remember { mutableStateOf<VarieteEntity?>(null) }
