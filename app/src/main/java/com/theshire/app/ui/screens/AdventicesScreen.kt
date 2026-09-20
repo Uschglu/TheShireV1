@@ -43,7 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.AdventiceEntity
-import com.theshire.app.ui.AdventiceRepository
+import com.theshire.app.data.AdventiceRepository
 import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.theme.CouleursApp
 
