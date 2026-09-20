@@ -2,6 +2,7 @@
 
 package com.theshire.app.ui.screens.stocks
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.Outil
+import com.theshire.app.data.OutilCategories
 import com.theshire.app.data.Outils
 import com.theshire.app.data.OutilsApp
 import com.theshire.app.ui.theme.CouleursApp
@@ -31,11 +33,11 @@ import com.theshire.app.ui.theme.CouleursApp
  * Onglet "Matériel" de l'écran Stocks.
  * 
  * Contient :
- * - Liste des outils possédés
+ * - Liste des outils possédés, GROUPÉS PAR CATÉGORIE
  * - FAB d'ajout (sélection multiple depuis la base Outils)
  * - Fiche détaillée d'un outil (tuto, conseil, description)
  * 
- * (Anciennement "Mes outils" dans EcranStocks)
+ * Les catégories sont affichées comme des sections avec un header visuel.
  */
 @Composable
 fun OngletMateriel() {
@@ -50,14 +52,14 @@ fun OngletMateriel() {
         return
     }
     
-    ListeOutils(onOutilClick = { outil -> outilSelectionne = outil })
+    ListeOutilsParCategorie(onOutilClick = { outil -> outilSelectionne = outil })
 }
 
 /**
- * Liste des outils possédés + FAB d'ajout.
+ * Liste des outils possédés, groupés par catégorie avec sections visuelles.
  */
 @Composable
-fun ListeOutils(
+fun ListeOutilsParCategorie(
     onOutilClick: (Outil) -> Unit
 ) {
     val context = LocalContext.current
@@ -68,7 +70,16 @@ fun ListeOutils(
     
     // Filtrer les outils complets depuis la liste des IDs
     val outilsPossedes = Outils.getOutilsParIds(outilsPossedesIds)
-        .sortedBy { it.nom }
+    
+    // Grouper par catégorie (dans l'ordre des catégories)
+    val outilsGroupes: Map<String, List<Outil>> = remember(outilsPossedesIds) {
+        outilsPossedes
+            .sortedBy { it.nom }
+            .groupBy { it.categorie }
+    }
+    
+    // Nombre total d'outils
+    val nombreTotal = outilsPossedes.size
     
     Box(modifier = Modifier.fillMaxSize()) {
         if (outilsPossedes.isEmpty()) {
@@ -100,23 +111,50 @@ fun ListeOutils(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(top = 20.dp, bottom = 80.dp)
             ) {
+                // En-tête : nombre total
                 item {
                     Text(
-                        "${outilsPossedes.size} outil(s) dans mon équipement",
+                        "$nombreTotal outil(s) dans mon équipement",
                         color = CouleursApp.TexteFonce,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
-                items(outilsPossedes, key = { it.id }) { outil ->
-                    CarteOutil(
-                        outil = outil,
-                        onClick = { onOutilClick(outil) }
-                    )
+                
+                // Pour chaque catégorie (dans l'ordre de OutilCategories.TOUTES)
+                OutilCategories.TOUTES.forEach { categorie ->
+                    val outilsDeLaCategorie = outilsGroupes[categorie]
+                    
+                    if (!outilsDeLaCategorie.isNullOrEmpty()) {
+                        // Header de catégorie
+                        item(key = "header_$categorie") {
+                            HeaderCategorie(
+                                categorie = categorie,
+                                nombreOutils = outilsDeLaCategorie.size
+                            )
+                        }
+                        
+                        // Outils de la catégorie
+                        items(
+                            outilsDeLaCategorie,
+                            key = { it.id }
+                        ) { outil ->
+                            CarteOutil(
+                                outil = outil,
+                                onClick = { onOutilClick(outil) }
+                            )
+                        }
+                        
+                        // Espace après la section
+                        item(key = "spacer_$categorie") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
                 }
             }
         }
@@ -151,14 +189,54 @@ fun ListeOutils(
 }
 
 /**
- * Boîte de dialogue d'ajout multiple d'outils.
+ * Header visuel d'une catégorie (titre + emoji + nombre d'outils).
+ */
+@Composable
+fun HeaderCategorie(
+    categorie: String,
+    nombreOutils: Int
+) {
+    val emoji = OutilCategories.getEmoji(categorie)
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(CouleursApp.VertPale, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(emoji, style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            categorie,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+            color = CouleursApp.VertPrincipal
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            "($nombreOutils)",
+            style = MaterialTheme.typography.bodySmall,
+            color = CouleursApp.TexteFonce.copy(alpha = 0.5f)
+        )
+    }
+}
+
+/**
+ * Boîte de dialogue d'ajout multiple d'outils, avec sections par catégorie.
  */
 @Composable
 fun AjoutOutilsDialog(
     onDismiss: () -> Unit,
     onValider: (Set<String>) -> Unit
 ) {
-    val tousLesOutils = remember { Outils.getTousLesOutils().sortedBy { it.nom } }
+    val tousLesOutils = remember { Outils.getTousLesOutils() }
     val idsPossedes = remember { OutilsApp.outilsPossedes.toSet() }
     
     val selection = remember { mutableStateListOf<String>() }
@@ -169,9 +247,15 @@ fun AjoutOutilsDialog(
     
     var searchQuery by remember { mutableStateOf("") }
     
+    // Filtrer par recherche
     val outilsFiltres = tousLesOutils.filter {
         searchQuery.isEmpty() || it.nom.contains(searchQuery, ignoreCase = true)
     }
+    
+    // Grouper par catégorie
+    val outilsGroupes = outilsFiltres
+        .sortedBy { it.nom }
+        .groupBy { it.categorie }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -211,43 +295,65 @@ fun AjoutOutilsDialog(
                         .weight(1f, fill = false)
                         .heightIn(max = 350.dp)
                 ) {
-                    items(outilsFiltres, key = { it.id }) { outil ->
-                        val estCoche = selection.contains(outil.id)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (estCoche) {
+                    // Si recherche active : affichage simple (pas de sections)
+                    if (searchQuery.isNotEmpty()) {
+                        items(outilsFiltres, key = { it.id }) { outil ->
+                            LigneOutilSelectionnable(
+                                outil = outil,
+                                estCoche = selection.contains(outil.id),
+                                onToggle = {
+                                    if (selection.contains(outil.id)) {
                                         selection.remove(outil.id)
                                     } else {
                                         selection.add(outil.id)
                                     }
                                 }
-                                .padding(vertical = 8.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = estCoche,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        if (!selection.contains(outil.id)) selection.add(outil.id)
-                                    } else {
-                                        selection.remove(outil.id)
-                                    }
-                                },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = CouleursApp.VertPrincipal,
-                                    checkmarkColor = Color.White
-                                )
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${outil.emoji} ${outil.nom}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = CouleursApp.TexteFonce
                             )
                         }
-                        HorizontalDivider(color = CouleursApp.VertPale)
+                    } else {
+                        // Sinon : affichage groupé par catégorie
+                        OutilCategories.TOUTES.forEach { categorie ->
+                            val outilsCat = outilsGroupes[categorie]
+                            
+                            if (!outilsCat.isNullOrEmpty()) {
+                                // Header de section
+                                item(key = "header_dialog_$categorie") {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp, bottom = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            OutilCategories.getEmoji(categorie),
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            categorie,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = CouleursApp.VertPrincipal
+                                        )
+                                    }
+                                }
+                                
+                                // Outils de la section
+                                items(outilsCat, key = { it.id }) { outil ->
+                                    LigneOutilSelectionnable(
+                                        outil = outil,
+                                        estCoche = selection.contains(outil.id),
+                                        onToggle = {
+                                            if (selection.contains(outil.id)) {
+                                                selection.remove(outil.id)
+                                            } else {
+                                                selection.add(outil.id)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -270,7 +376,41 @@ fun AjoutOutilsDialog(
 }
 
 /**
- * Carte d'un outil dans la liste.
+ * Ligne sélectionnable d'un outil dans le dialogue d'ajout.
+ */
+@Composable
+fun LigneOutilSelectionnable(
+    outil: Outil,
+    estCoche: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = 6.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = estCoche,
+            onCheckedChange = { onToggle() },
+            colors = CheckboxDefaults.colors(
+                checkedColor = CouleursApp.VertPrincipal,
+                checkmarkColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "${outil.emoji} ${outil.nom}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = CouleursApp.TexteFonce
+        )
+    }
+    HorizontalDivider(color = CouleursApp.VertPale)
+}
+
+/**
+ * Carte d'un outil dans la liste (avec le nom de sa catégorie en sous-titre).
  */
 @Composable
 fun CarteOutil(
@@ -305,7 +445,11 @@ fun CarteOutil(
                     color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
                 )
             }
-            Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
+            Text(
+                "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = CouleursApp.VertPrincipal
+            )
         }
     }
 }
@@ -366,6 +510,7 @@ fun FicheOutil(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // En-tête : emoji + nom + catégorie + description
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -381,6 +526,20 @@ fun FicheOutil(
                             style = MaterialTheme.typography.headlineSmall,
                             color = CouleursApp.TexteFonce
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                OutilCategories.getEmoji(outil.categorie),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                outil.categorie,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             outil.description,
@@ -391,6 +550,7 @@ fun FicheOutil(
                 }
             }
             
+            // Tuto d'utilisation
             if (outil.tuto.isNotEmpty()) {
                 item {
                     Card(
@@ -426,6 +586,7 @@ fun FicheOutil(
                 }
             }
             
+            // Conseil
             if (outil.conseil.isNotEmpty()) {
                 item {
                     Card(
@@ -455,6 +616,7 @@ fun FicheOutil(
                 }
             }
             
+            // Bouton retirer
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
