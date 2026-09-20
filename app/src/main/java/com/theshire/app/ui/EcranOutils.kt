@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.theshire.app.data.Outil
+import com.theshire.app.data.Outils
 import com.theshire.app.data.OutilsApp
 import com.theshire.app.ui.theme.CouleursApp
 
