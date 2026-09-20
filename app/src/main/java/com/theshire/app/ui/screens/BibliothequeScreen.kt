@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.LegumeEntity
-import com.theshire.app.ui.LegumeRepository
+import com.theshire.app.data.LegumeRepository
 import com.theshire.app.ui.components.LegumeCard
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch

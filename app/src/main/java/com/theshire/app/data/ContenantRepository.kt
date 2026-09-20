@@ -1,11 +1,6 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.content.Context
-import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.CalculEmplacements
-import com.theshire.app.data.ContenantEntity
-import com.theshire.app.data.EmplacementContenantEntity
-import com.theshire.app.data.LegumeEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,8 +14,6 @@ import kotlinx.coroutines.sync.withLock
  *   automatique des rappels culturaux comme en pleine terre)
  * - Les associations de culture au sein d'un même contenant
  * - La suppression en cascade
- * 
- * ⚠️ VERSION DEBUG : contient des logs pour identifier le crash du vidage
  */
 class ContenantRepository(context: Context) {
     
@@ -104,15 +97,11 @@ class ContenantRepository(context: Context) {
     }
     
     suspend fun supprimerContenant(contenant: ContenantEntity) {
-        android.util.Log.d("DEBUG_VIDAGE", "=== supprimerContenant appelé pour id=${contenant.id} ===")
         try {
             rappelCulturelRepository.supprimerRappelsPourContenant(contenant.id)
-            android.util.Log.d("DEBUG_VIDAGE", "Rappels contenant supprimés OK")
         } catch (e: Exception) {
-            android.util.Log.e("DEBUG_VIDAGE", "ERREUR suppression rappels contenant : ${e.message}", e)
         }
         contenantDao.deleteContenant(contenant)
-        android.util.Log.d("DEBUG_VIDAGE", "Contenant supprimé OK")
     }
     
     // ============================================================
@@ -141,18 +130,15 @@ class ContenantRepository(context: Context) {
         legumeNom: String,
         legume: LegumeEntity
     ) {
-        android.util.Log.d("DEBUG_VIDAGE", "=== planterDansEmplacement : contenant=${contenant.id}, emp=$numeroEmplacement, legume=$legumeNom ===")
         val dateActuelle = System.currentTimeMillis()
         
         val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
-        android.util.Log.d("DEBUG_VIDAGE", "Emplacements existants : ${emplacements.size}")
         
         if (emplacements.isEmpty()) {
             val nombreEmplacements = CalculEmplacements.calculerNombreEmplacements(
                 contenant = contenant,
                 legume = legume
             )
-            android.util.Log.d("DEBUG_VIDAGE", "Création de $nombreEmplacements emplacements")
             
             val nouveauxEmplacements = (1..nombreEmplacements).map { numero ->
                 EmplacementContenantEntity(
@@ -175,7 +161,6 @@ class ContenantRepository(context: Context) {
             }
         }
         
-        android.util.Log.d("DEBUG_VIDAGE", "Génération rappels culturaux...")
         rappelCulturelRepository.genererRappelsPourPlantation(
             legumeNom = legumeNom,
             datePlantation = dateActuelle,
@@ -185,52 +170,30 @@ class ContenantRepository(context: Context) {
             contenantId = contenant.id,
             emplacementNumero = numeroEmplacement
         )
-        android.util.Log.d("DEBUG_VIDAGE", "=== planterDansEmplacement terminé ===")
     }
     
-    /**
-     * Vide un emplacement (retire la plante).
-     * 
-     * ⚠️ VERSION DEBUG avec traces
-     */
     suspend fun viderEmplacement(emplacementId: Long) {
-        android.util.Log.d("DEBUG_VIDAGE", "=== DEBUT viderEmplacement ===")
-        android.util.Log.d("DEBUG_VIDAGE", "A. id reçu = $emplacementId")
-        
-        val emplacement = contenantDao.getEmplacementParId(emplacementId)
-        if (emplacement == null) {
-            android.util.Log.e("DEBUG_VIDAGE", "B. Emplacement NULL, abandon")
-            return
-        }
-        android.util.Log.d("DEBUG_VIDAGE", "C. Emplacement trouvé : contenantId=${emplacement.contenantId}, numero=${emplacement.numero}, legumeNom=${emplacement.legumeNom}")
+        val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
         
         try {
-            android.util.Log.d("DEBUG_VIDAGE", "D. Suppression des rappels culturaux...")
             rappelCulturelRepository.supprimerRappelsPourEmplacement(
                 contenantId = emplacement.contenantId,
                 emplacementNumero = emplacement.numero
             )
-            android.util.Log.d("DEBUG_VIDAGE", "E. Rappels supprimés OK")
         } catch (e: Exception) {
-            android.util.Log.e("DEBUG_VIDAGE", "ERREUR suppression rappels : ${e.message}", e)
             throw e
         }
         
         try {
-            android.util.Log.d("DEBUG_VIDAGE", "F. Update emplacement...")
             contenantDao.updateEmplacement(
                 emplacement.copy(
                     legumeNom = null,
                     datePlantation = null
                 )
             )
-            android.util.Log.d("DEBUG_VIDAGE", "G. Update OK")
         } catch (e: Exception) {
-            android.util.Log.e("DEBUG_VIDAGE", "ERREUR update emplacement : ${e.message}", e)
             throw e
         }
-        
-        android.util.Log.d("DEBUG_VIDAGE", "=== FIN viderEmplacement ===")
     }
     
     suspend fun ajouterEmplacements(contenantId: Long, nombre: Int) {

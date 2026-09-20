@@ -1,14 +1,10 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.theshire.app.RappelReceiver
-import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.RappelEntity
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 
 class RappelRepository(context: Context) {
     

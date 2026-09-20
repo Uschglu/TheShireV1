@@ -1,8 +1,6 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.content.Context
-import com.theshire.app.data.AdventiceEntity
-import com.theshire.app.data.AppDatabase
 import kotlinx.coroutines.flow.Flow
 
 class AdventiceRepository(context: Context) {

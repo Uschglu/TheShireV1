@@ -1,10 +1,6 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.content.Context
-import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.CarreEntity
-import com.theshire.app.data.LegumeEntity
-import com.theshire.app.data.PlancheEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.util.Calendar

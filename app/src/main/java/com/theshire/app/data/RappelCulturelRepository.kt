@@ -1,8 +1,6 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.content.Context
-import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.RappelCulturelEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
 
@@ -27,25 +25,6 @@ class RappelCulturelRepository(context: Context) {
     // GÉNÉRATION AUTOMATIQUE
     // ============================================================
     
-    /**
-     * Génère automatiquement les rappels culturaux pour une plantation.
-     * 
-     * Fonctionne dans DEUX contextes :
-     * 
-     * 1. PLEINE TERRE : passer carreId, caseNumero, plancheId
-     * 2. URBAIN : passer contenantId, emplacementNumero
-     * 
-     * Le contexte est déterminé automatiquement selon les paramètres fournis.
-     * Les opérations sont filtrées selon le contexte (voir OperationsCulturales.getOperationsPourContexte).
-     * 
-     * @param legumeNom Nom du légume
-     * @param datePlantation Timestamp de plantation (millis)
-     * @param carreId ID du carré (null si urbain)
-     * @param caseNumero Numéro de la case 1-9 (null si urbain)
-     * @param plancheId ID de la planche (null si urbain)
-     * @param contenantId ID du contenant (null si pleine terre)
-     * @param emplacementNumero Numéro d'emplacement (null si pleine terre)
-     */
     suspend fun genererRappelsPourPlantation(
         legumeNom: String,
         datePlantation: Long,
@@ -108,37 +87,22 @@ class RappelCulturelRepository(context: Context) {
     // SUPPRESSION
     // ============================================================
     
-    /**
-     * Supprime les rappels culturaux d'une case (pleine terre).
-     */
     suspend fun supprimerRappelsPourCase(carreId: Long, caseNumero: Int) {
         rappelCulturelDao.deleteRappelsPourCase(carreId, caseNumero)
     }
     
-    /**
-     * Supprime les rappels culturaux d'un carré entier.
-     */
     suspend fun supprimerRappelsPourCarre(carreId: Long) {
         rappelCulturelDao.deleteRappelsPourCarre(carreId)
     }
     
-    /**
-     * Supprime les rappels culturaux d'une planche entière.
-     */
     suspend fun supprimerRappelsPourPlanche(plancheId: Long) {
         rappelCulturelDao.deleteRappelsPourPlanche(plancheId)
     }
     
-    /**
-     * Supprime les rappels culturaux d'un emplacement (urbain).
-     */
     suspend fun supprimerRappelsPourEmplacement(contenantId: Long, emplacementNumero: Int) {
         rappelCulturelDao.deleteRappelsPourEmplacement(contenantId, emplacementNumero)
     }
     
-    /**
-     * Supprime les rappels culturaux d'un contenant entier.
-     */
     suspend fun supprimerRappelsPourContenant(contenantId: Long) {
         rappelCulturelDao.deleteRappelsPourContenant(contenantId)
     }

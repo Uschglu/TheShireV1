@@ -1,8 +1,6 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 import android.content.Context
-import com.theshire.app.data.AppDatabase
-import com.theshire.app.data.LegumeEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -14,36 +12,17 @@ class LegumeRepository(context: Context) {
     val legumes: Flow<List<LegumeEntity>> = legumeDao.getAllLegumes()
     
     companion object {
-        /**
-         * Verrou global pour éviter les insertions concurrentes de légumes.
-         * Sans ce verrou, plusieurs écrans appelant ajouterLegumesPredefinis()
-         * en parallèle peuvent créer des doublons (course entre check et insert).
-         */
         private val mutexInsertion = Mutex()
     }
     
-    /**
-     * Ajoute les légumes prédéfinis si absents.
-     * 
-     * Thread-safe : un Mutex empêche les insertions concurrentes.
-     * Idempotente : grâce à OnConflictStrategy.IGNORE côté DAO + contrainte
-     * unique sur le nom, aucun doublon ne peut être créé.
-     */
     suspend fun ajouterLegumesPredefinis() {
         mutexInsertion.withLock {
             getLegumesPredefinis().forEach { legume ->
-                // OnConflictStrategy.IGNORE gère le cas où le légume existe déjà
                 legumeDao.insertLegume(legume)
             }
         }
     }
     
-    /**
-     * Supprime les doublons éventuels dans la base (légumes, variétés, adventices).
-     * À appeler une fois au démarrage pour nettoyer une base polluée.
-     * 
-     * Sans danger : garde toujours l'entrée avec l'ID le plus petit.
-     */
     suspend fun supprimerDoublons() {
         legumeDao.supprimerDoublonsLegumes()
         legumeDao.supprimerDoublonsVarietes()

@@ -1,4 +1,4 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 /**
  * Base de connaissances agricoles : opérations culturales par légume.

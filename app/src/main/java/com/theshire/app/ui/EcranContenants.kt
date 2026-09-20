@@ -24,21 +24,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.theshire.app.ui.components.InfoCard
-import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
+import com.theshire.app.data.ContenantRepository
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.LegumeRepository
 import com.theshire.app.data.NiveauRisque
+import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
 data class TypeContenant(
     val id: String,
     val nom: String,
