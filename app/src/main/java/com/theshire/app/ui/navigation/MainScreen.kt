@@ -36,6 +36,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.theshire.app.ui.EcranStocks
+import com.theshire.app.ui.EcranStore
 import com.theshire.app.ui.ParametresScreen
 import com.theshire.app.ui.screens.AccueilScreen
 import com.theshire.app.ui.screens.BibliothequeScreen
@@ -69,8 +70,8 @@ fun getDegradeFond(): Brush {
 }
 
 /**
- * Écran principal de l'application avec navigation entre les 6 sections :
- * Accueil, Bibliothèque, Jardin, Calendrier, Stocks, Conservation.
+ * Écran principal de l'application avec navigation entre les 7 sections :
+ * Accueil, Bibliothèque, Jardin, Calendrier, Stocks, Conservation, Store.
  * 
  * Navigation :
  * - Par clic sur les billes en bas
@@ -85,7 +86,7 @@ fun MainScreen() {
     val navigationStack = remember { mutableStateListOf("accueil") }
     val screens = listOf(
         "accueil", "bibliotheque", "jardin",
-        "calendrier", "stocks", "conservation"
+        "calendrier", "stocks", "conservation", "store"
     )
 
     fun navigateTo(screen: String) {
@@ -166,6 +167,7 @@ fun MainScreen() {
                 "calendrier" -> CalendrierScreen(onBack = { goToAccueil() })
                 "stocks" -> EcranStocks(onBack = { goToAccueil() })
                 "conservation" -> ConservationScreen(onBack = { goToAccueil() })
+                "store" -> EcranStore(onBack = { goToAccueil() })
                 "parametres" -> ParametresScreen(
                     onBack = { goBack() },
                     onRevoirTutoriel = {
