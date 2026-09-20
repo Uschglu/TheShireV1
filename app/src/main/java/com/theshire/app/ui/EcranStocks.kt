@@ -28,9 +28,9 @@ import com.theshire.app.data.OutilsApp
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
- * Écran Équipement : gestion des outils de jardinage.
+ * Écran Stocks : gestion du matériel de jardinage.
  * 
- * Deux onglets :
+ * Pour l'instant, deux onglets :
  * - 🔧 Mes outils : liste des outils possédés + ajout via FAB
  * - 🛒 Store : à venir (achat d'outils manquants)
  * 
@@ -38,9 +38,14 @@ import com.theshire.app.ui.theme.CouleursApp
  * - Ajouter des outils via le FAB + (sélection multiple)
  * - Consulter le tuto d'un outil au clic
  * - Retirer un outil depuis sa fiche détaillée (icône 🗑️)
+ * 
+ * ⚠️ ÉVOLUTION PRÉVUE : cet écran deviendra un "Stocks" avec 3 onglets :
+ * - Graines
+ * - Jeunes plants
+ * - Matériels (outils + consommables)
  */
 @Composable
-fun EcranOutils(onBack: () -> Unit) {
+fun EcranStocks(onBack: () -> Unit) {
     var selectedOnglet by remember { mutableStateOf("mes_outils") }
     var outilSelectionne by remember { mutableStateOf<Outil?>(null) }
     
@@ -120,7 +125,7 @@ fun MesOutilsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Mes outils",
+                        "📦 Stocks",
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
