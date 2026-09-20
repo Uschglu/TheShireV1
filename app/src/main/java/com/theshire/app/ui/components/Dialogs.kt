@@ -31,7 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.theshire.app.ui.VarieteRepository
+import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 
