@@ -1,4 +1,4 @@
-package com.theshire.app.ui
+package com.theshire.app.data
 
 /**
  * Base de connaissances des outils de jardinage.
