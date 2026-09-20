@@ -70,9 +70,9 @@ import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.getDistanceEntrePlants
-import com.theshire.app.ui.JardinRepository
-import com.theshire.app.ui.LegumeRepository
-import com.theshire.app.ui.VarieteRepository
+import com.theshire.app.data.JardinRepository
+import com.theshire.app.data.LegumeRepository
+import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.components.Grille3x3
 import com.theshire.app.ui.components.LegendeCouleurs
 import com.theshire.app.ui.components.VarieteSelectionDialog
