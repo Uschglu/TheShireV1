@@ -30,23 +30,17 @@ import com.theshire.app.ui.theme.CouleursApp
 /**
  * Écran Stocks : gestion du matériel de jardinage.
  * 
- * Pour l'instant, deux onglets :
- * - 🔧 Mes outils : liste des outils possédés + ajout via FAB
- * - 🛒 Store : à venir (achat d'outils manquants)
- * 
- * L'utilisateur peut :
- * - Ajouter des outils via le FAB + (sélection multiple)
- * - Consulter le tuto d'un outil au clic
- * - Retirer un outil depuis sa fiche détaillée (icône 🗑️)
+ * Pour l'instant, un seul onglet "Mes outils".
  * 
  * ⚠️ ÉVOLUTION PRÉVUE : cet écran deviendra un "Stocks" avec 3 onglets :
- * - Graines
- * - Jeunes plants
- * - Matériels (outils + consommables)
+ * - 🫘 Graines
+ * - 🌱 Jeunes plants
+ * - 🛠️ Matériels (outils + consommables)
+ * 
+ * Le Store est désormais dans un écran séparé (EcranStore.kt).
  */
 @Composable
 fun EcranStocks(onBack: () -> Unit) {
-    var selectedOnglet by remember { mutableStateOf("mes_outils") }
     var outilSelectionne by remember { mutableStateOf<Outil?>(null) }
     
     // Si un outil est sélectionné, afficher sa fiche détaillée en plein écran
@@ -58,47 +52,12 @@ fun EcranStocks(onBack: () -> Unit) {
         return
     }
     
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Barre d'onglets
-        TabRow(
-            selectedTabIndex = if (selectedOnglet == "mes_outils") 0 else 1,
-            containerColor = CouleursApp.VertPrincipal,
-            contentColor = Color.White
-        ) {
-            Tab(
-                selected = selectedOnglet == "mes_outils",
-                onClick = { selectedOnglet = "mes_outils" },
-                text = {
-                    Text(
-                        "🔧 Mes outils",
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedOnglet == "mes_outils") Color.White else Color.White.copy(alpha = 0.6f)
-                    )
-                }
-            )
-            Tab(
-                selected = selectedOnglet == "store",
-                onClick = { selectedOnglet = "store" },
-                text = {
-                    Text(
-                        "🛒 Store",
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedOnglet == "store") Color.White else Color.White.copy(alpha = 0.6f)
-                    )
-                }
-            )
-        }
-        
-        // Contenu de l'onglet actif
-        if (selectedOnglet == "mes_outils") {
-            MesOutilsScreen(
-                onBack = onBack,
-                onOutilClick = { outil -> outilSelectionne = outil }
-            )
-        } else {
-            StoreScreen(onBack = onBack)
-        }
-    }
+    // Pour l'instant : uniquement la liste des outils.
+    // À venir : 3 onglets Graines / Jeunes plants / Matériels
+    MesOutilsScreen(
+        onBack = onBack,
+        onOutilClick = { outil -> outilSelectionne = outil }
+    )
 }
 
 /**
@@ -554,65 +513,6 @@ fun FicheOutil(
                     Text("Retirer de mes outils")
                 }
             }
-        }
-    }
-}
-
-/**
- * Onglet "Store" : à venir.
- */
-@Composable
-fun StoreScreen(onBack: () -> Unit) {
-    Scaffold(
-        containerColor = CouleursApp.Creme,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Store 🛒",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Retour",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CouleursApp.VertPrincipal,
-                    titleContentColor = Color.White
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text("🛒", style = MaterialTheme.typography.displayLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Store à venir",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge,
-                color = CouleursApp.TexteFonce
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Vous retrouverez ici les outils manquants et les produits recommandés par votre jardinerie.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
         }
     }
 }
