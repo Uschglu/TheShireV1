@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.data.getEmojiCategorie
-import com.theshire.app.ui.VarieteRepository
+import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.theme.CouleursApp
 
