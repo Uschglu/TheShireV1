@@ -226,10 +226,16 @@ fun Etape2DetailsGraine(
     val varieteRepository = remember { VarieteRepository(context) }
     
     // Charger les variétés du légume choisi
-    val varietes by varieteRepository.getVarietesForLegume(legumeChoisi.nom)
-        .collectAsState(initial = emptyList())
-    
-    LaunchedEffect(Unit) { varieteRepository.ajouterVarietesPredefinies() }
+    var varietesPredefiniesChargees by remember { mutableStateOf(false) }
+
+LaunchedEffect(legumeChoisi.nom) {
+    varieteRepository.ajouterVarietesPredefinies()
+    varietesPredefiniesChargees = true
+}
+
+val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
+    varieteRepository.getVarietesForLegume(legumeChoisi.nom)
+}.collectAsState(initial = emptyList())
     
     // États du formulaire
     var varieteSelectionnee by remember { mutableStateOf<VarieteEntity?>(null) }
