@@ -5,6 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+/**
+ * Base de données Room de l'application TheShire.
+ *
+ * Version 13 : ajout des champs de cycle de vie à JeunePlantEntity.
+ */
 @Database(
     entities = [
         LegumeEntity::class,
@@ -19,7 +24,7 @@ import androidx.room.RoomDatabase
         GraineEntity::class,
         JeunePlantEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
