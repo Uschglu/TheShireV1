@@ -10,13 +10,22 @@ import androidx.room.PrimaryKey
  * bouture, ou tout végétal en cours de croissance qui n'est
  * pas encore planté en pleine terre ou en contenant.
  * 
- * Utilisé dans l'onglet "Jeunes plants" de l'écran Stocks.
+ * Utilisé à deux endroits :
+ *  - Onglet "Plants" de l'écran Stocks : inventaire des plants possédés
+ *  - Onglet "Semis" de l'écran Jardin : suivi du cycle de vie d'un semis
+ *    (créé depuis zéro par l'utilisateur, avance d'étape en étape)
+ * 
+ * Le cycle de vie est défini dans JeunePlantEtapes (7 étapes) :
+ * Semis → Levée → Repiqué → Rempoté → Prêt à planter → Endurci → Planté
  * 
  * TODO : ajouter un champ "prix" quand un partenaire magasin sera identifié
  *        (permettra de calculer le coût réel du potager).
  * 
- * TODO (plus tard) : ajouter une durée de vie / date limite de plantation
- *        + rappels culturaux automatiques via le calendrier.
+ * TODO (V2) : lier le semis à sa destination réelle (planche, carré, contenant)
+ *        pour permettre un vrai workflow "mode plantation" (décrémenter le
+ *        stock de graines, incrémenter le plant dans la planche cible…).
+ *        Actuellement le mode reste "projection" : on suit le cycle, mais
+ *        on ne modifie pas automatiquement les autres stocks.
  */
 @Entity(tableName = "jeunes_plants")
 data class JeunePlantEntity(
@@ -42,13 +51,32 @@ data class JeunePlantEntity(
     val quantite: Int = 1,
     
     // === STADE DE DÉVELOPPEMENT ===
-    // Valeurs possibles : "Semis", "Repiqué", "Prêt à planter", "Endurci"
-    // Liste fixe définie dans JeunePlantStades (constante)
-    val stade: String = STADE_SEMIS,
+    // Valeurs possibles : voir JeunePlantEtapes
+    // ("Semis", "Levée", "Repiqué", "Rempoté",
+    //  "Prêt à planter", "Endurci", "Planté")
+    val stade: String = JeunePlantEtapes.SEMIS,
     
-    // === DATES ===
+    // === DATES DU CYCLE DE VIE ===
+    // Chaque date est remplie quand le plant passe à l'étape correspondante.
+    // Toutes optionnelles (le plant peut avoir été créé directement à une étape avancée).
+
     // Date de semis en timestamp (millis) si l'utilisateur les a semés lui-même
     val dateSemis: Long? = null,
+    
+    // Date de levée (germination visible) en timestamp (millis)
+    val dateLevee: Long? = null,
+    
+    // Date de repiquage (1er changement de godet) en timestamp (millis)
+    val dateRepiquage: Long? = null,
+    
+    // Date de rempotage (changement de contenant plus grand) en timestamp (millis)
+    val dateRempotage: Long? = null,
+    
+    // Date d'endurcissement (sortie progressive) en timestamp (millis)
+    val dateEndurcissement: Long? = null,
+    
+    // Date de plantation finale en timestamp (millis)
+    val datePlantation: Long? = null,
     
     // Date d'achat en timestamp (millis) si acheté en jardinerie
     val dateAchat: Long? = null,
@@ -62,6 +90,14 @@ data class JeunePlantEntity(
     // Ex : "Godet", "Mini-serre", "Plein soleil", "Balcon"
     val emplacementActuel: String? = null,
     
+    // === HISTORIQUE LÉGER ===
+    // Chaîne encodée des étapes traversées avec leur date.
+    // Format : "Semis:1234567890|Levée:1234600000|Repiqué:1235000000|"
+    // Rempli automatiquement à chaque changement d'étape.
+    // Parsable côté UI si on veut afficher une timeline (V2).
+    // Null si aucun changement d'étape n'a encore eu lieu.
+    val historiqueEtapes: String? = null,
+    
     // === NOTES LIBRES ===
     // Ex : "À repiquer dans 2 semaines"
     val notes: String? = null,
@@ -71,21 +107,6 @@ data class JeunePlantEntity(
     val dateAjout: Long = System.currentTimeMillis(),
     
     // Est-ce que ce plant est encore actif (pas encore planté) ?
+    // Passe à false automatiquement quand on atteint l'étape "Planté".
     val estActif: Boolean = true
 )
-
-/**
- * Constantes des stades de développement pour un jeune plant.
- * Utilisées pour le menu déroulant et les filtres.
- */
-object JeunePlantStades {
-    const val SEMIS = "Semis"
-    const val REPIQUE = "Repiqué"
-    const val PRET_A_PLANTER = "Prêt à planter"
-    const val ENDURCI = "Endurci"
-    
-    val TOUS = listOf(SEMIS, REPIQUE, PRET_A_PLANTER, ENDURCI)
-}
-
-// Raccourcis pour les valeurs par défaut dans la data class
-private const val STADE_SEMIS = "Semis"
