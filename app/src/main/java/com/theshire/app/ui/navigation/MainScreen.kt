@@ -35,14 +35,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.theshire.app.ui.theme.CouleursApp
-import com.theshire.app.ui.EcranOutils
+import com.theshire.app.ui.EcranStocks
+import com.theshire.app.ui.EcranStore
 import com.theshire.app.ui.ParametresScreen
 import com.theshire.app.ui.screens.AccueilScreen
 import com.theshire.app.ui.screens.BibliothequeScreen
 import com.theshire.app.ui.screens.CalendrierScreen
 import com.theshire.app.ui.screens.ConservationScreen
 import com.theshire.app.ui.screens.JardinScreen
+import com.theshire.app.ui.theme.CouleursApp
 
 /**
  * Retourne le dégradé de fond selon le mode sombre/clair.
@@ -69,8 +70,8 @@ fun getDegradeFond(): Brush {
 }
 
 /**
- * Écran principal de l'application avec navigation entre les 6 sections :
- * Accueil, Bibliothèque, Jardin, Calendrier, Conservation, Équipement.
+ * Écran principal de l'application avec navigation entre les 7 sections :
+ * Accueil, Bibliothèque, Jardin, Calendrier, Stocks, Conservation, Store.
  * 
  * Navigation :
  * - Par clic sur les billes en bas
@@ -85,7 +86,7 @@ fun MainScreen() {
     val navigationStack = remember { mutableStateListOf("accueil") }
     val screens = listOf(
         "accueil", "bibliotheque", "jardin",
-        "calendrier", "conservation", "equipement"
+        "calendrier", "stocks", "conservation", "store"
     )
 
     fun navigateTo(screen: String) {
@@ -164,8 +165,9 @@ fun MainScreen() {
                 "bibliotheque" -> BibliothequeScreen(onBack = { goToAccueil() })
                 "jardin" -> JardinScreen(onBack = { goToAccueil() })
                 "calendrier" -> CalendrierScreen(onBack = { goToAccueil() })
+                "stocks" -> EcranStocks(onBack = { goToAccueil() })
                 "conservation" -> ConservationScreen(onBack = { goToAccueil() })
-                "equipement" -> EcranOutils(onBack = { goToAccueil() })
+                "store" -> EcranStore(onBack = { goToAccueil() })
                 "parametres" -> ParametresScreen(
                     onBack = { goBack() },
                     onRevoirTutoriel = {

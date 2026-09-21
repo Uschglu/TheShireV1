@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
@@ -313,6 +315,134 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
                             }
                         }
                     }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+            ) {
+                Text("Fermer")
+            }
+        }
+    )
+}
+
+/**
+ * Dialog d'aide pour l'écran Stocks.
+ *
+ * Explique les 3 onglets (Graines / Plants / Matériel), comment ajouter
+ * un élément, comment lire les indicateurs, et donne une astuce générale.
+ */
+@Composable
+fun AideStocksDialog(onDismiss: () -> Unit) {
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "📖 Guide des stocks",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+
+                // ===== INTRO =====
+                item {
+                    Text(
+                        "Ton inventaire de jardinage, en 3 onglets. Suis ce que tu as sous la main pour ne jamais être pris de court au moment de semer ou planter.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ===== ONGLET GRAINES =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "🫘 Onglet Graines",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "À quoi ça sert :\nGérer tes sachets de graines — quantité restante, année de récolte, fournisseur, date de péremption.\n\nComment ajouter :\nAppuie sur le bouton \"+\" en bas de l'onglet. Choisis un légume (et une variété si tu veux), puis renseigne la quantité et les infos du sachet.\n\nIndicateurs :\nUne pastille colorée sur chaque carte t'indique l'état du sachet — vert si tout va bien, orange si la péremption approche, rouge si les graines sont trop vieilles pour germer correctement.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ===== ONGLET PLANTS =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "🌱 Onglet Plants",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "À quoi ça sert :\nSuivre tes jeunes plants en cours de croissance — semis en godet, plants achetés en jardinerie, boutures… tout ce qui n'est pas encore en terre.\n\nComment ajouter :\nAppuie sur le bouton \"+\", choisis un légume et une variété, puis indique le stade actuel et l'emplacement (godet, mini-serre, balcon…).\n\nLes 4 stades :\n• Semis — la graine vient de germer\n• Repiqué — le plant a été changé de contenant\n• Prêt à planter — il ne demande qu'à rejoindre le jardin\n• Endurci — il a été habitué au froid et au vent extérieur",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ===== ONGLET MATÉRIEL =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "🛠️ Onglet Matériel",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "À quoi ça sert :\nRecenser tes outils, classés par catégorie (plantation, arrosage, taille, protection…). Pratique pour savoir ce que tu as déjà avant d'acheter en double.\n\nComment ajouter :\nAppuie sur le bouton \"+\" et choisis un outil dans la liste prédéfinie, ou crée le tien si tu ne le trouves pas.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ===== ASTUCE =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "💡 Astuce",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.Terracotta,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "Touche n'importe quelle carte (graine, plant ou outil) pour ouvrir sa fiche détail : tu pourras modifier la quantité, les notes, le fournisseur, ou supprimer l'élément.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
                 }
             }
         },

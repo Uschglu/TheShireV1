@@ -428,46 +428,169 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Intro
+                    item {
+                        Text(
+                            "Découvrez tous les outils pour cultiver votre potager, en pleine terre ou en ville.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CouleursApp.TexteFonce
+                        )
+                    }
+
+                    // Onglet 1 : Accueil
                     item {
                         Column {
-                            Text("🏠 Accueil", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Météo, phase de lune et photo de votre jardin.")
+                            Text(
+                                "🏠 Accueil",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Météo locale, phase de lune, photo de votre jardin et prévisions sur 7 jours.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 2 : Bibliothèque
                     item {
                         Column {
-                            Text("📚 Bibliothèque", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Plantes, Adventices, Reconnaissance photo.")
+                            Text(
+                                "📚 Bibliothèque",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Fiches détaillées des plantes et variétés (semis, plantation, arrosage, récolte), guide des adventices (mauvaises herbes), et reconnaissance photo pour identifier vos plantes.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 3 : Jardin
                     item {
                         Column {
-                            Text("🏡 Jardin", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Pleine terre (planches + analyse du sol), Agriculture urbaine (contenants + conseils).")
+                            Text(
+                                "🏡 Jardin",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Organisez votre potager : planches en pleine terre avec calcul automatique des associations de plantes (bonnes en vert, mauvaises en rouge), ou contenants urbains (pots, jardinières, tours). Analyse du sol par la méthode du bocal incluse.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 4 : Calendrier
                     item {
                         Column {
-                            Text("🏙️ Agriculture urbaine", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
-                            Text("Créez vos pots, jardinières et tours de culture.")
+                            Text(
+                                "📅 Calendrier",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Votre planning cultural automatique. Dès que vous plantez, l'app génère les rappels : tuteurage, buttage, éclaircissage, paillage, récolte... pour chaque légume, en pleine terre ou en pot. Ajoutez vos notes personnelles et recevez des notifications.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 5 : Stocks
                     item {
                         Column {
-                            Text("📅 Calendrier & opérations", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Opérations culturales automatiques (pleine terre ET urbain).")
+                            Text(
+                                "📦 Stocks",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.Terracotta
+                            )
+                            Text(
+                                "Gérez vos ressources en 3 onglets :\n" +
+                                    "• 🫘 Graines : sachets en stock (variété, quantité, fournisseur, année)\n" +
+                                    "• 🌱 Jeunes plants : semis et plants en attente (stade, emplacement)\n" +
+                                    "• 🛠️ Matériel : vos outils classés par usage (plantation, arrosage, taille...)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 6 : Conservation
                     item {
                         Column {
-                            Text("🛠️ Équipement", fontWeight = FontWeight.Bold, color = CouleursApp.Terracotta)
-                            Text("Gérez vos outils, consultez les tutos.")
+                            Text(
+                                "🥫 Conservation",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Apprenez à conserver vos récoltes : séchage, lactofermentation, conserves et congélation. Pour chaque légume, les méthodes adaptées et les étapes détaillées.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
                         }
                     }
+
+                    // Onglet 7 : Store
                     item {
                         Column {
-                            Text("👆 Navigation", fontWeight = FontWeight.Bold, color = CouleursApp.VertPrincipal)
-                            Text("Swipe ou clic sur les billes en bas.")
+                            Text(
+                                "🛒 Store",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.Terracotta
+                            )
+                            Text(
+                                "Bientôt : retrouvez ici les outils et produits recommandés par votre jardinerie partenaire.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
+                        }
+                    }
+
+                    // Navigation
+                    item {
+                        Column {
+                            Text(
+                                "👆 Navigation",
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.VertPrincipal
+                            )
+                            Text(
+                                "Glissez votre doigt horizontalement ou cliquez sur les billes en bas de l'écran pour passer d'une section à l'autre.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
+                        }
+                    }
+
+                    // Conseils d'utilisation
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = CouleursApp.VertPale
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "💡 Astuce",
+                                    fontWeight = FontWeight.Bold,
+                                    color = CouleursApp.VertPrincipal,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Commencez par la Bibliothèque pour découvrir les plantes. Puis créez votre première planche ou contenant dans Jardin. Le calendrier se remplira automatiquement !",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.TexteFonce
+                                )
+                            }
                         }
                     }
                 }

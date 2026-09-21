@@ -7,13 +7,14 @@ package com.theshire.app.data
  * - @param id Identifiant technique unique (sans accents, minuscules, underscores)
  * - @param nom Nom affiché à l'utilisateur
  * - @param emoji Emoji représentant l'outil
+ * - @param categorie Catégorie d'usage (voir OutilCategories)
  * - @param description Courte description (1-2 phrases)
  * - @param tuto Étapes d'utilisation (chaque étape sur une ligne)
  * - @param conseil Conseil supplémentaire (optionnel)
  * 
  * La liste est triée par ordre alphabétique du nom d'affichage.
  * Utilisée par :
- * - EcranOutils (to-do list, tutos)
+ * - OngletMateriel (liste + tutos, groupés par catégorie)
  * - OperationsCulturales (champ outilsRequis)
  * - Calendrier (affichage des outils nécessaires)
  */
@@ -21,10 +22,58 @@ data class Outil(
     val id: String,
     val nom: String,
     val emoji: String,
+    val categorie: String,
     val description: String,
     val tuto: List<String> = emptyList(),
     val conseil: String = ""
 )
+
+/**
+ * Catégories d'outils de jardinage, basées sur les types d'opérations culturales.
+ * Utilisées pour classer et filtrer les outils dans l'UI.
+ */
+object OutilCategories {
+    const val PLANTATION = "Plantation"
+    const val TRAVAIL_SOL = "Travail du sol"
+    const val ARROSAGE = "Arrosage"
+    const val TAILLE = "Taille"
+    const val PROTECTION = "Protection"
+    const val ENTRETIEN = "Entretien"
+    const val TUTEURAGE = "Tuteurage"
+    const val ECLAIRAGE = "Éclairage"
+    const val PROTECTION_PERSO = "Protection perso"
+    const val TRANSPORT = "Transport"
+    
+    val TOUTES = listOf(
+        PLANTATION,
+        TRAVAIL_SOL,
+        ARROSAGE,
+        TAILLE,
+        PROTECTION,
+        ENTRETIEN,
+        TUTEURAGE,
+        ECLAIRAGE,
+        PROTECTION_PERSO,
+        TRANSPORT
+    )
+    
+    /**
+     * Retourne l'emoji associé à une catégorie.
+     */
+    fun getEmoji(categorie: String): String = when (categorie) {
+        PLANTATION -> "🌱"
+        TRAVAIL_SOL -> "⛏️"
+        ARROSAGE -> "💧"
+        TAILLE -> "✂️"
+        PROTECTION -> "🛡️"
+        ENTRETIEN -> "🌿"
+        TUTEURAGE -> "🌾"
+        ECLAIRAGE -> "🌞"
+        PROTECTION_PERSO -> "🧤"
+        TRANSPORT -> "🛒"
+        else -> "🛠️"
+    }
+}
 
 object Outils {
     
@@ -37,6 +86,7 @@ object Outils {
                 id = "ailes_vent",
                 nom = "Ailes de ventilation",
                 emoji = "💨",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Aèrent le sol sans le retourner, en le soulevant légèrement.",
                 tuto = listOf(
                     "Enfoncez les dents dans le sol à la verticale",
@@ -50,6 +100,7 @@ object Outils {
                 id = "arrosoir",
                 nom = "Arrosoir",
                 emoji = "🚿",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Pour arroser délicatement les plantes, en particulier les jeunes pousses.",
                 tuto = listOf(
                     "Remplissez l'arrosoir d'eau (idéalement à température ambiante)",
@@ -63,6 +114,7 @@ object Outils {
                 id = "attaches_raphia",
                 nom = "Attaches / Raphia",
                 emoji = "🎀",
+                categorie = OutilCategories.TUTEURAGE,
                 description = "Permet d'attacher les plantes à leurs tuteurs sans les abîmer.",
                 tuto = listOf(
                     "Faites un tour autour du tuteur",
@@ -76,6 +128,7 @@ object Outils {
                 id = "beche",
                 nom = "Bêche",
                 emoji = "🪓",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Pour retourner la terre en profondeur (25-30 cm) et ameublir le sol.",
                 tuto = listOf(
                     "Enfoncez la bêche à la verticale avec le pied",
@@ -90,6 +143,7 @@ object Outils {
                 id = "binette",
                 nom = "Binette",
                 emoji = "⛏️",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Pour sarcler (couper les mauvaises herbes) et ameublir la surface du sol.",
                 tuto = listOf(
                     "Tenez la binette à 2 mains, dos droit",
@@ -103,6 +157,7 @@ object Outils {
                 id = "brise_vent",
                 nom = "Brise-vent / Canisse",
                 emoji = "🎋",
+                categorie = OutilCategories.PROTECTION,
                 description = "Canisse en bambou, filet brise-vue ou toile ajourée pour filtrer le vent.",
                 tuto = listOf(
                     "Fixez sur la rambarde ou en hauteur",
@@ -117,6 +172,7 @@ object Outils {
                 id = "brouette",
                 nom = "Brouette",
                 emoji = "🛒",
+                categorie = OutilCategories.TRANSPORT,
                 description = "Pour transporter les charges lourdes : terre, compost, récoltes.",
                 tuto = listOf(
                     "Chargez toujours du côté du manche (le plus proche de vous)",
@@ -130,6 +186,7 @@ object Outils {
                 id = "cordeau",
                 nom = "Cordeau",
                 emoji = "📏",
+                categorie = OutilCategories.PLANTATION,
                 description = "Pour tracer des lignes droites et aligner les plantations.",
                 tuto = listOf(
                     "Plantez 2 piquets aux extrémités de votre rangée",
@@ -143,6 +200,7 @@ object Outils {
                 id = "echelle",
                 nom = "Échelle",
                 emoji = "🪜",
+                categorie = OutilCategories.PROTECTION_PERSO,
                 description = "Pour accéder aux arbres fruitiers ou aux plantes hautes.",
                 tuto = listOf(
                     "Posez l'échelle sur un sol stable et plat",
@@ -156,6 +214,7 @@ object Outils {
                 id = "elagueur",
                 nom = "Élagueur",
                 emoji = "🗡️",
+                categorie = OutilCategories.TAILLE,
                 description = "Pour couper les branches épaisses (jusqu'à 3-4 cm de diamètre).",
                 tuto = listOf(
                     "Coupez d'abord sous la branche à 20 cm du tronc",
@@ -169,6 +228,7 @@ object Outils {
                 id = "fourche_beche",
                 nom = "Fourche-bêche",
                 emoji = "🔱",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Pour aérer la terre et arracher les racines sans la retourner.",
                 tuto = listOf(
                     "Enfoncez les 4 dents à la verticale avec le pied",
@@ -182,6 +242,7 @@ object Outils {
                 id = "gants",
                 nom = "Gants de jardin",
                 emoji = "🧤",
+                categorie = OutilCategories.PROTECTION_PERSO,
                 description = "Pour protéger vos mains des épines, ampoules et produits.",
                 tuto = listOf(
                     "Choisissez la bonne taille : ni trop serrés, ni trop larges",
@@ -195,6 +256,7 @@ object Outils {
                 id = "goutte_a_goutte",
                 nom = "Goutte-à-goutte",
                 emoji = "💧",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Système d'arrosage automatique économe en eau.",
                 tuto = listOf(
                     "Déroulez le tuyau le long de vos rangs",
@@ -209,6 +271,7 @@ object Outils {
                 id = "griffe",
                 nom = "Griffe",
                 emoji = "🪮",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Pour ameublir la surface du sol sur 5-10 cm et enlever les petits adventices.",
                 tuto = listOf(
                     "Tenez la griffe à 2 mains",
@@ -222,6 +285,7 @@ object Outils {
                 id = "hygrometre",
                 nom = "Hygromètre",
                 emoji = "🌡️",
+                categorie = OutilCategories.ENTRETIEN,
                 description = "Mesure le taux d'humidité du sol ou de l'air.",
                 tuto = listOf(
                     "Plantez la sonde dans le sol à 10-15 cm",
@@ -236,6 +300,7 @@ object Outils {
                 id = "kit_goutte_a_goutte",
                 nom = "Kit goutte-à-goutte",
                 emoji = "💧",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Système d'arrosage automatique pour pots et jardinières.",
                 tuto = listOf(
                     "Déroulez le tuyau le long de vos pots",
@@ -250,6 +315,7 @@ object Outils {
                 id = "lampe_led_horticole",
                 nom = "Lampe LED horticole",
                 emoji = "💡",
+                categorie = OutilCategories.ECLAIRAGE,
                 description = "Éclairage artificiel spécial plantes (spectre rouge/bleu) pour l'intérieur.",
                 tuto = listOf(
                     "Placez la lampe à 20-30 cm au-dessus des plantes",
@@ -264,6 +330,7 @@ object Outils {
                 id = "minuteur_led",
                 nom = "Minuteur programmable",
                 emoji = "⏲️",
+                categorie = OutilCategories.ECLAIRAGE,
                 description = "Prise programmable qui gère automatiquement l'allumage des lampes.",
                 tuto = listOf(
                     "Branchez le minuteur sur la prise murale",
@@ -278,6 +345,7 @@ object Outils {
                 id = "oya",
                 nom = "Oya (pot en terre cuite poreuse)",
                 emoji = "🏺",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Pot en terre cuite non verni à enterrer, qui diffuse l'eau lentement.",
                 tuto = listOf(
                     "Enterrez l'oya aux 2/3 près de la plante",
@@ -292,6 +360,7 @@ object Outils {
                 id = "paillage",
                 nom = "Paillage",
                 emoji = "🌾",
+                categorie = OutilCategories.PROTECTION,
                 description = "Protège le sol, garde l'humidité, limite les mauvaises herbes.",
                 tuto = listOf(
                     "Désherbez soigneusement avant",
@@ -306,6 +375,7 @@ object Outils {
                 id = "pinceau",
                 nom = "Pinceau",
                 emoji = "🖌️",
+                categorie = OutilCategories.ENTRETIEN,
                 description = "Pour polliniser manuellement les fleurs (notamment les tomates sous serre).",
                 tuto = listOf(
                     "Attendez que les fleurs soient bien ouvertes",
@@ -319,6 +389,7 @@ object Outils {
                 id = "plantoir",
                 nom = "Plantoir",
                 emoji = "🪝",
+                categorie = OutilCategories.PLANTATION,
                 description = "Pour planter les bulbes, jeunes plants et semis en godets.",
                 tuto = listOf(
                     "Enfoncez le plantoir à la profondeur voulue",
@@ -332,6 +403,7 @@ object Outils {
                 id = "programmateur_arrosage",
                 nom = "Programmateur d'arrosage",
                 emoji = "⏰",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Se branche sur le robinet et déclenche l'arrosage automatiquement.",
                 tuto = listOf(
                     "Branchez sur le robinet",
@@ -346,6 +418,7 @@ object Outils {
                 id = "pulverisateur",
                 nom = "Pulvérisateur",
                 emoji = "🧴",
+                categorie = OutilCategories.ENTRETIEN,
                 description = "Pour appliquer les traitements naturels (purin, savon noir...).",
                 tuto = listOf(
                     "Remplissez avec la préparation préparée la veille",
@@ -360,6 +433,7 @@ object Outils {
                 id = "rames_filets",
                 nom = "Rames / Filets",
                 emoji = "🪜",
+                categorie = OutilCategories.TUTEURAGE,
                 description = "Supports verticaux pour haricots à rames, pois, concombres.",
                 tuto = listOf(
                     "Plantez les rames en biais, croisées en tipi",
@@ -373,6 +447,7 @@ object Outils {
                 id = "rateau",
                 nom = "Râteau",
                 emoji = "🧹",
+                categorie = OutilCategories.PLANTATION,
                 description = "Pour niveler le sol, rassembler les feuilles et affiner la terre.",
                 tuto = listOf(
                     "Tenez le manche à 2 mains, légèrement incliné",
@@ -386,6 +461,7 @@ object Outils {
                 id = "sac_terreau",
                 nom = "Sac de terreau",
                 emoji = "🌱",
+                categorie = OutilCategories.PLANTATION,
                 description = "Substrat pour rempotage progressif et enrichissement des cultures en pot.",
                 tuto = listOf(
                     "Choisissez un terreau universel de qualité",
@@ -400,6 +476,7 @@ object Outils {
                 id = "secateur",
                 nom = "Sécateur",
                 emoji = "✂️",
+                categorie = OutilCategories.TAILLE,
                 description = "Pour couper les tiges, tailler, effeuiller, supprimer les gourmands.",
                 tuto = listOf(
                     "Placez la lame tranchante côté plante (pour ne pas écraser la tige)",
@@ -414,6 +491,7 @@ object Outils {
                 id = "serfouette",
                 nom = "Serfouette",
                 emoji = "🪏",
+                categorie = OutilCategories.TRAVAIL_SOL,
                 description = "Outil double : une panne pour sarcler, une langue pour butter.",
                 tuto = listOf(
                     "Utilisez la panne (partie plate) pour sarcler",
@@ -427,6 +505,7 @@ object Outils {
                 id = "testeur_ph_humidite",
                 nom = "Testeur pH / humidité",
                 emoji = "📊",
+                categorie = OutilCategories.ENTRETIEN,
                 description = "Appareil qui mesure le pH et l'humidité du terreau.",
                 tuto = listOf(
                     "Enfoncez la sonde dans le terreau",
@@ -441,6 +520,7 @@ object Outils {
                 id = "transplantoir",
                 nom = "Transplantoir",
                 emoji = "🥄",
+                categorie = OutilCategories.PLANTATION,
                 description = "Petite pelle pour transplanter les jeunes plants et semis.",
                 tuto = listOf(
                     "Enfoncez le transplantoir autour du plant",
@@ -454,6 +534,7 @@ object Outils {
                 id = "tuteurs_bambou",
                 nom = "Tuteurs (bambou)",
                 emoji = "🎋",
+                categorie = OutilCategories.TUTEURAGE,
                 description = "Pour soutenir les plantes hautes (tomates, aubergines, poivrons).",
                 tuto = listOf(
                     "Plantez le tuteur AVANT la plante (pour ne pas abîmer les racines)",
@@ -467,6 +548,7 @@ object Outils {
                 id = "tuyau_arrosage",
                 nom = "Tuyau d'arrosage",
                 emoji = "🌊",
+                categorie = OutilCategories.ARROSAGE,
                 description = "Pour arroser les grandes surfaces et remplir l'arrosoir.",
                 tuto = listOf(
                     "Déroulez le tuyau sans le plier",
@@ -481,6 +563,7 @@ object Outils {
                 id = "voile_anti_insectes",
                 nom = "Voile anti-insectes",
                 emoji = "🕸️",
+                categorie = OutilCategories.PROTECTION,
                 description = "Protège les cultures des insectes ravageurs sans pesticide.",
                 tuto = listOf(
                     "Posez le voile sur des arceaux (pas directement sur les plantes)",
@@ -494,6 +577,7 @@ object Outils {
                 id = "voile_hivernage",
                 nom = "Voile d'hivernage",
                 emoji = "❄️",
+                categorie = OutilCategories.PROTECTION,
                 description = "Toile non tissée qui protège les plantes du gel (jusqu'à -5°C en P17, -8°C en P30).",
                 tuto = listOf(
                     "Posez avant les premières gelées",
@@ -522,5 +606,15 @@ object Outils {
     fun getOutilsParIds(ids: List<String>): List<Outil> {
         val tous = getTousLesOutils()
         return ids.mapNotNull { id -> tous.find { it.id == id } }
+    }
+    
+    /**
+     * Groupe les outils par catégorie.
+     * Retourne une map (catégorie → liste d'outils), triée par nom dans chaque groupe.
+     */
+    fun getOutilsGroupesParCategorie(): Map<String, List<Outil>> {
+        return getTousLesOutils()
+            .sortedBy { it.nom }
+            .groupBy { it.categorie }
     }
 }
