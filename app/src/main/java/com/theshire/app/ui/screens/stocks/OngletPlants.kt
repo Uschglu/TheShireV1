@@ -21,8 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
+import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
-import com.theshire.app.data.JeunePlantStades
 import com.theshire.app.ui.theme.CouleursApp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,7 +38,6 @@ import java.util.Locale
  * 
  * Indicateurs visuels :
  * - Le stade est affiché avec un emoji et une couleur
- * - Les plants "Prêt à planter" sont mis en avant
  */
 @Composable
 fun OngletPlants() {
@@ -150,7 +149,8 @@ fun CartePlant(
     onClick: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.FRANCE) }
-    val (emojiStade, couleurStade) = getStylePourStade(plant.stade)
+    val emojiStade = JeunePlantEtapes.emoji(plant.stade)
+    val couleurStade = couleurPourEtapeStock(plant.stade)
     
     Card(
         modifier = Modifier
@@ -227,14 +227,18 @@ fun CartePlant(
 }
 
 /**
- * Retourne l'emoji et la couleur associés à un stade.
+ * Couleur associée à une étape du cycle de vie pour l'onglet Stocks.
+ * (Nom distinct de la version Semis pour éviter les collisions d'import.)
  */
-fun getStylePourStade(stade: String): Pair<String, Color> {
+fun couleurPourEtapeStock(stade: String): Color {
     return when (stade) {
-        JeunePlantStades.SEMIS -> Pair("🌰", Color(0xFF8D6E63))
-        JeunePlantStades.REPIQUE -> Pair("🌿", CouleursApp.VertPrincipal)
-        JeunePlantStades.PRET_A_PLANTER -> Pair("✅", Color(0xFF66BB6A))
-        JeunePlantStades.ENDURCI -> Pair("💪", CouleursApp.Terracotta)
-        else -> Pair("🌱", CouleursApp.VertPrincipal)
+        JeunePlantEtapes.SEMIS -> Color(0xFF8D6E63)         // Brun
+        JeunePlantEtapes.LEVEE -> CouleursApp.VertClair      // Vert clair
+        JeunePlantEtapes.REPIQUE -> CouleursApp.VertPrincipal
+        JeunePlantEtapes.REMPOTE -> CouleursApp.VertPrincipal
+        JeunePlantEtapes.PRET_A_PLANTER -> Color(0xFF66BB6A) // Vert franc
+        JeunePlantEtapes.ENDURCI -> CouleursApp.Terracotta
+        JeunePlantEtapes.PLANTE -> CouleursApp.Terracotta
+        else -> CouleursApp.VertPrincipal
     }
 }
