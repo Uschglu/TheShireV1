@@ -16,25 +16,43 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.theshire.app.ui.EcranContenants
 import com.theshire.app.ui.OngletConseilsUrbains
+import com.theshire.app.ui.screens.semis.OngletSemis
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
  * Écran principal "Mon Jardin".
  * 
- * Deux grands onglets :
- * 1. Pleine terre (planches + analyse de sol)
- * 2. Urbain (contenants + conseils)
+ * Trois grands onglets :
+ * 1. Semis (suivi du cycle de vie, du semis à la plantation)
+ * 2. Pleine terre (planches + analyse de sol)
+ * 3. Urbain (contenants + conseils)
  */
 @Composable
 fun JardinScreen(onBack: () -> Unit) {
-    var selectedOnglet by remember { mutableStateOf("pleine_terre") }
+    var selectedOnglet by remember { mutableStateOf("semis") }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
-            selectedTabIndex = if (selectedOnglet == "pleine_terre") 0 else 1,
+            selectedTabIndex = when (selectedOnglet) {
+                "semis" -> 0
+                "pleine_terre" -> 1
+                else -> 2
+            },
             containerColor = CouleursApp.VertPrincipal,
             contentColor = Color.White
         ) {
+            Tab(
+                selected = selectedOnglet == "semis",
+                onClick = { selectedOnglet = "semis" },
+                text = {
+                    Text(
+                        "🌰 Semis",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = if (selectedOnglet == "semis") Color.White else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            )
             Tab(
                 selected = selectedOnglet == "pleine_terre",
                 onClick = { selectedOnglet = "pleine_terre" },
@@ -61,6 +79,7 @@ fun JardinScreen(onBack: () -> Unit) {
             )
         }
         when (selectedOnglet) {
+            "semis" -> OngletSemis()
             "pleine_terre" -> EcranPleineTerre(onBack)
             "urbain" -> EcranUrbain()
         }
