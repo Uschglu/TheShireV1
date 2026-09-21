@@ -12,12 +12,16 @@ import kotlinx.coroutines.flow.Flow
  * DAO pour les jeunes plants.
  * 
  * Toutes les opérations CRUD + quelques requêtes utiles pour l'UI.
+ * 
+ * Deux usages :
+ *  - Onglet "Plants" de Stocks : getJeunesPlantsActifs(), getJeunesPlantsParStade()…
+ *  - Onglet "Semis" de Jardin : getSemisActifs(), getSemisParEtape()…
  */
 @Dao
 interface JeunePlantDao {
     
     // ============================================================
-    // LECTURE
+    // LECTURE — générique
     // ============================================================
     
     /**
@@ -62,6 +66,41 @@ interface JeunePlantDao {
      */
     @Query("SELECT COUNT(*) FROM jeunes_plants WHERE estActif = 1")
     fun countJeunesPlantsActifs(): Flow<Int>
+    
+    // ============================================================
+    // LECTURE — spécifique Semis (Jardin)
+    // ============================================================
+    
+    /**
+     * Tous les semis actifs (dans le cycle, pas encore plantés),
+     * triés par date de semis croissante (plus anciens en premier —
+     * ce sont ceux qui demandent le plus d'attention).
+     * 
+     * Si dateSemis est null, on retombe sur dateAjout pour le tri.
+     */
+    @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 ORDER BY COALESCE(dateSemis, dateAjout) ASC")
+    fun getSemisActifs(): Flow<List<JeunePlantEntity>>
+    
+    /**
+     * Les semis actifs d'une étape donnée.
+     * Ex : tous les semis qui sont actuellement à l'étape "Levée".
+     */
+    @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 AND stade = :stade ORDER BY COALESCE(dateSemis, dateAjout) ASC")
+    fun getSemisParEtape(stade: String): Flow<List<JeunePlantEntity>>
+    
+    /**
+     * Tous les semis plantés (fin de cycle), triés par date de plantation décroissante.
+     * Utile pour une vue "historique" V2.
+     */
+    @Query("SELECT * FROM jeunes_plants WHERE stade = :etapePlante ORDER BY datePlantation DESC")
+    fun getSemisPlantes(etapePlante: String): Flow<List<JeunePlantEntity>>
+    
+    /**
+     * Compte des semis actifs (dans le cycle).
+     * Utile pour afficher un badge sur l'onglet Semis.
+     */
+    @Query("SELECT COUNT(*) FROM jeunes_plants WHERE estActif = 1")
+    fun countSemisActifs(): Flow<Int>
     
     // ============================================================
     // ÉCRITURE
