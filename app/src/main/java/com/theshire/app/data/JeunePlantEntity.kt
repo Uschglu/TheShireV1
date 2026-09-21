@@ -10,12 +10,10 @@ import androidx.room.PrimaryKey
  * bouture, ou tout végétal en cours de croissance qui n'est
  * pas encore planté en pleine terre ou en contenant.
  * 
- * Utilisé à deux endroits :
- *  - Onglet "Plants" de l'écran Stocks : inventaire des plants possédés
- *  - Onglet "Semis" de l'écran Jardin : suivi du cycle de vie d'un semis
+ * Utilisé dans l'onglet "Jeunes plants" de l'écran Stocks.
  * 
- * Le cycle de vie est défini dans JeunePlantEtapes (7 étapes) :
- * Semis → Levée → Repiqué → Rempoté → Prêt à planter → Endurci → Planté
+ * TODO : ajouter un champ "prix" quand un partenaire magasin sera identifié
+ *        (permettra de calculer le coût réel du potager).
  */
 @Entity(tableName = "jeunes_plants")
 data class JeunePlantEntity(
@@ -32,16 +30,11 @@ data class JeunePlantEntity(
     val quantite: Int = 1,
     
     // === STADE DE DÉVELOPPEMENT ===
-    // Valeurs possibles : voir JeunePlantEtapes
-    val stade: String = JeunePlantEtapes.SEMIS,
+    // Valeurs possibles : "Semis", "Repiqué", "Prêt à planter", "Endurci"
+    val stade: String = JeunePlantStades.SEMIS,
     
-    // === DATES DU CYCLE DE VIE ===
+    // === DATES ===
     val dateSemis: Long? = null,
-    val dateLevee: Long? = null,
-    val dateRepiquage: Long? = null,
-    val dateRempotage: Long? = null,
-    val dateEndurcissement: Long? = null,
-    val datePlantation: Long? = null,
     val dateAchat: Long? = null,
     
     // === INFORMATIONS D'ACHAT ===
@@ -50,10 +43,6 @@ data class JeunePlantEntity(
     // === EMPLACEMENT ===
     val emplacementActuel: String? = null,
     
-    // === HISTORIQUE LÉGER ===
-    // Format : "Semis:1234567890|Levée:1234600000|"
-    val historiqueEtapes: String? = null,
-    
     // === NOTES LIBRES ===
     val notes: String? = null,
     
@@ -61,3 +50,17 @@ data class JeunePlantEntity(
     val dateAjout: Long = System.currentTimeMillis(),
     val estActif: Boolean = true
 )
+
+/**
+ * Constantes des stades de développement pour un jeune plant.
+ */
+object JeunePlantStades {
+    const val SEMIS = "Semis"
+    const val REPIQUE = "Repiqué"
+    const val PRET_A_PLANTER = "Prêt à planter"
+    const val ENDURCI = "Endurci"
+    
+    val TOUS = listOf(SEMIS, REPIQUE, PRET_A_PLANTER, ENDURCI)
+}
+
+private const val STADE_SEMIS = "Semis"
