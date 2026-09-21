@@ -19,8 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
+import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
-import com.theshire.app.data.JeunePlantStades
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -55,7 +55,8 @@ fun FichePlant(
     var stadeMenuOuvert by remember { mutableStateOf(false) }
     
     val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE) }
-    val (emojiStade, couleurStade) = getStylePourStade(plantActuel.stade)
+    val emojiStade = JeunePlantEtapes.emoji(plantActuel.stade)
+    val couleurStade = couleurPourEtapeStock(plantActuel.stade)
     
     Scaffold(
         containerColor = CouleursApp.Creme,
@@ -251,8 +252,10 @@ fun FichePlant(
                             expanded = stadeMenuOuvert,
                             onDismissRequest = { stadeMenuOuvert = false }
                         ) {
-                            JeunePlantStades.TOUS.forEach { stade ->
-                                val (em, _) = getStylePourStade(stade)
+                            // On propose les 6 étapes actives.
+                            // L'étape "Planté" est réservée au bouton dédié.
+                            JeunePlantEtapes.ACTIVES.forEach { stade ->
+                                val em = JeunePlantEtapes.emoji(stade)
                                 DropdownMenuItem(
                                     text = { Text("$em $stade") },
                                     onClick = {
