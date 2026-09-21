@@ -399,7 +399,7 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
                 }
                 item {
                     Text(
-                        "À quoi ça sert :\nSuivre tes jeunes plants en cours de croissance — semis en godet, plants achetés en jardinerie, boutures… tout ce qui n'est pas encore en terre.\n\nComment ajouter :\nAppuie sur le bouton \"+\", choisis un légume et une variété, puis indique le stade actuel et l'emplacement (godet, mini-serre, balcon…).\n\nLes 4 stades :\n• Semis — la graine vient de germer\n• Repiqué — le plant a été changé de contenant\n• Prêt à planter — il ne demande qu'à rejoindre le jardin\n• Endurci — il a été habitué au froid et au vent extérieur",
+                        "À quoi ça sert :\nSuivre tes jeunes plants en cours de croissance — semis en godet, plants achetés en jardinerie, boutures… tout ce qui n'est pas encore en terre.\n\nComment ajouter :\nAppuie sur le bouton \"+\", choisis un légume et une variété, puis indique le stade actuel et l'emplacement (godet, mini-serre, balcon…).\n\nLes 6 étapes du cycle :\n• 🌰 Semis — la graine est en terre\n• 🌱 Levée — elle a germé, premières feuilles\n• 🌿 Repiqué — premier changement de godet\n• 🪴 Rempoté — contenant plus grand\n• 🌳 Prêt à planter — assez développé pour le jardin\n• 🌲 Endurci — habitué au froid et au vent\n\n💡 Astuce :\nLes plants que tu crées depuis l'onglet 🌰 Semis du Jardin apparaissent aussi ici — c'est le même inventaire, avec un suivi plus détaillé côté Jardin.",
                         color = CouleursApp.TexteFonce,
                         fontSize = 13.sp
                     )
