@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
+import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
-import com.theshire.app.data.JeunePlantStades
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
 import com.theshire.app.data.VarieteEntity
@@ -210,19 +210,18 @@ fun Etape2DetailsPlant(
     val varieteRepository = remember { VarieteRepository(context) }
     
     // État pour déclencher le rechargement des variétés
-var varietesPredefiniesChargees by remember { mutableStateOf(false) }
+    var varietesPredefiniesChargees by remember { mutableStateOf(false) }
 
-// 1. D'abord, ajouter les variétés prédéfinies en base (si pas déjà fait)
-LaunchedEffect(legumeChoisi.nom) {
-    varieteRepository.ajouterVarietesPredefinies()
-    varietesPredefiniesChargees = true
-}
+    // 1. D'abord, ajouter les variétés prédéfinies en base (si pas déjà fait)
+    LaunchedEffect(legumeChoisi.nom) {
+        varieteRepository.ajouterVarietesPredefinies()
+        varietesPredefiniesChargees = true
+    }
 
-// 2. Ensuite, charger les variétés du légume choisi (déclenché une fois les prédéfinies chargées)
-val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
-    varieteRepository.getVarietesForLegume(legumeChoisi.nom)
-}.collectAsState(initial = emptyList())
-
+    // 2. Ensuite, charger les variétés du légume choisi
+    val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
+        varieteRepository.getVarietesForLegume(legumeChoisi.nom)
+    }.collectAsState(initial = emptyList())
     
     // États du formulaire
     var varieteSelectionnee by remember { mutableStateOf<VarieteEntity?>(null) }
@@ -230,7 +229,7 @@ val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
     
     var quantite by remember { mutableStateOf("1") }
     
-    var stadeSelectionne by remember { mutableStateOf(JeunePlantStades.SEMIS) }
+    var stadeSelectionne by remember { mutableStateOf(JeunePlantEtapes.SEMIS) }
     var stadeMenuOuvert by remember { mutableStateOf(false) }
     
     // Source : semis maison ou achat ?
@@ -360,9 +359,12 @@ val varietes by remember(legumeChoisi.nom, varietesPredefiniesChargees) {
                         expanded = stadeMenuOuvert,
                         onDismissRequest = { stadeMenuOuvert = false }
                     ) {
-                        JeunePlantStades.TOUS.forEach { stade ->
+                        // On propose les 6 étapes actives.
+                        // L'étape "Planté" est réservée à la fiche détail.
+                        JeunePlantEtapes.ACTIVES.forEach { stade ->
+                            val em = JeunePlantEtapes.emoji(stade)
                             DropdownMenuItem(
-                                text = { Text(stade) },
+                                text = { Text("$em $stade") },
                                 onClick = {
                                     stadeSelectionne = stade
                                     stadeMenuOuvert = false
