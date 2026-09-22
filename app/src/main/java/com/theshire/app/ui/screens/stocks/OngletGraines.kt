@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.GraineEntity
 import com.theshire.app.data.GraineRepository
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.theme.CouleursApp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -91,7 +92,7 @@ fun OngletGraines() {
                     .fillMaxSize()
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = LayoutConstantes.PADDING_BAS_FAB)
             ) {
                 item {
                     Text(
@@ -110,14 +111,14 @@ fun OngletGraines() {
             }
         }
         
-        // FAB d'ajout
+        // FAB d'ajout — décalé au-dessus de la barre de navigation
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter des graines")
         }
