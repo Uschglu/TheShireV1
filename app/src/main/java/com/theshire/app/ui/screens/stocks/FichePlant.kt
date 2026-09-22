@@ -291,31 +291,31 @@ fun FichePlant(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    InfoLigne(
+                    InfoLignePlant(
                         "Catégorie",
                         if (plantActuel.categorie == JeunePlantEntity.CATEGORIE_JEUNE_PLANT)
                             "🌿 Jeune plant"
                         else "🌰 Semis en cours"
                     )
-                    InfoLigne(
+                    InfoLignePlant(
                         "Mode",
                         if (plantActuel.estProjection) "🌱 Projection" else "🌳 Réel"
                     )
-                    InfoLigne(
+                    InfoLignePlant(
                         "Date de semis",
                         plantActuel.dateSemis?.let { dateFormat.format(Date(it)) }
                     )
-                    InfoLigne(
+                    InfoLignePlant(
                         "Date d'achat",
                         plantActuel.dateAchat?.let { dateFormat.format(Date(it)) }
                     )
-                    InfoLigne("Fournisseur", plantActuel.fournisseur)
-                    InfoLigne("Emplacement actuel", plantActuel.emplacementActuel)
-                    InfoLigne(
+                    InfoLignePlant("Fournisseur", plantActuel.fournisseur)
+                    InfoLignePlant("Emplacement actuel", plantActuel.emplacementActuel)
+                    InfoLignePlant(
                         "Ajouté le",
                         dateFormat.format(Date(plantActuel.dateAjout))
                     )
-                    InfoLigne("Statut", if (plantActuel.estActif) "✅ En stock" else "❌ Planté")
+                    InfoLignePlant("Statut", if (plantActuel.estActif) "✅ En stock" else "❌ Planté")
                 }
             }
             
@@ -470,9 +470,12 @@ fun FichePlant(
 
 /**
  * Une ligne "info" : libellé + valeur texte, ou "—" si null/vide.
+ * 
+ * ⚠️ Nommé "InfoLignePlant" (et non "InfoLigne") pour éviter une collision
+ * avec une fonction du même nom dans un autre fichier du package stocks.
  */
 @Composable
-private fun InfoLigne(label: String, valeur: String?) {
+private fun InfoLignePlant(label: String, valeur: String?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
