@@ -3,6 +3,8 @@ package com.theshire.app.ui.navigation
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -10,17 +12,20 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -30,11 +35,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.theshire.app.ui.EcranStocks
 import com.theshire.app.ui.EcranStore
 import com.theshire.app.ui.ParametresScreen
@@ -74,9 +83,9 @@ fun getDegradeFond(): Brush {
  * Accueil, Bibliothèque, Jardin, Calendrier, Stocks, Conservation, Store.
  * 
  * Navigation :
- * - Par clic sur les billes en bas
- * - Par swipe horizontal
- * - Par bouton retour Android
+ *  - Par clic sur les emojis en bas (barre flottante avec pastille sur l'actif)
+ *  - Par swipe horizontal
+ *  - Par bouton retour Android
  */
 @Composable
 fun MainScreen() {
@@ -87,6 +96,17 @@ fun MainScreen() {
     val screens = listOf(
         "accueil", "bibliotheque", "jardin",
         "calendrier", "stocks", "conservation", "store"
+    )
+    
+    // Mapping emoji ↔ écran
+    val emojiParEcran = mapOf(
+        "accueil" to "🏠",
+        "bibliotheque" to "📚",
+        "jardin" to "🌾",
+        "calendrier" to "📅",
+        "stocks" to "📦",
+        "conservation" to "🥫",
+        "store" to "🛒"
     )
 
     fun navigateTo(screen: String) {
@@ -182,38 +202,59 @@ fun MainScreen() {
             }
         }
 
-        // Barre de navigation en bas (billes)
-        Row(
+        // Barre de navigation flottante en bas (emojis + pastille sur l'actif)
+        Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
-                .background(
-                    CouleursApp.Blanc.copy(alpha = 0.85f),
-                    RoundedCornerShape(20.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 16.dp)
+                .shadow(6.dp, RoundedCornerShape(28.dp)),
+            color = CouleursApp.Blanc,
+            shape = RoundedCornerShape(28.dp)
         ) {
-            screens.forEach { screen ->
-                val isCurrent = screen == currentScreen
-                Box(
-                    modifier = Modifier
-                        .size(if (isCurrent) 12.dp else 10.dp)
-                        .background(
-                            if (isCurrent) CouleursApp.VertPrincipal else CouleursApp.Blanc,
-                            CircleShape
-                        )
-                        .border(
-                            if (isCurrent) 0.dp else 1.dp,
-                            CouleursApp.VertPrincipal.copy(alpha = 0.3f),
-                            CircleShape
-                        )
-                        .clickable {
-                            currentScreen = screen
-                            navigationStack.clear()
-                            navigationStack.add(screen)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                screens.forEach { screen ->
+                    val isCurrent = screen == currentScreen
+                    val taillePastille by animateDpAsState(
+                        targetValue = if (isCurrent) 44.dp else 0.dp,
+                        animationSpec = tween(200),
+                        label = "taillePastille"
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable {
+                                currentScreen = screen
+                                navigationStack.clear()
+                                navigationStack.add(screen)
+                            }
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isCurrent) CouleursApp.VertPale
+                                    else Color.Transparent
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = emojiParEcran[screen] ?: "❓",
+                                fontSize = if (isCurrent) 24.sp else 22.sp
+                            )
                         }
-                )
+                    }
+                }
             }
         }
     }
