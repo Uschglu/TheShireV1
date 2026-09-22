@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantRepository
+import com.theshire.app.data.ModePreferences
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
@@ -38,17 +39,24 @@ import com.theshire.app.ui.theme.CouleursApp
  *
  * Suit le cycle de vie des semis en cours, du semis à la plantation.
  *
- * Contient :
- *  - Liste des semis actifs (triés par date de semis)
- *  - FAB d'ajout (via DialogAjoutSemis)
- *  - Fiche détaillée d'un semis (via FicheSemis)
+ * ⚠️ Les semis affichés sont filtrés selon le mode actif :
+ *  - Mode PROJECTION → affiche les semis créés en mode projection
+ *  - Mode RÉEL      → affiche les semis créés en mode réel
+ * 
+ * L'onglet Plants de Stocks affiche tous les plants, tous modes confondus.
  */
 @Composable
 fun OngletSemis() {
     val context = LocalContext.current
     val repository = remember { JeunePlantRepository(context) }
 
-    val semis by repository.semisActifs.collectAsState(initial = emptyList())
+    // Mode actif (lu à chaque recomposition — suit les changements du switch)
+    val modeReel = remember { mutableStateOf(ModePreferences.estModeReel(context)) }
+    
+    // Semis filtrés par mode actif
+    val semis by repository
+        .getSemisActifsFiltres(modeReel.value)
+        .collectAsState(initial = emptyList())
 
     var showAjoutDialog by remember { mutableStateOf(false) }
     var semisSelectionne by remember { mutableStateOf<JeunePlantEntity?>(null) }
@@ -65,7 +73,7 @@ fun OngletSemis() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (semis.isEmpty()) {
-            // Écran vide
+            // Écran vide — message adapté au mode
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -73,17 +81,25 @@ fun OngletSemis() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("🌰", style = MaterialTheme.typography.displayLarge)
+                Text(
+                    if (modeReel.value) "🌳" else "🌰",
+                    style = MaterialTheme.typography.displayLarge
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Aucun semis en cours",
+                    if (modeReel.value) "Aucun semis en mode réel" else "Aucun semis en projection",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge,
-                    color = CouleursApp.TexteFonce
+                    color = CouleursApp.TexteFonce,
+                    textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "Clique sur + pour enregistrer un nouveau semis et suivre son évolution.",
+                    if (modeReel.value) {
+                        "Les semis créés en mode réel déduisent les graines du stock. Bascule en mode projection pour voir tes projections."
+                    } else {
+                        "Clique sur + pour enregistrer un nouveau semis en projection, sans impact sur tes stocks."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
@@ -99,7 +115,11 @@ fun OngletSemis() {
             ) {
                 item {
                     Text(
-                        "${semis.size} semis en cours",
+                        if (modeReel.value) {
+                            "${semis.size} semis en mode réel"
+                        } else {
+                            "${semis.size} semis en projection"
+                        },
                         color = CouleursApp.TexteFonce,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold
@@ -132,7 +152,11 @@ fun OngletSemis() {
         DialogAjoutSemis(
             repository = repository,
             onDismiss = { showAjoutDialog = false },
-            onSemisAjoute = { showAjoutDialog = false }
+            onSemisAjoute = {
+                showAjoutDialog = false
+                // Rafraîchir le mode actif au cas où il aurait changé
+                modeReel.value = ModePreferences.estModeReel(context)
+            }
         )
     }
 }

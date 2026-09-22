@@ -9,19 +9,19 @@ import kotlinx.coroutines.flow.Flow
  * Encapsule l'accès au JeunePlantDao et fournit une API métier claire.
  * 
  * Utilisé par :
- *  - EcranStocks (onglet "Plants") : inventaire des plants possédés
- *  - JardinScreen (onglet "Semis") : suivi du cycle de vie
+ *  - EcranStocks (onglet "Plants") : inventaire global (tous modes)
+ *  - JardinScreen (onglet "Semis") : filtré par mode actif
  */
 class JeunePlantRepository(context: Context) {
     
     private val jeunePlantDao = AppDatabase.getDatabase(context).jeunePlantDao()
     
     // ============================================================
-    // LECTURE — Stocks > Plants
+    // LECTURE — Stocks > Plants (tous modes)
     // ============================================================
     
     /**
-     * Tous les jeunes plants actifs (non encore plantés).
+     * Tous les jeunes plants actifs (non encore plantés), tous modes confondus.
      */
     val jeunesPlantsActifs: Flow<List<JeunePlantEntity>> = jeunePlantDao.getJeunesPlantsActifs()
     
@@ -59,16 +59,16 @@ class JeunePlantRepository(context: Context) {
     }
     
     // ============================================================
-    // LECTURE — Jardin > Semis
+    // LECTURE — Jardin > Semis (tous modes)
     // ============================================================
     
     /**
-     * Semis actifs (dans le cycle), triés par date de semis croissante.
+     * Semis actifs, tous modes confondus.
      */
     val semisActifs: Flow<List<JeunePlantEntity>> = jeunePlantDao.getSemisActifs()
     
     /**
-     * Semis actifs d'une étape donnée.
+     * Semis actifs d'une étape donnée, tous modes confondus.
      */
     fun getSemisParEtape(stade: String): Flow<List<JeunePlantEntity>> {
         return jeunePlantDao.getSemisParEtape(stade)
@@ -82,10 +82,34 @@ class JeunePlantRepository(context: Context) {
     }
     
     /**
-     * Nombre de semis actuellement actifs (dans le cycle).
+     * Nombre de semis actuellement actifs (tous modes).
      */
     fun countSemisActifs(): Flow<Int> {
         return jeunePlantDao.countSemisActifs()
+    }
+    
+    // ============================================================
+    // LECTURE — Jardin > Semis (filtré par mode)
+    // ============================================================
+    
+    /**
+     * Semis actifs filtrés par mode.
+     * 
+     * @param modeReel true = uniquement les semis créés en mode réel
+     *                 false = uniquement les semis créés en mode projection
+     */
+    fun getSemisActifsFiltres(modeReel: Boolean): Flow<List<JeunePlantEntity>> {
+        // Un semis "réel" a estProjection = false
+        // Un semis "projection" a estProjection = true
+        val estProjection = !modeReel
+        return jeunePlantDao.getSemisActifsFiltres(estProjection)
+    }
+    
+    /**
+     * Compte les semis actifs filtrés par mode.
+     */
+    fun countSemisActifsFiltres(modeReel: Boolean): Flow<Int> {
+        return jeunePlantDao.countSemisActifsFiltres(!modeReel)
     }
     
     // ============================================================
@@ -93,8 +117,11 @@ class JeunePlantRepository(context: Context) {
     // ============================================================
     
     /**
-     * Ajoute un nouveau jeune plant.
-     * Retourne l'ID généré.
+     * Ajoute un nouveau jeune plant SANS toucher aux stocks.
+     * 
+     * ⚠️ Cette méthode n'est utilisée que pour des cas spécifiques
+     *    (ex : restauration). Pour un ajout normal, utiliser
+     *    creerSemisAvecMode() qui gère la logique du mode.
      */
     suspend fun ajouterJeunePlant(jeunePlant: JeunePlantEntity): Long {
         return jeunePlantDao.insertJeunePlant(jeunePlant)
@@ -127,9 +154,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Change le stade d'un jeune plant (sans toucher à l'historique ni aux dates).
-     * 
-     * ⚠️ Pour un vrai changement d'étape du cycle, préférer avancerEtape() ou reculerEtape()
-     * qui gèrent automatiquement les dates et l'historique.
      */
     suspend fun changerStade(jeunePlantId: Long, nouveauStade: String) {
         val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId) ?: return
@@ -138,14 +162,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Fait avancer un semis à l'étape suivante du cycle.
-     * 
-     * Effets :
-     *  - Met à jour le champ `stade` à l'étape suivante
-     *  - Remplit la date correspondante (dateLevee, dateRepiquage, …)
-     *  - Ajoute une entrée dans l'historique
-     *  - Si l'étape atteinte est "Planté" : estActif = false + datePlantation remplie
-     * 
-     * @return La nouvelle étape (ou null si rien n'a changé).
      */
     suspend fun avancerEtape(jeunePlantId: Long): String? {
         val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId) ?: return null
@@ -172,8 +188,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Fait reculer un semis à l'étape précédente du cycle.
-     * 
-     * @return La nouvelle étape (ou null si rien n'a changé).
      */
     suspend fun reculerEtape(jeunePlantId: Long): String? {
         val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId) ?: return null
@@ -189,8 +203,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Change le stade d'un semis vers une étape précise du cycle.
-     * 
-     * @return La nouvelle étape, ou null si l'étape cible est invalide.
      */
     suspend fun changerEtape(jeunePlantId: Long, etapeCible: String): String? {
         if (JeunePlantEtapes.indexDe(etapeCible) < 0) return null
@@ -278,6 +290,71 @@ class JeunePlantRepository(context: Context) {
     }
     
     // ============================================================
+    // MODE RÉEL — création de semis avec impact sur les stocks
+    // ============================================================
+    
+    /**
+     * Crée un semis en tenant compte du mode (projection / réel).
+     * 
+     * Le champ estProjection est automatiquement renseigné :
+     *  - Mode projection → estProjection = true
+     *  - Mode réel       → estProjection = false
+     * 
+     * - Mode PROJECTION : crée simplement le semis.
+     * - Mode RÉEL : vérifie qu'un sachet correspondant existe et qu'il
+     *   contient assez de graines, puis décrémente le stock.
+     */
+    suspend fun creerSemisAvecMode(
+        context: Context,
+        semis: JeunePlantEntity
+    ): ResultatCreationSemis {
+        
+        val modeReel = ModePreferences.estModeReel(context)
+        
+        // === MODE PROJECTION : création directe, tag estProjection = true ===
+        if (!modeReel) {
+            val semisMarque = semis.copy(estProjection = true)
+            val id = jeunePlantDao.insertJeunePlant(semisMarque)
+            return ResultatCreationSemis.Succes(id, grainesDecrementees = 0, modeReel = false)
+        }
+        
+        // === MODE RÉEL : vérification + décrément graines ===
+        val graineRepository = GraineRepository(context)
+        val graine = graineRepository.getGraineExacte(
+            legumeNom = semis.legumeNom,
+            varieteNom = semis.varieteNom
+        )
+        
+        // Cas 1 : aucun sachet exact trouvé
+        if (graine == null) {
+            return ResultatCreationSemis.ErreurSachetIntrouvable(
+                legumeNom = semis.legumeNom,
+                varieteNom = semis.varieteNom
+            )
+        }
+        
+        // Cas 2 : sachet trouvé mais pas assez de graines
+        if (graine.quantite < semis.quantite) {
+            return ResultatCreationSemis.ErreurStockInsuffisant(
+                grainesDisponibles = graine.quantite,
+                grainesDemandees = semis.quantite,
+                legumeNom = semis.legumeNom,
+                varieteNom = semis.varieteNom
+            )
+        }
+        
+        // Cas 3 : tout est bon → décrément + création avec tag estProjection = false
+        graineRepository.decrementerQuantite(graine.id, semis.quantite)
+        val semisMarque = semis.copy(estProjection = false)
+        val id = jeunePlantDao.insertJeunePlant(semisMarque)
+        return ResultatCreationSemis.Succes(
+            id = id,
+            grainesDecrementees = semis.quantite,
+            modeReel = true
+        )
+    }
+    
+    // ============================================================
     // HELPERS PRIVÉS
     // ============================================================
     
@@ -315,5 +392,32 @@ class JeunePlantRepository(context: Context) {
             JeunePlantEtapes.PLANTE -> DatesPourEtape(datePlantation = timestamp)
             else -> DatesPourEtape()
         }
+    }
+}
+
+/**
+ * Résultat de la création d'un semis, selon le mode (projection / réel).
+ */
+sealed class ResultatCreationSemis {
+    
+    data class Succes(
+        val id: Long,
+        val grainesDecrementees: Int,
+        val modeReel: Boolean
+    ) : ResultatCreationSemis()
+    
+    data class ErreurSachetIntrouvable(
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatCreationSemis()
+    
+    data class ErreurStockInsuffisant(
+        val grainesDisponibles: Int,
+        val grainesDemandees: Int,
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatCreationSemis() {
+        val grainesManquantes: Int
+            get() = (grainesDemandees - grainesDisponibles).coerceAtLeast(0)
     }
 }

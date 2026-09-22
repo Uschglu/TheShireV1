@@ -11,9 +11,10 @@ import kotlinx.coroutines.flow.Flow
 /**
  * DAO pour les jeunes plants.
  * 
- * Deux usages :
- *  - Onglet "Plants" de Stocks
- *  - Onglet "Semis" de Jardin
+ * Trois usages :
+ *  - Onglet "Plants" de Stocks : inventaire global (tous modes)
+ *  - Onglet "Semis" de Jardin : filtré par mode actif (projection / réel)
+ *  - Historique V2 : semis plantés
  */
 @Dao
 interface JeunePlantDao {
@@ -44,33 +45,58 @@ interface JeunePlantDao {
     fun countJeunesPlantsActifs(): Flow<Int>
     
     // ============================================================
-    // LECTURE — spécifique Semis (Jardin)
+    // LECTURE — spécifique Semis (Jardin), tous modes
     // ============================================================
     
     /**
-     * Tous les semis actifs (dans le cycle, pas encore plantés),
-     * triés par date de semis croissante (plus anciens en premier).
+     * Tous les semis actifs, tous modes confondus.
      */
     @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 ORDER BY COALESCE(dateSemis, dateAjout) ASC")
     fun getSemisActifs(): Flow<List<JeunePlantEntity>>
     
     /**
-     * Les semis actifs d'une étape donnée.
+     * Les semis actifs d'une étape donnée, tous modes confondus.
      */
     @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 AND stade = :stade ORDER BY COALESCE(dateSemis, dateAjout) ASC")
     fun getSemisParEtape(stade: String): Flow<List<JeunePlantEntity>>
     
     /**
-     * Tous les semis plantés (fin de cycle), triés par date de plantation décroissante.
+     * Tous les semis plantés (fin de cycle), tous modes confondus.
      */
     @Query("SELECT * FROM jeunes_plants WHERE stade = :etapePlante ORDER BY datePlantation DESC")
     fun getSemisPlantes(etapePlante: String): Flow<List<JeunePlantEntity>>
     
     /**
-     * Compte des semis actifs (dans le cycle).
+     * Compte des semis actifs (tous modes).
      */
     @Query("SELECT COUNT(*) FROM jeunes_plants WHERE estActif = 1")
     fun countSemisActifs(): Flow<Int>
+    
+    // ============================================================
+    // LECTURE — Semis filtrés par mode (projection / réel)
+    // ============================================================
+    
+    /**
+     * Semis actifs filtrés par mode.
+     * 
+     * @param estProjection true = uniquement les semis en projection
+     *                      false = uniquement les semis en mode réel
+     */
+    @Query(
+        "SELECT * FROM jeunes_plants " +
+        "WHERE estActif = 1 AND estProjection = :estProjection " +
+        "ORDER BY COALESCE(dateSemis, dateAjout) ASC"
+    )
+    fun getSemisActifsFiltres(estProjection: Boolean): Flow<List<JeunePlantEntity>>
+    
+    /**
+     * Compte des semis actifs filtrés par mode.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM jeunes_plants " +
+        "WHERE estActif = 1 AND estProjection = :estProjection"
+    )
+    fun countSemisActifsFiltres(estProjection: Boolean): Flow<Int>
     
     // ============================================================
     // ÉCRITURE

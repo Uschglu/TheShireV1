@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.Flow
  * 
  * Encapsule l'accès au GraineDao et fournit une API métier claire.
  * 
- * Utilisé par : EcranStocks (onglet Graines)
+ * Utilisé par :
+ *  - EcranStocks (onglet Graines)
+ *  - Mode réel : décrément du stock à la création d'un semis
  */
 class GraineRepository(context: Context) {
     
@@ -55,6 +57,46 @@ class GraineRepository(context: Context) {
      */
     fun countGrainesActives(): Flow<Int> {
         return graineDao.countGrainesActives()
+    }
+    
+    // ============================================================
+    // LECTURE — spécifique mode réel
+    // ============================================================
+    
+    /**
+     * Cherche le sachet exact correspondant à un légume + variété.
+     * 
+     * Matching :
+     *  - legumeNom identique (insensible à la casse)
+     *  - varieteNom identique si fourni, null si non fourni
+     * 
+     * On ne renvoie QUE les sachets actifs (quantite > 0).
+     * Si plusieurs sachets correspondent, on renvoie celui avec la plus
+     * grande quantité (le plus susceptible d'avoir assez de graines).
+     * 
+     * @return Le sachet trouvé, ou null si aucun ne correspond.
+     */
+    suspend fun getGraineExacte(legumeNom: String, varieteNom: String?): GraineEntity? {
+        val actives = graineDao.getAllGrainesSync()
+            .filter { it.estActif && it.quantite > 0 }
+            .filter { graine ->
+                graine.legumeNom.equals(legumeNom, ignoreCase = true) &&
+                normaliserVariete(graine.varieteNom) == normaliserVariete(varieteNom)
+            }
+        return actives.maxByOrNull { it.quantite }
+    }
+    
+    /**
+     * Vérifie rapidement si l'utilisateur a assez de graines en stock
+     * pour un légume + variété + quantité donnés.
+     */
+    suspend fun aAssezDeGraines(
+        legumeNom: String,
+        varieteNom: String?,
+        quantiteDemandee: Int
+    ): Boolean {
+        val graine = getGraineExacte(legumeNom, varieteNom) ?: return false
+        return graine.quantite >= quantiteDemandee
     }
     
     // ============================================================
@@ -135,5 +177,18 @@ class GraineRepository(context: Context) {
     suspend fun reactiver(graineId: Long) {
         val graine = graineDao.getGraineParId(graineId) ?: return
         graineDao.updateGraine(graine.copy(estActif = true))
+    }
+    
+    // ============================================================
+    // HELPERS PRIVÉS
+    // ============================================================
+    
+    /**
+     * Normalise le nom de variété pour comparaison :
+     *  - null et chaîne vide sont équivalents
+     *  - trim
+     */
+    private fun normaliserVariete(variete: String?): String? {
+        return variete?.trim()?.takeIf { it.isNotBlank() }
     }
 }
