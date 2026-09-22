@@ -9,6 +9,11 @@ import androidx.room.RoomDatabase
  * Base de données Room de l'application TheShire.
  *
  * Version 13 : ajout des champs de cycle de vie à JeunePlantEntity.
+ * Version 14 : ajout du champ estProjection à JeunePlantEntity
+ *              pour séparer les semis projetés des semis réels.
+ *
+ * ⚠️ fallbackToDestructiveMigration est activé : les données sont perdues
+ * à chaque changement de version. À désactiver / migrer proprement avant prod.
  */
 @Database(
     entities = [
@@ -24,7 +29,7 @@ import androidx.room.RoomDatabase
         GraineEntity::class,
         JeunePlantEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
