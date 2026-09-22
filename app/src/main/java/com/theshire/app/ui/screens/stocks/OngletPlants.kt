@@ -2,6 +2,7 @@
 
 package com.theshire.app.ui.screens.stocks
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
@@ -32,12 +34,10 @@ import java.util.Locale
  * Onglet "Jeunes plants" de l'écran Stocks.
  * 
  * Contient :
- * - Liste des jeunes plants en stock (avec stade, quantité, dates)
+ * - Liste de TOUS les plants et semis en stock (2 catégories confondues)
+ * - Un badge discret sur chaque carte indique la catégorie (🌰 Semis / 🌿 Plant)
  * - FAB d'ajout (via DialogAjoutPlant)
  * - Fiche détaillée d'un plant (via FichePlant)
- * 
- * Indicateurs visuels :
- * - Le stade est affiché avec un emoji et une couleur
  */
 @Composable
 fun OngletPlants() {
@@ -134,10 +134,11 @@ fun OngletPlants() {
 }
 
 /**
- * Carte d'un jeune plant dans la liste.
+ * Carte d'un jeune plant ou semis dans la liste.
  * 
  * Affiche :
  * - Emoji + nom + variété
+ * - Badge discret indiquant la catégorie (🌰 Semis / 🌿 Plant)
  * - Quantité
  * - Stade (avec emoji et couleur)
  * - Emplacement actuel
@@ -168,18 +169,23 @@ fun CartePlant(
             Text(plant.emoji, style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                // Ligne 1 : Nom + variété
-                val titreComplet = if (plant.varieteNom != null) {
-                    "${plant.legumeNom} (${plant.varieteNom})"
-                } else {
-                    plant.legumeNom
+                // Ligne 1 : Nom + variété + badge catégorie
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val titreComplet = if (plant.varieteNom != null) {
+                        "${plant.legumeNom} (${plant.varieteNom})"
+                    } else {
+                        plant.legumeNom
+                    }
+                    Text(
+                        titreComplet,
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.TexteFonce,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BadgeCategorie(categorie = plant.categorie)
                 }
-                Text(
-                    titreComplet,
-                    fontWeight = FontWeight.Bold,
-                    color = CouleursApp.TexteFonce,
-                    style = MaterialTheme.typography.bodyLarge
-                )
                 
                 // Ligne 2 : Quantité
                 Text(
@@ -225,6 +231,54 @@ fun CartePlant(
         }
     }
 }
+
+/**
+ * Badge discret de catégorie, affiché à droite du nom.
+ *  - "Semis"       → 🌰 sur fond brun clair
+ *  - "JeunePlant"  → 🌿 sur fond vert clair
+ */
+@Composable
+fun BadgeCategorie(categorie: String) {
+    val (emoji, label, couleurFond, couleurTexte) = when (categorie) {
+        JeunePlantEntity.CATEGORIE_JEUNE_PLANT -> Quadruple(
+            "🌿",
+            "Plant",
+            CouleursApp.VertPale,
+            CouleursApp.VertPrincipal
+        )
+        else -> Quadruple(
+            "🌰",
+            "Semis",
+            Color(0xFFF0E6D8),
+            Color(0xFF6D4C41)
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(couleurFond)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            "$emoji $label",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = couleurTexte
+        )
+    }
+}
+
+/**
+ * Petit helper pour éviter de créer une data class juste pour un quadruple.
+ * (Kotlin n'a pas de type natif Quadruple)
+ */
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
 
 /**
  * Couleur associée à une étape du cycle de vie pour l'onglet Stocks.
