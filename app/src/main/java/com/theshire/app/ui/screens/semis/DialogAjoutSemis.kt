@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -53,6 +55,7 @@ import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
+import com.theshire.app.data.ResultatCreationSemis
 import com.theshire.app.data.VarieteEntity
 import com.theshire.app.data.VarieteRepository
 import com.theshire.app.data.getEmojiCategorie
@@ -72,6 +75,9 @@ import java.util.Locale
  *
  * Le stade initial est verrouillé à "Semis" — la progression se fera
  * ensuite depuis la fiche détail du semis.
+ *
+ * En mode réel (ModePreferences), la création vérifie et décrémente
+ * les graines du stock avant de créer le semis.
  */
 @Composable
 fun DialogAjoutSemis(
@@ -269,6 +275,9 @@ fun Etape2DetailsSemis(
     var emplacementActuel by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
+    // Message d'erreur (mode réel uniquement)
+    var erreur by remember { mutableStateOf<String?>(null) }
+
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.FRANCE) }
 
     AlertDialog(
@@ -303,9 +312,9 @@ fun Etape2DetailsSemis(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Bandeau : étape initiale verrouillée
-                androidx.compose.material3.Card(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = androidx.compose.material3.CardDefaults.cardColors(
+                    colors = CardDefaults.cardColors(
                         containerColor = CouleursApp.VertPale
                     ),
                     shape = RoundedCornerShape(16.dp)
@@ -439,6 +448,31 @@ fun Etape2DetailsSemis(
                     minLines = 2,
                     maxLines = 4
                 )
+
+                // Message d'erreur (mode réel)
+                if (erreur != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = CouleursApp.MauvaiseAssociation.copy(alpha = 0.2f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("⚠️", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                erreur!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -456,6 +490,9 @@ fun Etape2DetailsSemis(
                     }
 
                     scope.launch {
+                        // Efface l'erreur précédente
+                        erreur = null
+
                         val semis = JeunePlantEntity(
                             legumeNom = legumeChoisi.nom,
                             varieteNom = varieteSelectionnee?.nom,
@@ -468,8 +505,31 @@ fun Etape2DetailsSemis(
                             estActif = true
                         )
 
-                        repository.ajouterJeunePlant(semis)
-                        onValide()
+                        when (val resultat = repository.creerSemisAvecMode(context, semis)) {
+                            is ResultatCreationSemis.Succes -> {
+                                val message = if (resultat.modeReel) {
+                                    "Semis créé — ${resultat.grainesDecrementees} graine(s) déduites du stock 🌱"
+                                } else {
+                                    "Semis créé 🌱"
+                                }
+                                android.widget.Toast.makeText(
+                                    context,
+                                    message,
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                                onValide()
+                            }
+                            is ResultatCreationSemis.ErreurSachetIntrouvable -> {
+                                val variete = resultat.varieteNom?.let { " ($it)" } ?: ""
+                                erreur = "Aucun sachet de ${resultat.legumeNom}$variete trouvé.\n" +
+                                    "Ajoute-le d'abord dans Stocks > Graines."
+                            }
+                            is ResultatCreationSemis.ErreurStockInsuffisant -> {
+                                erreur = "Stock insuffisant : ${resultat.grainesDisponibles} graine(s) disponible(s), " +
+                                    "${resultat.grainesDemandees} demandée(s).\n" +
+                                    "Il te manque ${resultat.grainesManquantes} graine(s)."
+                            }
+                        }
                     }
                 },
                 shape = RoundedCornerShape(28.dp),
