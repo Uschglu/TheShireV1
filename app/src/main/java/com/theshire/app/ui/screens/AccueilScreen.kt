@@ -479,12 +479,12 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                     item {
                         Column {
                             Text(
-                                "🏡 Jardin",
+                                "🌾 Jardin",
                                 fontWeight = FontWeight.Bold,
                                 color = CouleursApp.VertPrincipal
                             )
                             Text(
-                                "Organisez votre potager : planches en pleine terre avec calcul automatique des associations de plantes (bonnes en vert, mauvaises en rouge), ou contenants urbains (pots, jardinières, tours). Analyse du sol par la méthode du bocal incluse.",
+                                "Organisez votre potager : semis (suivi du cycle de vie), planches en pleine terre avec calcul automatique des associations de plantes (bonnes en vert, mauvaises en rouge), ou contenants urbains (pots, jardinières, tours). Analyse du sol par la méthode du bocal incluse.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = CouleursApp.TexteFonce
                             )
@@ -567,7 +567,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                                 color = CouleursApp.VertPrincipal
                             )
                             Text(
-                                "Glissez votre doigt horizontalement ou cliquez sur les billes en bas de l'écran pour passer d'une section à l'autre.",
+                                "Glissez votre doigt horizontalement ou touchez les icônes en bas de l'écran pour passer d'une section à l'autre.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = CouleursApp.TexteFonce
                             )
