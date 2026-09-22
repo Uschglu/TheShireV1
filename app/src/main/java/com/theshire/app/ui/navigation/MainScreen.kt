@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theshire.app.ui.EcranStocks
@@ -53,6 +54,32 @@ import com.theshire.app.ui.screens.CalendrierScreen
 import com.theshire.app.ui.screens.ConservationScreen
 import com.theshire.app.ui.screens.JardinScreen
 import com.theshire.app.ui.theme.CouleursApp
+
+/**
+ * Constantes de mise en page partagées dans toute l'app.
+ *
+ * Centralise les valeurs liées à la barre de navigation flottante,
+ * pour que les FAB (boutons "+" des onglets) ne soient pas cachés
+ * derrière elle.
+ *
+ * ⚠️ Si tu modifies la hauteur de la barre dans MainScreen, pense
+ *    à mettre à jour HAUTEUR_BARRE_NAVIGATION ici.
+ */
+object LayoutConstantes {
+    
+    /** Hauteur totale de la barre de navigation flottante (paddings inclus). */
+    val HAUTEUR_BARRE_NAVIGATION: Dp = 92.dp
+    
+    /** Marge minimale entre la barre et un élément qui flotte au-dessus. */
+    val MARGE_AU_DESSUS_BARRE: Dp = 16.dp
+    
+    /**
+     * Padding bottom à appliquer aux FAB pour qu'ils soient visibles
+     * au-dessus de la barre de navigation.
+     * = 92 + 16 = 108dp
+     */
+    val PADDING_BAS_FAB: Dp = HAUTEUR_BARRE_NAVIGATION + MARGE_AU_DESSUS_BARRE
+}
 
 /**
  * Retourne le dégradé de fond selon le mode sombre/clair.
@@ -221,11 +248,6 @@ fun MainScreen() {
             ) {
                 screens.forEach { screen ->
                     val isCurrent = screen == currentScreen
-                    val taillePastille by animateDpAsState(
-                        targetValue = if (isCurrent) 44.dp else 0.dp,
-                        animationSpec = tween(200),
-                        label = "taillePastille"
-                    )
                     
                     Box(
                         modifier = Modifier
