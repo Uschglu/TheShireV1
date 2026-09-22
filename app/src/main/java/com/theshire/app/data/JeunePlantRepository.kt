@@ -95,6 +95,10 @@ class JeunePlantRepository(context: Context) {
     /**
      * Ajoute un nouveau jeune plant.
      * Retourne l'ID généré.
+     * 
+     * ⚠️ Cette méthode ne touche PAS aux stocks de graines.
+     *    Pour un ajout qui impacte les graines (mode réel),
+     *    utiliser creerSemisAvecMode().
      */
     suspend fun ajouterJeunePlant(jeunePlant: JeunePlantEntity): Long {
         return jeunePlantDao.insertJeunePlant(jeunePlant)
@@ -138,14 +142,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Fait avancer un semis à l'étape suivante du cycle.
-     * 
-     * Effets :
-     *  - Met à jour le champ `stade` à l'étape suivante
-     *  - Remplit la date correspondante (dateLevee, dateRepiquage, …)
-     *  - Ajoute une entrée dans l'historique
-     *  - Si l'étape atteinte est "Planté" : estActif = false + datePlantation remplie
-     * 
-     * @return La nouvelle étape (ou null si rien n'a changé).
      */
     suspend fun avancerEtape(jeunePlantId: Long): String? {
         val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId) ?: return null
@@ -172,8 +168,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Fait reculer un semis à l'étape précédente du cycle.
-     * 
-     * @return La nouvelle étape (ou null si rien n'a changé).
      */
     suspend fun reculerEtape(jeunePlantId: Long): String? {
         val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId) ?: return null
@@ -189,8 +183,6 @@ class JeunePlantRepository(context: Context) {
     
     /**
      * Change le stade d'un semis vers une étape précise du cycle.
-     * 
-     * @return La nouvelle étape, ou null si l'étape cible est invalide.
      */
     suspend fun changerEtape(jeunePlantId: Long, etapeCible: String): String? {
         if (JeunePlantEtapes.indexDe(etapeCible) < 0) return null
@@ -278,6 +270,70 @@ class JeunePlantRepository(context: Context) {
     }
     
     // ============================================================
+    // MODE RÉEL — création de semis avec impact sur les stocks
+    // ============================================================
+    
+    /**
+     * Crée un semis en tenant compte du mode (projection / réel).
+     * 
+     * - Mode PROJECTION : crée simplement le semis (comportement actuel).
+     * - Mode RÉEL : vérifie qu'un sachet de graines correspondant existe et
+     *   qu'il contient assez de graines, puis décrémente le stock avant de
+     *   créer le semis.
+     * 
+     * @param context     Contexte Android (pour lire ModePreferences + GraineRepository)
+     * @param semis       Le JeunePlantEntity à créer (stade initial, dates, etc.)
+     * @return Un ResultatCreationSemis indiquant le succès ou l'erreur.
+     */
+    suspend fun creerSemisAvecMode(
+        context: Context,
+        semis: JeunePlantEntity
+    ): ResultatCreationSemis {
+        
+        val modeReel = ModePreferences.estModeReel(context)
+        
+        // === MODE PROJECTION : on crée le semis directement ===
+        if (!modeReel) {
+            val id = jeunePlantDao.insertJeunePlant(semis)
+            return ResultatCreationSemis.Succes(id, grainesDecrementees = 0, modeReel = false)
+        }
+        
+        // === MODE RÉEL : vérification + décrément graines ===
+        val graineRepository = GraineRepository(context)
+        val graine = graineRepository.getGraineExacte(
+            legumeNom = semis.legumeNom,
+            varieteNom = semis.varieteNom
+        )
+        
+        // Cas 1 : aucun sachet exact trouvé
+        if (graine == null) {
+            return ResultatCreationSemis.ErreurSachetIntrouvable(
+                legumeNom = semis.legumeNom,
+                varieteNom = semis.varieteNom
+            )
+        }
+        
+        // Cas 2 : sachet trouvé mais pas assez de graines
+        if (graine.quantite < semis.quantite) {
+            return ResultatCreationSemis.ErreurStockInsuffisant(
+                grainesDisponibles = graine.quantite,
+                grainesDemandees = semis.quantite,
+                legumeNom = semis.legumeNom,
+                varieteNom = semis.varieteNom
+            )
+        }
+        
+        // Cas 3 : tout est bon → décrément + création
+        graineRepository.decrementerQuantite(graine.id, semis.quantite)
+        val id = jeunePlantDao.insertJeunePlant(semis)
+        return ResultatCreationSemis.Succes(
+            id = id,
+            grainesDecrementees = semis.quantite,
+            modeReel = true
+        )
+    }
+    
+    // ============================================================
     // HELPERS PRIVÉS
     // ============================================================
     
@@ -315,5 +371,42 @@ class JeunePlantRepository(context: Context) {
             JeunePlantEtapes.PLANTE -> DatesPourEtape(datePlantation = timestamp)
             else -> DatesPourEtape()
         }
+    }
+}
+
+/**
+ * Résultat de la création d'un semis, selon le mode (projection / réel).
+ */
+sealed class ResultatCreationSemis {
+    
+    /**
+     * Le semis a été créé avec succès.
+     */
+    data class Succes(
+        val id: Long,
+        val grainesDecrementees: Int,
+        val modeReel: Boolean
+    ) : ResultatCreationSemis()
+    
+    /**
+     * Aucun sachet exact n'a été trouvé pour ce légume + variété.
+     */
+    data class ErreurSachetIntrouvable(
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatCreationSemis()
+    
+    /**
+     * Le sachet a été trouvé mais pas assez de graines.
+     */
+    data class ErreurStockInsuffisant(
+        val grainesDisponibles: Int,
+        val grainesDemandees: Int,
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatCreationSemis() {
+        /** Nombre de graines manquantes. */
+        val grainesManquantes: Int
+            get() = (grainesDemandees - grainesDisponibles).coerceAtLeast(0)
     }
 }
