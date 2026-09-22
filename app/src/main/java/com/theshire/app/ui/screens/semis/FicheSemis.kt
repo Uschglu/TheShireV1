@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantEtapes
 import com.theshire.app.data.JeunePlantRepository
+import com.theshire.app.data.ResultatPromotion
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -65,6 +66,7 @@ import java.util.Locale
  *  - De voir toutes les infos (étape, dates, quantité, emplacement, notes)
  *  - De faire avancer / reculer d'étape (avec confirmation)
  *  - De changer directement d'étape (menu déroulant)
+ *  - De promouvoir le semis en jeune plant (à partir du stade Rempoté)
  *  - D'ajuster la quantité
  *  - De marquer comme planté (fin de cycle)
  *  - De supprimer le semis
@@ -84,6 +86,8 @@ fun FicheSemis(
     var showSuppressionDialog by remember { mutableStateOf(false) }
     var showModificationQuantiteDialog by remember { mutableStateOf(false) }
     var showAvancerEtapeDialog by remember { mutableStateOf(false) }
+    var showPromotionDialog by remember { mutableStateOf(false) }
+    var messagePromotion by remember { mutableStateOf<String?>(null) }
     var etapeCible by remember { mutableStateOf<String?>(null) }
     var stadeMenuOuvert by remember { mutableStateOf(false) }
 
@@ -95,6 +99,14 @@ fun FicheSemis(
     val etapeSuivante = JeunePlantEtapes.etapeSuivante(semisActuel.stade)
     val etapePrecedente = JeunePlantEtapes.etapePrecedente(semisActuel.stade)
     val estFinale = JeunePlantEtapes.estEtapeFinale(semisActuel.stade)
+
+    // Promotion possible à partir de Rempoté (index 3), jusqu'à Endurci inclus
+    val idxStade = JeunePlantEtapes.indexDe(semisActuel.stade)
+    val idxRempote = JeunePlantEtapes.indexDe(JeunePlantEtapes.REMPOTE)
+    val promotionDisponible =
+        semisActuel.categorie == JeunePlantEntity.CATEGORIE_SEMIS &&
+        idxStade >= idxRempote &&
+        !estFinale
 
     Scaffold(
         containerColor = CouleursApp.Creme,
@@ -180,6 +192,41 @@ fun FicheSemis(
                         color = couleurEtape,
                         trackColor = CouleursApp.Blanc
                     )
+                }
+            }
+
+            // ===== Bouton Promouvoir (visible dès Rempoté) =====
+            if (promotionDisponible) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "🌿 Prêt à devenir un jeune plant ?",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = CouleursApp.VertPrincipal
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Ton semis a passé le stade critique. Tu peux le promouvoir en jeune plant — il rejoindra l'inventaire de tes plants dans Stocks, sans perdre son historique.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.TexteFonce.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { showPromotionDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CouleursApp.VertClair
+                            )
+                        ) {
+                            Text("🌿 Promouvoir en jeune plant")
+                        }
+                    }
                 }
             }
 
@@ -476,6 +523,75 @@ fun FicheSemis(
         }
     }
 
+    // ===== Dialogue : confirmation de promotion =====
+    if (showPromotionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPromotionDialog = false },
+            title = { Text("🌿 Promouvoir en jeune plant ?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Ton semis va rejoindre l'inventaire des jeunes plants " +
+                    "(Stocks > Plants). Son historique, ses dates et sa quantité " +
+                    "sont conservés. Tu pourras continuer à le faire évoluer " +
+                    "depuis l'onglet Plants."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            when (val resultat = repository.promouvoirEnJeunePlant(semisActuel.id)) {
+                                is ResultatPromotion.Succes -> {
+                                    // Promotion réussie : on revient à la liste
+                                    showPromotionDialog = false
+                                    onBack()
+                                }
+                                is ResultatPromotion.StadeTropPrecoce -> {
+                                    messagePromotion =
+                                        "Stade trop précoce : attends d'être au moins à ${resultat.stadeRequis}."
+                                    showPromotionDialog = false
+                                }
+                                ResultatPromotion.DejaJeunePlant -> {
+                                    messagePromotion = "Ce semis est déjà un jeune plant."
+                                    showPromotionDialog = false
+                                }
+                                ResultatPromotion.Introuvable -> {
+                                    messagePromotion = "Ce semis n'existe plus."
+                                    showPromotionDialog = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                ) {
+                    Text("Promouvoir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPromotionDialog = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+
+    // ===== Dialogue : message d'erreur après une tentative de promotion =====
+    if (messagePromotion != null) {
+        AlertDialog(
+            onDismissRequest = { messagePromotion = null },
+            title = { Text("Promotion impossible", fontWeight = FontWeight.Bold) },
+            text = { Text(messagePromotion!!) },
+            confirmButton = {
+                Button(
+                    onClick = { messagePromotion = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     // ===== Dialogue : confirmation d'avancement d'étape =====
     if (showAvancerEtapeDialog && etapeCible != null) {
         DialogAvancerEtape(
@@ -541,102 +657,3 @@ fun FicheSemis(
                             semisActuel = maj
                         }
                         showModificationQuantiteDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
-                ) {
-                    Text("Valider")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showModificationQuantiteDialog = false }) {
-                    Text("Annuler", color = CouleursApp.VertPrincipal)
-                }
-            }
-        )
-    }
-
-    // ===== Dialogue : confirmation de suppression =====
-    if (showSuppressionDialog) {
-        AlertDialog(
-            onDismissRequest = { showSuppressionDialog = false },
-            title = { Text("Supprimer ?", fontWeight = FontWeight.Bold) },
-            text = {
-                Text("Voulez-vous vraiment supprimer ce semis ? Cette action est définitive.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            repository.supprimerJeunePlant(semisActuel)
-                            showSuppressionDialog = false
-                            onBack()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Supprimer")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSuppressionDialog = false }) {
-                    Text("Annuler", color = CouleursApp.VertPrincipal)
-                }
-            }
-        )
-    }
-}
-
-/**
- * Une ligne "date" : libellé + valeur formatée, ou "—" si null.
- */
-@Composable
-private fun LigneDate(
-    label: String,
-    timestamp: Long?,
-    dateFormat: SimpleDateFormat
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
-        )
-        Text(
-            timestamp?.let { dateFormat.format(Date(it)) } ?: "—",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (timestamp != null) CouleursApp.TexteFonce else CouleursApp.TexteFonce.copy(alpha = 0.4f),
-            fontWeight = if (timestamp != null) FontWeight.Medium else FontWeight.Normal
-        )
-    }
-}
-
-/**
- * Une ligne "info" : libellé + valeur texte, ou "—" si null/vide.
- */
-@Composable
-private fun LigneInfo(label: String, valeur: String?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
-        )
-        Text(
-            valeur?.takeIf { it.isNotBlank() } ?: "—",
-            style = MaterialTheme.typography.bodyMedium,
-            color = CouleursApp.TexteFonce
-        )
-    }
-}
