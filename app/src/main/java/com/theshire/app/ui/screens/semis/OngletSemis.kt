@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantRepository
 import com.theshire.app.data.ModePreferences
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
@@ -113,7 +114,7 @@ fun OngletSemis() {
                     .fillMaxSize()
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = LayoutConstantes.PADDING_BAS_FAB)
             ) {
                 item {
                     Text(
@@ -136,14 +137,14 @@ fun OngletSemis() {
             }
         }
 
-        // FAB d'ajout
+        // FAB d'ajout — décalé au-dessus de la barre de navigation
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un semis")
         }
