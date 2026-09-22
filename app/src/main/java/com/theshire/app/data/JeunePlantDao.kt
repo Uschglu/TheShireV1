@@ -9,11 +9,11 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
- * DAO pour les jeunes plants.
+ * DAO pour les jeunes plants et semis.
  * 
  * Trois usages :
- *  - Onglet "Plants" de Stocks : inventaire global (tous modes)
- *  - Onglet "Semis" de Jardin : filtré par mode actif (projection / réel)
+ *  - Onglet "Plants" de Stocks : inventaire global (2 catégories, tous modes)
+ *  - Onglet "Semis" de Jardin : catégorie "Semis", filtré par mode (projection / réel)
  *  - Historique V2 : semis plantés
  */
 @Dao
@@ -45,20 +45,54 @@ interface JeunePlantDao {
     fun countJeunesPlantsActifs(): Flow<Int>
     
     // ============================================================
+    // LECTURE — générique filtrée par catégorie
+    // ============================================================
+    
+    /**
+     * Tous les éléments actifs d'une catégorie donnée.
+     * @param categorie "Semis" ou "JeunePlant"
+     */
+    @Query(
+        "SELECT * FROM jeunes_plants " +
+        "WHERE estActif = 1 AND categorie = :categorie " +
+        "ORDER BY dateAjout DESC"
+    )
+    fun getActifsParCategorie(categorie: String): Flow<List<JeunePlantEntity>>
+    
+    /**
+     * Tous les éléments d'une catégorie (actifs + inactifs).
+     */
+    @Query(
+        "SELECT * FROM jeunes_plants " +
+        "WHERE categorie = :categorie " +
+        "ORDER BY dateAjout DESC"
+    )
+    fun getTousParCategorie(categorie: String): Flow<List<JeunePlantEntity>>
+    
+    // ============================================================
     // LECTURE — spécifique Semis (Jardin), tous modes
     // ============================================================
     
     /**
      * Tous les semis actifs, tous modes confondus.
+     * (catégorie = "Semis")
      */
-    @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 ORDER BY COALESCE(dateSemis, dateAjout) ASC")
-    fun getSemisActifs(): Flow<List<JeunePlantEntity>>
+    @Query(
+        "SELECT * FROM jeunes_plants " +
+        "WHERE estActif = 1 AND categorie = :categorie " +
+        "ORDER BY COALESCE(dateSemis, dateAjout) ASC"
+    )
+    fun getSemisActifsParCategorie(categorie: String): Flow<List<JeunePlantEntity>>
     
     /**
      * Les semis actifs d'une étape donnée, tous modes confondus.
      */
-    @Query("SELECT * FROM jeunes_plants WHERE estActif = 1 AND stade = :stade ORDER BY COALESCE(dateSemis, dateAjout) ASC")
-    fun getSemisParEtape(stade: String): Flow<List<JeunePlantEntity>>
+    @Query(
+        "SELECT * FROM jeunes_plants " +
+        "WHERE estActif = 1 AND categorie = :categorie AND stade = :stade " +
+        "ORDER BY COALESCE(dateSemis, dateAjout) ASC"
+    )
+    fun getSemisParEtapeEtCategorie(categorie: String, stade: String): Flow<List<JeunePlantEntity>>
     
     /**
      * Tous les semis plantés (fin de cycle), tous modes confondus.
@@ -67,36 +101,40 @@ interface JeunePlantDao {
     fun getSemisPlantes(etapePlante: String): Flow<List<JeunePlantEntity>>
     
     /**
-     * Compte des semis actifs (tous modes).
+     * Compte des semis actifs (tous modes) d'une catégorie.
      */
-    @Query("SELECT COUNT(*) FROM jeunes_plants WHERE estActif = 1")
-    fun countSemisActifs(): Flow<Int>
+    @Query(
+        "SELECT COUNT(*) FROM jeunes_plants " +
+        "WHERE estActif = 1 AND categorie = :categorie"
+    )
+    fun countSemisActifsParCategorie(categorie: String): Flow<Int>
     
     // ============================================================
     // LECTURE — Semis filtrés par mode (projection / réel)
     // ============================================================
     
     /**
-     * Semis actifs filtrés par mode.
+     * Semis actifs filtrés par mode ET catégorie (usage principal du Jardin).
      * 
      * @param estProjection true = uniquement les semis en projection
      *                      false = uniquement les semis en mode réel
+     * @param categorie "Semis" pour l'onglet Semis du Jardin
      */
     @Query(
         "SELECT * FROM jeunes_plants " +
-        "WHERE estActif = 1 AND estProjection = :estProjection " +
+        "WHERE estActif = 1 AND estProjection = :estProjection AND categorie = :categorie " +
         "ORDER BY COALESCE(dateSemis, dateAjout) ASC"
     )
-    fun getSemisActifsFiltres(estProjection: Boolean): Flow<List<JeunePlantEntity>>
+    fun getSemisActifsFiltres(estProjection: Boolean, categorie: String): Flow<List<JeunePlantEntity>>
     
     /**
-     * Compte des semis actifs filtrés par mode.
+     * Compte des semis actifs filtrés par mode ET catégorie.
      */
     @Query(
         "SELECT COUNT(*) FROM jeunes_plants " +
-        "WHERE estActif = 1 AND estProjection = :estProjection"
+        "WHERE estActif = 1 AND estProjection = :estProjection AND categorie = :categorie"
     )
-    fun countSemisActifsFiltres(estProjection: Boolean): Flow<Int>
+    fun countSemisActifsFiltres(estProjection: Boolean, categorie: String): Flow<Int>
     
     // ============================================================
     // ÉCRITURE
