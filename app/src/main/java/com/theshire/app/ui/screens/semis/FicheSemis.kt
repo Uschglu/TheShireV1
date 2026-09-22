@@ -656,4 +656,102 @@ fun FicheSemis(
                             repository.mettreAJourJeunePlant(maj)
                             semisActuel = maj
                         }
-                        showModificationQuantiteDialog = false
+                        showModificationQuantiteDialog = false                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                ) {
+                    Text("Valider")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showModificationQuantiteDialog = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+
+    // ===== Dialogue : confirmation de suppression =====
+    if (showSuppressionDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuppressionDialog = false },
+            title = { Text("Supprimer ?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("Voulez-vous vraiment supprimer ce semis ? Cette action est définitive.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            repository.supprimerJeunePlant(semisActuel)
+                            showSuppressionDialog = false
+                            onBack()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Supprimer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuppressionDialog = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Une ligne "date" : libellé + valeur formatée, ou "—" si null.
+ */
+@Composable
+private fun LigneDate(
+    label: String,
+    timestamp: Long?,
+    dateFormat: SimpleDateFormat
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+        )
+        Text(
+            timestamp?.let { dateFormat.format(Date(it)) } ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (timestamp != null) CouleursApp.TexteFonce else CouleursApp.TexteFonce.copy(alpha = 0.4f),
+            fontWeight = if (timestamp != null) FontWeight.Medium else FontWeight.Normal
+        )
+    }
+}
+
+/**
+ * Une ligne "info" : libellé + valeur texte, ou "—" si null/vide.
+ */
+@Composable
+private fun LigneInfo(label: String, valeur: String?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+        )
+        Text(
+            valeur?.takeIf { it.isNotBlank() } ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            color = CouleursApp.TexteFonce
+        )
+    }
+}
