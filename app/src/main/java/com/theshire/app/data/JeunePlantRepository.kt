@@ -4,29 +4,31 @@ import android.content.Context
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Repository pour les jeunes plants.
+ * Repository pour les jeunes plants et semis.
  * 
  * Encapsule l'accès au JeunePlantDao et fournit une API métier claire.
  * 
  * Utilisé par :
- *  - EcranStocks (onglet "Plants") : inventaire global (tous modes)
- *  - JardinScreen (onglet "Semis") : filtré par mode actif
+ *  - EcranStocks (onglet "Plants") : inventaire global (2 catégories, tous modes)
+ *  - JardinScreen (onglet "Semis") : catégorie "Semis", filtré par mode
  */
 class JeunePlantRepository(context: Context) {
     
     private val jeunePlantDao = AppDatabase.getDatabase(context).jeunePlantDao()
     
     // ============================================================
-    // LECTURE — Stocks > Plants (tous modes)
+    // LECTURE — Stocks > Plants (2 catégories, tous modes)
     // ============================================================
     
     /**
-     * Tous les jeunes plants actifs (non encore plantés), tous modes confondus.
+     * Tous les jeunes plants et semis actifs (non encore plantés),
+     * toutes catégories et tous modes confondus.
+     * Utilisé par l'onglet Plants de Stocks (inventaire global).
      */
     val jeunesPlantsActifs: Flow<List<JeunePlantEntity>> = jeunePlantDao.getJeunesPlantsActifs()
     
     /**
-     * Tous les jeunes plants (y compris inactifs).
+     * Tous les jeunes plants et semis (y compris inactifs).
      */
     val tousJeunesPlants: Flow<List<JeunePlantEntity>> = jeunePlantDao.getAllJeunesPlants()
     
@@ -52,48 +54,72 @@ class JeunePlantRepository(context: Context) {
     }
     
     /**
-     * Compte le nombre de jeunes plants actifs.
+     * Compte le nombre de jeunes plants actifs (toutes catégories).
      */
     fun countJeunesPlantsActifs(): Flow<Int> {
         return jeunePlantDao.countJeunesPlantsActifs()
     }
     
     // ============================================================
-    // LECTURE — Jardin > Semis (tous modes)
+    // LECTURE — par catégorie
     // ============================================================
     
     /**
-     * Semis actifs, tous modes confondus.
+     * Tous les éléments actifs d'une catégorie donnée.
+     * @param categorie "Semis" ou "JeunePlant"
      */
-    val semisActifs: Flow<List<JeunePlantEntity>> = jeunePlantDao.getSemisActifs()
+    fun getActifsParCategorie(categorie: String): Flow<List<JeunePlantEntity>> {
+        return jeunePlantDao.getActifsParCategorie(categorie)
+    }
     
     /**
-     * Semis actifs d'une étape donnée, tous modes confondus.
+     * Tous les éléments d'une catégorie (actifs + inactifs).
+     */
+    fun getTousParCategorie(categorie: String): Flow<List<JeunePlantEntity>> {
+        return jeunePlantDao.getTousParCategorie(categorie)
+    }
+    
+    // ============================================================
+    // LECTURE — Jardin > Semis (catégorie Semis uniquement)
+    // ============================================================
+    
+    /**
+     * Tous les semis actifs (catégorie = Semis), tous modes confondus.
+     */
+    val semisActifs: Flow<List<JeunePlantEntity>> =
+        jeunePlantDao.getSemisActifsParCategorie(JeunePlantEntity.CATEGORIE_SEMIS)
+    
+    /**
+     * Semis actifs d'une étape donnée (catégorie = Semis), tous modes confondus.
      */
     fun getSemisParEtape(stade: String): Flow<List<JeunePlantEntity>> {
-        return jeunePlantDao.getSemisParEtape(stade)
+        return jeunePlantDao.getSemisParEtapeEtCategorie(
+            JeunePlantEntity.CATEGORIE_SEMIS,
+            stade
+        )
     }
     
     /**
      * Semis déjà plantés (fin de cycle) — historique V2.
+     * (toutes catégories confondues pour l'instant)
      */
     fun getSemisPlantes(): Flow<List<JeunePlantEntity>> {
         return jeunePlantDao.getSemisPlantes(JeunePlantEtapes.PLANTE)
     }
     
     /**
-     * Nombre de semis actuellement actifs (tous modes).
+     * Nombre de semis actuellement actifs (catégorie = Semis, tous modes).
      */
     fun countSemisActifs(): Flow<Int> {
-        return jeunePlantDao.countSemisActifs()
+        return jeunePlantDao.countSemisActifsParCategorie(JeunePlantEntity.CATEGORIE_SEMIS)
     }
     
     // ============================================================
-    // LECTURE — Jardin > Semis (filtré par mode)
+    // LECTURE — Jardin > Semis (catégorie Semis + filtre mode)
     // ============================================================
     
     /**
-     * Semis actifs filtrés par mode.
+     * Semis actifs filtrés par mode (catégorie = Semis uniquement).
      * 
      * @param modeReel true = uniquement les semis créés en mode réel
      *                 false = uniquement les semis créés en mode projection
@@ -102,14 +128,20 @@ class JeunePlantRepository(context: Context) {
         // Un semis "réel" a estProjection = false
         // Un semis "projection" a estProjection = true
         val estProjection = !modeReel
-        return jeunePlantDao.getSemisActifsFiltres(estProjection)
+        return jeunePlantDao.getSemisActifsFiltres(
+            estProjection,
+            JeunePlantEntity.CATEGORIE_SEMIS
+        )
     }
     
     /**
-     * Compte les semis actifs filtrés par mode.
+     * Compte les semis actifs filtrés par mode (catégorie = Semis uniquement).
      */
     fun countSemisActifsFiltres(modeReel: Boolean): Flow<Int> {
-        return jeunePlantDao.countSemisActifsFiltres(!modeReel)
+        return jeunePlantDao.countSemisActifsFiltres(
+            !modeReel,
+            JeunePlantEntity.CATEGORIE_SEMIS
+        )
     }
     
     // ============================================================
@@ -290,6 +322,50 @@ class JeunePlantRepository(context: Context) {
     }
     
     // ============================================================
+    // PROMOTION — Semis → Jeune Plant
+    // ============================================================
+    
+    /**
+     * Promeut un semis en jeune plant.
+     * 
+     * Change simplement la catégorie ("Semis" → "JeunePlant") sans toucher
+     * au stade, aux dates, à l'historique, ni au mode (estProjection est hérité).
+     * 
+     * Conditions :
+     *  - Le stade doit être >= REMPOTE (index 3). Sinon la promotion est refusée.
+     *  - Le semis doit exister et être actif.
+     *  - Ne peut pas être appelée sur un élément déjà en catégorie "JeunePlant".
+     * 
+     * @return ResultatPromotion indiquant le succès ou l'erreur.
+     */
+    suspend fun promouvoirEnJeunePlant(jeunePlantId: Long): ResultatPromotion {
+        val plant = jeunePlantDao.getJeunePlantParId(jeunePlantId)
+            ?: return ResultatPromotion.Introuvable
+        
+        // Déjà promu ?
+        if (plant.categorie == JeunePlantEntity.CATEGORIE_JEUNE_PLANT) {
+            return ResultatPromotion.DejaJeunePlant
+        }
+        
+        // Vérification du stade minimum
+        val idxStade = JeunePlantEtapes.indexDe(plant.stade)
+        val idxRempote = JeunePlantEtapes.indexDe(JeunePlantEtapes.REMPOTE)
+        
+        if (idxStade < idxRempote) {
+            return ResultatPromotion.StadeTropPrecoce(
+                stadeActuel = plant.stade,
+                stadeRequis = JeunePlantEtapes.REMPOTE
+            )
+        }
+        
+        // Promotion : on change juste la catégorie
+        val promu = plant.copy(categorie = JeunePlantEntity.CATEGORIE_JEUNE_PLANT)
+        jeunePlantDao.updateJeunePlant(promu)
+        
+        return ResultatPromotion.Succes(promu)
+    }
+    
+    // ============================================================
     // MODE RÉEL — création de semis avec impact sur les stocks
     // ============================================================
     
@@ -299,6 +375,8 @@ class JeunePlantRepository(context: Context) {
      * Le champ estProjection est automatiquement renseigné :
      *  - Mode projection → estProjection = true
      *  - Mode réel       → estProjection = false
+     * 
+     * La catégorie est forcée à "Semis" (un nouveau semis est toujours un semis).
      * 
      * - Mode PROJECTION : crée simplement le semis.
      * - Mode RÉEL : vérifie qu'un sachet correspondant existe et qu'il
@@ -311,9 +389,12 @@ class JeunePlantRepository(context: Context) {
         
         val modeReel = ModePreferences.estModeReel(context)
         
+        // On force la catégorie "Semis" (sécurité)
+        val semisBase = semis.copy(categorie = JeunePlantEntity.CATEGORIE_SEMIS)
+        
         // === MODE PROJECTION : création directe, tag estProjection = true ===
         if (!modeReel) {
-            val semisMarque = semis.copy(estProjection = true)
+            val semisMarque = semisBase.copy(estProjection = true)
             val id = jeunePlantDao.insertJeunePlant(semisMarque)
             return ResultatCreationSemis.Succes(id, grainesDecrementees = 0, modeReel = false)
         }
@@ -321,35 +402,35 @@ class JeunePlantRepository(context: Context) {
         // === MODE RÉEL : vérification + décrément graines ===
         val graineRepository = GraineRepository(context)
         val graine = graineRepository.getGraineExacte(
-            legumeNom = semis.legumeNom,
-            varieteNom = semis.varieteNom
+            legumeNom = semisBase.legumeNom,
+            varieteNom = semisBase.varieteNom
         )
         
         // Cas 1 : aucun sachet exact trouvé
         if (graine == null) {
             return ResultatCreationSemis.ErreurSachetIntrouvable(
-                legumeNom = semis.legumeNom,
-                varieteNom = semis.varieteNom
+                legumeNom = semisBase.legumeNom,
+                varieteNom = semisBase.varieteNom
             )
         }
         
         // Cas 2 : sachet trouvé mais pas assez de graines
-        if (graine.quantite < semis.quantite) {
+        if (graine.quantite < semisBase.quantite) {
             return ResultatCreationSemis.ErreurStockInsuffisant(
                 grainesDisponibles = graine.quantite,
-                grainesDemandees = semis.quantite,
-                legumeNom = semis.legumeNom,
-                varieteNom = semis.varieteNom
+                grainesDemandees = semisBase.quantite,
+                legumeNom = semisBase.legumeNom,
+                varieteNom = semisBase.varieteNom
             )
         }
         
         // Cas 3 : tout est bon → décrément + création avec tag estProjection = false
-        graineRepository.decrementerQuantite(graine.id, semis.quantite)
-        val semisMarque = semis.copy(estProjection = false)
+        graineRepository.decrementerQuantite(graine.id, semisBase.quantite)
+        val semisMarque = semisBase.copy(estProjection = false)
         val id = jeunePlantDao.insertJeunePlant(semisMarque)
         return ResultatCreationSemis.Succes(
             id = id,
-            grainesDecrementees = semis.quantite,
+            grainesDecrementees = semisBase.quantite,
             modeReel = true
         )
     }
@@ -420,4 +501,25 @@ sealed class ResultatCreationSemis {
         val grainesManquantes: Int
             get() = (grainesDemandees - grainesDisponibles).coerceAtLeast(0)
     }
+}
+
+/**
+ * Résultat de la promotion d'un semis en jeune plant.
+ */
+sealed class ResultatPromotion {
+    
+    /** Promotion réussie : renvoie l'entité mise à jour. */
+    data class Succes(val jeunePlant: JeunePlantEntity) : ResultatPromotion()
+    
+    /** L'élément n'existe plus (supprimé entre-temps). */
+    object Introuvable : ResultatPromotion()
+    
+    /** L'élément est déjà un jeune plant. */
+    object DejaJeunePlant : ResultatPromotion()
+    
+    /** Le stade actuel est trop précoce (avant Rempoté). */
+    data class StadeTropPrecoce(
+        val stadeActuel: String,
+        val stadeRequis: String
+    ) : ResultatPromotion()
 }
