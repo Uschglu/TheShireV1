@@ -62,6 +62,7 @@ import com.theshire.app.data.LuneRepository
 import com.theshire.app.data.MeteoData
 import com.theshire.app.data.MeteoRepository
 import com.theshire.app.data.PrevisionJour
+import com.theshire.app.ui.components.ComposantModeSwitch
 import com.theshire.app.ui.components.getEmojiMeteo
 import com.theshire.app.ui.theme.CouleursApp
 import java.io.File
@@ -170,6 +171,11 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                     Text("⚙️", style = MaterialTheme.typography.titleLarge)
                 }
             }
+
+            // Interrupteur mode projection / réel
+            ComposantModeSwitch()
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Carte météo + lune
             Card(
