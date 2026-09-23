@@ -33,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,7 @@ import java.util.concurrent.TimeUnit
  *  - De voir toutes les infos (légume, variété, localisation, source, mode, dates)
  *  - De récolter (génère une RecolteEntity + clôture la culture)
  *  - De retirer sans récolter (plant mort, arraché, erreur de plantation…)
+ *  - De retirer tout le m² si les 9 cases ont la même plante (cas "remplir m²")
  *  - De modifier les notes
  */
 @Composable
@@ -74,7 +76,19 @@ fun FicheCulture(
     
     var showRecolteDialog by remember { mutableStateOf(false) }
     var showRetraitDialog by remember { mutableStateOf(false) }
+    var showRetraitM2Dialog by remember { mutableStateOf(false) }
     var showNotesDialog by remember { mutableStateOf(false) }
+    
+    // Nombre de cases identiques dans le carré (pour détecter un m² entier)
+    var nombreCasesIdentiques by remember { mutableStateOf(1) }
+    
+    // Charger le nombre de cases identiques au démarrage
+    LaunchedEffect(culture.id) {
+        if (culture.typeEmplacement == CultureEntity.TYPE_PLEINE_TERRE &&
+            culture.carreId != null) {
+            nombreCasesIdentiques = repository.compterCasesIdentiques(culture)
+        }
+    }
     
     val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE) }
     
@@ -82,6 +96,12 @@ fun FicheCulture(
         val diff = System.currentTimeMillis() - cultureActuelle.datePlantation
         TimeUnit.MILLISECONDS.toDays(diff).coerceAtLeast(0)
     }
+    
+    // Détection "m² entier" : au moins 4 cases identiques (les 9 normalement)
+    val peutViderM2 = cultureActuelle.typeEmplacement == CultureEntity.TYPE_PLEINE_TERRE &&
+                      cultureActuelle.carreId != null &&
+                      nombreCasesIdentiques >= 4 &&
+                      cultureActuelle.estActive
     
     Scaffold(
         containerColor = CouleursApp.Creme,
@@ -183,6 +203,22 @@ fun FicheCulture(
                 }
             }
             
+            // ===== Bouton Retirer tout le m² (si détecté) =====
+            if (peutViderM2) {
+                OutlinedButton(
+                    onClick = { showRetraitM2Dialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text(
+                        "🗑️ Retirer tout le m² ($nombreCasesIdentiques cases)",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
             // ===== Informations =====
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -207,6 +243,12 @@ fun FicheCulture(
                         "Localisation",
                         cultureActuelle.libelleLocalisation()
                     )
+                    if (peutViderM2) {
+                        LigneInfoCulture(
+                            "Remplissage",
+                            "🌱 $nombreCasesIdentiques cases identiques"
+                        )
+                    }
                     LigneInfoCulture(
                         "Source",
                         cultureActuelle.libelleSource()
@@ -292,15 +334,15 @@ fun FicheCulture(
         )
     }
     
-    // ===== Dialogue : retrait sans récolte =====
+    // ===== Dialogue : retrait simple (une case) =====
     if (showRetraitDialog) {
         AlertDialog(
             onDismissRequest = { showRetraitDialog = false },
             title = { Text("Retirer cette culture ?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "La culture sera marquée comme terminée et la case / l'emplacement " +
-                    "sera libéré. Aucune récolte ne sera enregistrée dans tes Stocks.\n\n" +
+                    "La culture sera marquée comme terminée et la case " +
+                    "sera libérée. Aucune récolte ne sera enregistrée dans tes Stocks.\n\n" +
                     "Utilise cette option si la plante est morte, arrachée, ou si tu " +
                     "t'es trompé en la plantant."
                 )
@@ -323,6 +365,54 @@ fun FicheCulture(
             },
             dismissButton = {
                 TextButton(onClick = { showRetraitDialog = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // ===== Dialogue : retrait de tout le m² =====
+    if (showRetraitM2Dialog) {
+        AlertDialog(
+            onDismissRequest = { showRetraitM2Dialog = false },
+            title = { Text("Retirer tout le m² ?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Les $nombreCasesIdentiques cases contenant " +
+                    "${cultureActuelle.legumeNom}" +
+                    if (cultureActuelle.varieteNom != null) " (${cultureActuelle.varieteNom})" else "" +
+                    " seront libérées.\n\n" +
+                    "Aucune récolte ne sera enregistrée dans tes Stocks.\n\n" +
+                    "Utilise cette option si tu veux vider tout le m² d'un coup."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val carreId = cultureActuelle.carreId
+                            if (carreId != null) {
+                                val identiques = repository.getCulturesIdentiquesDansCarre(
+                                    carreId = carreId,
+                                    legumeNom = cultureActuelle.legumeNom,
+                                    varieteNom = cultureActuelle.varieteNom,
+                                    datePlantation = cultureActuelle.datePlantation
+                                )
+                                repository.terminerSansRecolteMultiple(identiques.map { it.id })
+                            }
+                            showRetraitM2Dialog = false
+                            onBack()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Retirer tout le m²")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRetraitM2Dialog = false }) {
                     Text("Annuler", color = CouleursApp.VertPrincipal)
                 }
             }
