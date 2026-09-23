@@ -60,6 +60,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -223,8 +224,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     )
                 }
                 
-                // ⚠️ Spacer pour garantir que le contenu n'est jamais collé
-                // à la barre de navigation flottante
                 item {
                     Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
                 }
@@ -232,7 +231,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         }
     }
 
+    // ============================================================
     // Dialog : case centrale → choix entre tout le m² ou une seule case
+    // ============================================================
     if (showChoixRemplissage && selectedCarre != null) {
         AlertDialog(
             onDismissRequest = { showChoixRemplissage = false },
@@ -313,7 +314,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
+    // ============================================================
     // Dialog : création d'une nouvelle planche
+    // ============================================================
     if (showAddPlancheDialog) {
         var nom by remember { mutableStateOf("") }
         var largeur by remember { mutableStateOf("3") }
@@ -382,7 +385,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
+    // ============================================================
     // Dialog : sélection d'un légume
+    // ============================================================
     if (showLegumeSelection && selectedCarre != null) {
         val carre = selectedCarre!!
         val caseNumero = selectedCaseNumero
@@ -530,7 +535,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
+    // ============================================================
     // Dialog : sélection d'une variété
+    // ============================================================
     if (showVarieteSelection && selectedLegumeNom != null && selectedCarre != null) {
         VarieteSelectionDialog(
             legumeNom = selectedLegumeNom!!,
@@ -557,7 +564,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
+    // ============================================================
     // Dialog : choix de la source du stock
+    // ============================================================
     if (showChoixSourceStock && selectedLegumeNom != null && selectedCarre != null) {
         DialogPlanterCulture(
             legumeNom = selectedLegumeNom!!,
@@ -622,7 +631,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
+    // ============================================================
     // Dialog : avertissement d'association
+    // ============================================================
     if (showAvertissement && avertissement != null) {
         val av = avertissement!!
         AlertDialog(
@@ -663,7 +674,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
-    // Dialog : erreur de plantation (mode réel)
+    // ============================================================
+    // Dialog : erreur de plantation
+    // ============================================================
     if (erreurPlantation != null) {
         DialogErreurPlantation(
             resultat = erreurPlantation!!,
@@ -673,7 +686,11 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
 }
 
 /**
- * Carte d'une planche.
+ * Carte d'une planche avec grille 3x3.
+ * 
+ * ⚠️ NOUVEAU : limitation du pan (déplacement) pour ne pas perdre la planche
+ * de vue. Le zoom reste libre. La limite est calculée en fonction de la taille
+ * de l'écran + une marge (2 petits carrés autour).
  */
 @Composable
 fun PlancheCard(
@@ -687,6 +704,7 @@ fun PlancheCard(
     onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     var carresFiltres by remember { mutableStateOf<List<CarreEntity>>(emptyList()) }
     
     val carres by jardinRepository.getCarresForPlanche(planche.id)
@@ -759,9 +777,23 @@ fun PlancheCard(
 
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(Offset.Zero) }
+                
+                // ⚠️ NOUVEAU : marge de déplacement autorisée
+                // On autorise un déplacement maximal de la taille de l'écran × 0.4
+                // (environ 2 carrés autour de la planche selon la densité de la grille)
+                val maxOffsetX = (configuration.screenWidthDp * 0.4f).dp.value
+                val maxOffsetY = (configuration.screenHeightDp * 0.3f).dp.value
+                
                 val state = rememberTransformableState { zoomChange, panChange, _ ->
                     scale = (scale * zoomChange).coerceIn(0.5f, 5f)
-                    offset += panChange
+                    
+                    // Calcul de l'offset avec limite
+                    val nouvelOffsetX = (offset.x + panChange.x)
+                        .coerceIn(-maxOffsetX, maxOffsetX)
+                    val nouvelOffsetY = (offset.y + panChange.y)
+                        .coerceIn(-maxOffsetY, maxOffsetY)
+                    
+                    offset = Offset(nouvelOffsetX, nouvelOffsetY)
                 }
 
                 Box(
