@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Repository pour les cultures actives.
  * 
- * ⚠️ NOUVEAU : distinction PROJECTION vs RÉEL.
+ * ⚠️ Distinction PROJECTION vs RÉEL.
  * Les méthodes `getCultureActiveDansCase` et `getCultureActiveDansEmplacement`
  * retournent la culture active **peu importe le mode**. Pour un filtrage
  * par mode (afficher seulement les cultures correspondant au mode actif),
@@ -40,10 +40,6 @@ class CultureRepository(context: Context) {
         return cultureDao.getCulturesActivesPourCarre(carreId)
     }
     
-    /**
-     * Retourne la culture active dans une case, PEU IMPORTE le mode.
-     * Utilisé pour les opérations internes (vider, terminer).
-     */
     suspend fun getCultureActiveDansCase(carreId: Long, caseNumero: Int): CultureEntity? {
         return cultureDao.getCultureActiveDansCase(carreId, caseNumero)
     }
@@ -52,10 +48,6 @@ class CultureRepository(context: Context) {
         return cultureDao.getCulturesActivesPourContenant(contenantId)
     }
     
-    /**
-     * Retourne la culture active dans un emplacement, PEU IMPORTE le mode.
-     * Utilisé pour les opérations internes (vider, terminer).
-     */
     suspend fun getCultureActiveDansEmplacement(contenantId: Long, emplacementNumero: Int): CultureEntity? {
         return cultureDao.getCultureActiveDansEmplacement(contenantId, emplacementNumero)
     }
@@ -83,7 +75,7 @@ class CultureRepository(context: Context) {
     fun countTotalCultures(): Flow<Int> = cultureDao.countTotalCultures()
     
     // ============================================================
-    // LECTURE — filtrées par mode (NOUVEAU)
+    // LECTURE — filtrées par mode (pour l'UI)
     // ============================================================
     
     /**
@@ -102,8 +94,6 @@ class CultureRepository(context: Context) {
     ): CultureEntity? {
         val culture = cultureDao.getCultureActiveDansCase(carreId, caseNumero) ?: return null
         val modeReel = ModePreferences.estModeReel(context)
-        // Un mode réel → estProjection = false
-        // Un mode projection → estProjection = true
         val estProjectionAttendue = !modeReel
         return if (culture.estProjection == estProjectionAttendue) culture else null
     }
@@ -122,19 +112,43 @@ class CultureRepository(context: Context) {
         return if (culture.estProjection == estProjectionAttendue) culture else null
     }
     
+    // ============================================================
+    // LECTURE — cultures identiques (détection "m² entier")
+    // ============================================================
+    
     /**
-     * Retourne toutes les cultures actives d'un carré filtrées par le mode actif.
+     * Récupère toutes les cultures identiques dans un carré (même plante,
+     * même variété, même date de plantation) → pour détecter un "m² entier".
      * 
-     * @return Map<caseNumero, CultureEntity> pour les cases occupées du bon mode
+     * @return Liste des cultures identiques (peut être 1 seule si c'est une case isolée)
      */
-    suspend fun getCulturesActivesDansCarrePourMode(
-        context: Context,
-        carreId: Long
-    ): Map<Int, CultureEntity> {
-        val cultures = cultureDao.getCulturesActivesPourCarre(carreId)
-        // On ne peut pas collecter un Flow ici — c'est appelé depuis des contextes suspend
-        // On utilise une méthode DAO synchrone
-        return emptyMap() // sera remplacé par la version DAO
+    suspend fun getCulturesIdentiquesDansCarre(
+        carreId: Long,
+        legumeNom: String,
+        varieteNom: String?,
+        datePlantation: Long
+    ): List<CultureEntity> {
+        return cultureDao.getCulturesIdentiquesDansCarre(
+            carreId = carreId,
+            legumeNom = legumeNom,
+            varieteNom = varieteNom,
+            datePlantation = datePlantation
+        )
+    }
+    
+    /**
+     * Compte le nombre de cases identiques à une culture donnée dans son carré.
+     * 
+     * @return Nombre de cases identiques (peut être 1 à 9)
+     */
+    suspend fun compterCasesIdentiques(culture: CultureEntity): Int {
+        val carreId = culture.carreId ?: return 1
+        return cultureDao.getCulturesIdentiquesDansCarre(
+            carreId = carreId,
+            legumeNom = culture.legumeNom,
+            varieteNom = culture.varieteNom,
+            datePlantation = culture.datePlantation
+        ).size
     }
     
     // ============================================================
@@ -281,6 +295,14 @@ class CultureRepository(context: Context) {
     
     suspend fun terminerSansRecolte(cultureId: Long) {
         cultureDao.terminerCulture(cultureId, null)
+    }
+    
+    /**
+     * Termine plusieurs cultures d'un coup (ex : "vider tout le m²").
+     */
+    suspend fun terminerSansRecolteMultiple(cultureIds: List<Long>) {
+        if (cultureIds.isEmpty()) return
+        cultureDao.terminerCultures(cultureIds, null)
     }
     
     suspend fun terminerAvecRecolte(
