@@ -333,8 +333,9 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
 /**
  * Dialog d'aide pour l'écran Stocks.
  *
- * Explique les 3 onglets (Graines / Plants / Matériel), comment ajouter
- * un élément, comment lire les indicateurs, et donne une astuce générale.
+ * Explique les 3 onglets (Graines / Plants / Matériel), la distinction
+ * Semis / Jeune plant, comment ajouter un élément, comment lire les
+ * indicateurs, et donne une astuce générale.
  */
 @Composable
 fun AideStocksDialog(onDismiss: () -> Unit) {
@@ -399,7 +400,7 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
                 }
                 item {
                     Text(
-                        "À quoi ça sert :\nSuivre tes jeunes plants en cours de croissance — semis en godet, plants achetés en jardinerie, boutures… tout ce qui n'est pas encore en terre.\n\nComment ajouter :\nAppuie sur le bouton \"+\", choisis un légume et une variété, puis indique le stade actuel et l'emplacement (godet, mini-serre, balcon…).\n\nLes 4 stades :\n• Semis — la graine vient de germer\n• Repiqué — le plant a été changé de contenant\n• Prêt à planter — il ne demande qu'à rejoindre le jardin\n• Endurci — il a été habitué au froid et au vent extérieur",
+                        "À quoi ça sert :\nTon inventaire complet des plants et semis en cours de croissance — tout ce qui n'est pas encore en terre.\n\n🌰 Semis en cours :\nUn semis reste dans cette catégorie tant qu'il n'a pas passé le stade critique. Tu le suis depuis Jardin > Semis.\n\n🌿 Jeune plant :\nUne fois que ton semis a atteint le stade Rempoté, tu peux le promouvoir en jeune plant via le bouton dédié dans sa fiche. Il reste dans ton inventaire, garde tout son historique, mais quitte l'onglet Semis du Jardin. Les plants achetés en jardinerie arrivent directement dans cette catégorie.\n\nComment ajouter :\nAppuie sur le bouton \"+\", choisis un légume et une variété, puis indique le stade actuel et l'emplacement (godet, mini-serre, balcon…).",
                         color = CouleursApp.TexteFonce,
                         fontSize = 13.sp
                     )

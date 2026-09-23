@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantRepository
 import com.theshire.app.data.ModePreferences
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
@@ -39,11 +40,13 @@ import com.theshire.app.ui.theme.CouleursApp
  *
  * Suit le cycle de vie des semis en cours, du semis à la plantation.
  *
- * ⚠️ Les semis affichés sont filtrés selon le mode actif :
- *  - Mode PROJECTION → affiche les semis créés en mode projection
- *  - Mode RÉEL      → affiche les semis créés en mode réel
+ * ⚠️ N'affiche QUE la catégorie "Semis" (les jeunes plants promus vont dans
+ *    Stocks > Plants). Les semis sont en plus filtrés selon le mode actif :
+ *  - Mode PROJECTION → semis créés en mode projection
+ *  - Mode RÉEL      → semis créés en mode réel
  * 
- * L'onglet Plants de Stocks affiche tous les plants, tous modes confondus.
+ * L'onglet Plants de Stocks affiche tous les éléments, tous modes et
+ * toutes catégories confondus.
  */
 @Composable
 fun OngletSemis() {
@@ -53,7 +56,7 @@ fun OngletSemis() {
     // Mode actif (lu à chaque recomposition — suit les changements du switch)
     val modeReel = remember { mutableStateOf(ModePreferences.estModeReel(context)) }
     
-    // Semis filtrés par mode actif
+    // Semis filtrés par mode actif + catégorie "Semis"
     val semis by repository
         .getSemisActifsFiltres(modeReel.value)
         .collectAsState(initial = emptyList())
@@ -111,7 +114,7 @@ fun OngletSemis() {
                     .fillMaxSize()
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = LayoutConstantes.PADDING_BAS_FAB)
             ) {
                 item {
                     Text(
@@ -134,14 +137,14 @@ fun OngletSemis() {
             }
         }
 
-        // FAB d'ajout
+        // FAB d'ajout — décalé au-dessus de la barre de navigation
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un semis")
         }

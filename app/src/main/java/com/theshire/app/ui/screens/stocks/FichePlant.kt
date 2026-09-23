@@ -28,10 +28,10 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Fiche détaillée d'un jeune plant.
+ * Fiche détaillée d'un jeune plant (ou d'un semis en cours).
  * 
  * Permet :
- * - De voir toutes les infos (quantité, stade, dates, emplacement, notes)
+ * - De voir toutes les infos (catégorie, quantité, stade, dates, emplacement, notes)
  * - De changer le stade (menu déroulant)
  * - D'ajuster la quantité (+ / −)
  * - De marquer comme planté (retrait du stock actif)
@@ -102,14 +102,18 @@ fun FichePlant(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // === En-tête : emoji + nom + variété ===
+            // === En-tête : emoji + nom + variété + badge catégorie ===
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text(plantActuel.emoji, style = MaterialTheme.typography.displayLarge)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(plantActuel.emoji, style = MaterialTheme.typography.displayLarge)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        BadgeCategorie(categorie = plantActuel.categorie)
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         plantActuel.legumeNom,
@@ -287,21 +291,31 @@ fun FichePlant(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    InfoLigne(
+                    InfoLignePlant(
+                        "Catégorie",
+                        if (plantActuel.categorie == JeunePlantEntity.CATEGORIE_JEUNE_PLANT)
+                            "🌿 Jeune plant"
+                        else "🌰 Semis en cours"
+                    )
+                    InfoLignePlant(
+                        "Mode",
+                        if (plantActuel.estProjection) "🌱 Projection" else "🌳 Réel"
+                    )
+                    InfoLignePlant(
                         "Date de semis",
                         plantActuel.dateSemis?.let { dateFormat.format(Date(it)) }
                     )
-                    InfoLigne(
+                    InfoLignePlant(
                         "Date d'achat",
                         plantActuel.dateAchat?.let { dateFormat.format(Date(it)) }
                     )
-                    InfoLigne("Fournisseur", plantActuel.fournisseur)
-                    InfoLigne("Emplacement actuel", plantActuel.emplacementActuel)
-                    InfoLigne(
+                    InfoLignePlant("Fournisseur", plantActuel.fournisseur)
+                    InfoLignePlant("Emplacement actuel", plantActuel.emplacementActuel)
+                    InfoLignePlant(
                         "Ajouté le",
                         dateFormat.format(Date(plantActuel.dateAjout))
                     )
-                    InfoLigne("Statut", if (plantActuel.estActif) "✅ En stock" else "❌ Planté")
+                    InfoLignePlant("Statut", if (plantActuel.estActif) "✅ En stock" else "❌ Planté")
                 }
             }
             
@@ -450,6 +464,33 @@ fun FichePlant(
                     Text("Annuler", color = CouleursApp.VertPrincipal)
                 }
             }
+        )
+    }
+}
+
+/**
+ * Une ligne "info" : libellé + valeur texte, ou "—" si null/vide.
+ * 
+ * ⚠️ Nommé "InfoLignePlant" (et non "InfoLigne") pour éviter une collision
+ * avec une fonction du même nom dans un autre fichier du package stocks.
+ */
+@Composable
+private fun InfoLignePlant(label: String, valeur: String?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+        )
+        Text(
+            valeur?.takeIf { it.isNotBlank() } ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            color = CouleursApp.TexteFonce
         )
     }
 }
