@@ -48,9 +48,6 @@ interface CultureDao {
     // LECTURE — par localisation
     // ============================================================
     
-    /**
-     * Cultures liées à une planche (toutes les cases).
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE plancheId = :plancheId AND estActive = 1 " +
@@ -58,9 +55,6 @@ interface CultureDao {
     )
     fun getCulturesActivesPourPlanche(plancheId: Long): Flow<List<CultureEntity>>
     
-    /**
-     * Cultures liées à un carré précis.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE carreId = :carreId AND estActive = 1 " +
@@ -68,10 +62,6 @@ interface CultureDao {
     )
     fun getCulturesActivesPourCarre(carreId: Long): Flow<List<CultureEntity>>
     
-    /**
-     * Culture active dans une case précise d'un carré.
-     * Retourne null si la case est vide.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE carreId = :carreId AND caseNumero = :caseNumero AND estActive = 1 " +
@@ -79,9 +69,6 @@ interface CultureDao {
     )
     suspend fun getCultureActiveDansCase(carreId: Long, caseNumero: Int): CultureEntity?
     
-    /**
-     * Cultures liées à un contenant (tous les emplacements).
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE contenantId = :contenantId AND estActive = 1 " +
@@ -89,9 +76,6 @@ interface CultureDao {
     )
     fun getCulturesActivesPourContenant(contenantId: Long): Flow<List<CultureEntity>>
     
-    /**
-     * Culture active dans un emplacement précis d'un contenant.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE contenantId = :contenantId AND emplacementNumero = :emplacementNumero AND estActive = 1 " +
@@ -99,9 +83,6 @@ interface CultureDao {
     )
     suspend fun getCultureActiveDansEmplacement(contenantId: Long, emplacementNumero: Int): CultureEntity?
     
-    /**
-     * Toutes les cultures actives liées à la pleine terre.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE typeEmplacement = :type AND estActive = 1 " +
@@ -113,9 +94,6 @@ interface CultureDao {
     // LECTURE — par plante
     // ============================================================
     
-    /**
-     * Toutes les cultures d'un légume donné (actives + terminées).
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE legumeNom = :legumeNom " +
@@ -123,9 +101,6 @@ interface CultureDao {
     )
     fun getCulturesPourLegume(legumeNom: String): Flow<List<CultureEntity>>
     
-    /**
-     * Cultures actives d'un légume donné.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE legumeNom = :legumeNom AND estActive = 1 " +
@@ -133,9 +108,6 @@ interface CultureDao {
     )
     fun getCulturesActivesPourLegume(legumeNom: String): Flow<List<CultureEntity>>
     
-    /**
-     * Compte les cultures actives d'un légume donné (utile pour stats).
-     */
     @Query(
         "SELECT COUNT(*) FROM cultures " +
         "WHERE legumeNom = :legumeNom AND estActive = 1"
@@ -146,9 +118,6 @@ interface CultureDao {
     // LECTURE — par mode (projection / réel)
     // ============================================================
     
-    /**
-     * Cultures actives filtrées par mode.
-     */
     @Query(
         "SELECT * FROM cultures " +
         "WHERE estActive = 1 AND estProjection = :estProjection " +
@@ -157,18 +126,42 @@ interface CultureDao {
     fun getCulturesActivesFiltrees(estProjection: Boolean): Flow<List<CultureEntity>>
     
     // ============================================================
-    // LECTURE — historique / stats
+    // LECTURE SYNCHRONE — filtrée par mode (pour usage UI)
     // ============================================================
     
     /**
-     * Nombre total de cultures créées (actives + terminées).
+     * Récupère toutes les cultures actives d'un carré, filtrées par mode.
+     * Version synchrone, utile pour appeler depuis un scope.launch en UI.
      */
+    @Query(
+        "SELECT * FROM cultures " +
+        "WHERE carreId = :carreId AND estActive = 1 AND estProjection = :estProjection"
+    )
+    suspend fun getCulturesActivesPourCarreParMode(
+        carreId: Long,
+        estProjection: Boolean
+    ): List<CultureEntity>
+    
+    /**
+     * Récupère toutes les cultures actives d'un contenant, filtrées par mode.
+     * Version synchrone.
+     */
+    @Query(
+        "SELECT * FROM cultures " +
+        "WHERE contenantId = :contenantId AND estActive = 1 AND estProjection = :estProjection"
+    )
+    suspend fun getCulturesActivesPourContenantParMode(
+        contenantId: Long,
+        estProjection: Boolean
+    ): List<CultureEntity>
+    
+    // ============================================================
+    // LECTURE — historique / stats
+    // ============================================================
+    
     @Query("SELECT COUNT(*) FROM cultures")
     fun countTotalCultures(): Flow<Int>
     
-    /**
-     * Tous les noms de légumes cultivés (distinct).
-     */
     @Query("SELECT DISTINCT legumeNom FROM cultures ORDER BY legumeNom")
     suspend fun getLegumesCultives(): List<String>
     
@@ -191,23 +184,12 @@ interface CultureDao {
     @Query("DELETE FROM cultures WHERE id = :id")
     suspend fun deleteCultureParId(id: Long)
     
-    /**
-     * Supprime toutes les cultures d'un carré.
-     * (utilisé quand on vide une planche entière, par exemple)
-     */
     @Query("DELETE FROM cultures WHERE carreId = :carreId")
     suspend fun deleteCulturesPourCarre(carreId: Long)
     
-    /**
-     * Supprime toutes les cultures d'un contenant.
-     * (utilisé quand on supprime un contenant)
-     */
     @Query("DELETE FROM cultures WHERE contenantId = :contenantId")
     suspend fun deleteCulturesPourContenant(contenantId: Long)
     
-    /**
-     * Supprime toutes les cultures d'une planche.
-     */
     @Query("DELETE FROM cultures WHERE plancheId = :plancheId")
     suspend fun deleteCulturesPourPlanche(plancheId: Long)
     
@@ -218,12 +200,6 @@ interface CultureDao {
     // OPÉRATIONS MÉTIER
     // ============================================================
     
-    /**
-     * Marque une culture comme terminée (récoltée ou retirée).
-     * 
-     * @param id ID de la culture
-     * @param dateRecolte timestamp de la récolte (null si retrait sans récolte)
-     */
     @Query(
         "UPDATE cultures " +
         "SET estActive = 0, dateRecolteReelle = :dateRecolte " +
@@ -231,9 +207,6 @@ interface CultureDao {
     )
     suspend fun terminerCulture(id: Long, dateRecolte: Long?)
     
-    /**
-     * Met à jour uniquement les notes d'une culture.
-     */
     @Query("UPDATE cultures SET notes = :notes WHERE id = :id")
     suspend fun updateNotes(id: Long, notes: String?)
 }
