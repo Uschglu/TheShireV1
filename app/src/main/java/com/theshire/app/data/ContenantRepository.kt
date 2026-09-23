@@ -10,8 +10,8 @@ import kotlinx.coroutines.sync.withLock
  * 
  * Gère :
  * - La création de contenants avec calcul automatique des emplacements
- * - L'installation de plantes dans les emplacements (AVEC génération
- *   automatique des rappels culturaux comme en pleine terre)
+ * - L'installation de plantes dans les emplacements (AVEC création d'une
+ *   CultureEntity et décrément du stock source en mode réel)
  * - Les associations de culture au sein d'un même contenant
  * - La suppression en cascade
  */
@@ -22,6 +22,7 @@ class ContenantRepository(context: Context) {
     private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
     
     private val rappelCulturelRepository = RappelCulturelRepository(context)
+    private val cultureRepository = CultureRepository(context)
     
     companion object {
         private val mutexCreation = Mutex()
@@ -101,6 +102,12 @@ class ContenantRepository(context: Context) {
             rappelCulturelRepository.supprimerRappelsPourContenant(contenant.id)
         } catch (e: Exception) {
         }
+        
+        try {
+            cultureRepository.supprimerCulturesPourContenant(contenant.id)
+        } catch (e: Exception) {
+        }
+        
         contenantDao.deleteContenant(contenant)
     }
     
@@ -124,17 +131,81 @@ class ContenantRepository(context: Context) {
         return contenantDao.countEmplacementsOccupes(contenantId)
     }
     
+    /**
+     * Plante une culture dans un emplacement d'un contenant.
+     * 
+     * ⚠️ NOUVEAU : cette méthode crée désormais une CultureEntity en parallèle
+     *    de l'occupation de l'emplacement (pour lier la plantation au stock).
+     * 
+     * @param context Context (nécessaire pour lire ModePreferences)
+     * @param contenant Le contenant concerné
+     * @param numeroEmplacement Numéro de l'emplacement
+     * @param legumeNom Nom complet (ex : "Tomate (Marmande)")
+     * @param legume L'entité légume (pour calcul d'emplacements)
+     * @param varieteNom Variété seule (ex : "Marmande")
+     * @param emoji Emoji du légume
+     * @param sourceStock Source ("Semis" / "JeunePlant" / "Graine" / "Aucune")
+     * @param sourceStockId ID de l'entité source
+     * @return ResultatPlantation
+     */
     suspend fun planterDansEmplacement(
+        context: Context,
         contenant: ContenantEntity,
         numeroEmplacement: Int,
         legumeNom: String,
-        legume: LegumeEntity
-    ) {
+        legume: LegumeEntity,
+        varieteNom: String? = null,
+        emoji: String = "🌱",
+        sourceStock: String = CultureEntity.SOURCE_AUCUNE,
+        sourceStockId: Long? = null
+    ): ResultatPlantation {
         val dateActuelle = System.currentTimeMillis()
         
+        // ===== 1. Créer la CultureEntity (gère le mode réel / projection) =====
+        val culture = CultureEntity(
+            typeEmplacement = CultureEntity.TYPE_URBAIN,
+            contenantId = contenant.id,
+            emplacementNumero = numeroEmplacement,
+            legumeNom = legumeNom,
+            varieteNom = varieteNom,
+            emoji = emoji,
+            quantite = 1, // V1 : 1 plant par emplacement
+            sourceStock = sourceStock,
+            estProjection = true,
+            datePlantation = dateActuelle
+        )
+        
+        val resultatCulture = cultureRepository.creerCulture(
+            context = context,
+            culture = culture,
+            sourceStockId = sourceStockId
+        )
+        
+        if (resultatCulture !is ResultatCreationCulture.Succes) {
+            return when (resultatCulture) {
+                is ResultatCreationCulture.ErreurSourceIntrouvable ->
+                    ResultatPlantation.ErreurSourceIntrouvable(resultatCulture.source)
+                is ResultatCreationCulture.ErreurSourceInactive ->
+                    ResultatPlantation.ErreurSourceInactive(
+                        resultatCulture.legumeNom,
+                        resultatCulture.varieteNom
+                    )
+                is ResultatCreationCulture.ErreurStockInsuffisant ->
+                    ResultatPlantation.ErreurStockInsuffisant(
+                        resultatCulture.disponible,
+                        resultatCulture.demande,
+                        resultatCulture.legumeNom,
+                        resultatCulture.varieteNom
+                    )
+                else -> ResultatPlantation.ErreurSourceIntrouvable("Inconnu")
+            }
+        }
+        
+        // ===== 2. Mettre à jour l'emplacement (occupation) =====
         val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
         
         if (emplacements.isEmpty()) {
+            // Premier plant → générer tous les emplacements d'un coup
             val nombreEmplacements = CalculEmplacements.calculerNombreEmplacements(
                 contenant = contenant,
                 legume = legume
@@ -161,6 +232,7 @@ class ContenantRepository(context: Context) {
             }
         }
         
+        // ===== 3. Générer les rappels culturaux =====
         rappelCulturelRepository.genererRappelsPourPlantation(
             legumeNom = legumeNom,
             datePlantation = dateActuelle,
@@ -170,11 +242,31 @@ class ContenantRepository(context: Context) {
             contenantId = contenant.id,
             emplacementNumero = numeroEmplacement
         )
+        
+        return ResultatPlantation.Succes
     }
     
+    /**
+     * Vide un emplacement (retrait sans récolte).
+     * 
+     * ⚠️ NOUVEAU : termine aussi la CultureEntity associée.
+     */
     suspend fun viderEmplacement(emplacementId: Long) {
         val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
         
+        // 1. Terminer la culture active dans cet emplacement (si elle existe)
+        try {
+            val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                contenantId = emplacement.contenantId,
+                emplacementNumero = emplacement.numero
+            )
+            if (cultureActive != null) {
+                cultureRepository.terminerSansRecolte(cultureActive.id)
+            }
+        } catch (e: Exception) {
+        }
+        
+        // 2. Supprimer les rappels culturaux
         try {
             rappelCulturelRepository.supprimerRappelsPourEmplacement(
                 contenantId = emplacement.contenantId,
@@ -184,6 +276,7 @@ class ContenantRepository(context: Context) {
             throw e
         }
         
+        // 3. Vider l'emplacement
         try {
             contenantDao.updateEmplacement(
                 emplacement.copy(
