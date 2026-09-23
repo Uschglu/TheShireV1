@@ -69,6 +69,7 @@ import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.CultureEntity
 import com.theshire.app.data.CultureRepository
 import com.theshire.app.data.LegumeEntity
+import com.theshire.app.data.ModePreferences
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.ResultatPlantation
@@ -194,6 +195,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                         },
                         onDelete = { scope.launch { jardinRepository.supprimerPlanche(planche) } },
                         jardinRepository = jardinRepository,
+                        cultureRepository = cultureRepository,
                         legumes = legumes,
                         onSousCarreClick = { carre, caseNumero ->
                             selectedCarre = carre
@@ -201,10 +203,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             currentPlancheId = planche.id
                             
                             scope.launch {
-                                val cultureActive = cultureRepository.getCultureActiveDansCase(carre.id, caseNumero)
+                                // ⚠️ NOUVEAU : on filtre par mode actif
+                                val cultureActive = cultureRepository.getCultureActiveDansCasePourMode(
+                                    context = context,
+                                    carreId = carre.id,
+                                    caseNumero = caseNumero
+                                )
                                 if (cultureActive != null) {
                                     cultureSelectionnee = cultureActive
                                 } else {
+                                    // Case vide (ou culture de l'autre mode) → planter
                                     if (caseNumero == 5) {
                                         showChoixRemplissage = true
                                     } else {
@@ -550,6 +558,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         DialogPlanterCulture(
             legumeNom = selectedLegumeNom!!,
             emoji = selectedLegumeEmoji,
+            // ⚠️ BUG 2 FIX : la variété a déjà été choisie → on la passe pour éviter le double choix
+            varieteDejaChoisie = selectedVarieteNom,
             onDismiss = {
                 showChoixSourceStock = false
                 selectedLegumeNom = null
@@ -660,8 +670,10 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
 }
 
 /**
- * Carte d'une planche : affiche son nom, dimensions,
- * et permet de déplier la grille 3x3 avec zoom/pan.
+ * Carte d'une planche.
+ * 
+ * ⚠️ NOUVEAU : filtre les cultures affichées selon le mode actif.
+ * Les cases dont la culture est de l'autre mode sont affichées comme vides.
  */
 @Composable
 fun PlancheCard(
@@ -670,9 +682,54 @@ fun PlancheCard(
     onToggleExpand: () -> Unit,
     onDelete: () -> Unit,
     jardinRepository: JardinRepository,
+    cultureRepository: CultureRepository,
     legumes: List<LegumeEntity>,
     onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
+    val context = LocalContext.current
+    // État local : cases filtrées par mode
+    var carresFiltres by remember { mutableStateOf<List<CarreEntity>>(emptyList()) }
+    
+    val carres by jardinRepository.getCarresForPlanche(planche.id)
+        .collectAsState(initial = emptyList())
+    
+    // Recalcule les cases filtrées à chaque changement de mode ou de données
+    LaunchedEffect(carres, planche.id) {
+        val modeReel = ModePreferences.estModeReel(context)
+        val estProjectionAttendue = !modeReel
+        
+        carresFiltres = carres.map { carre ->
+            // Récupère les cultures actives du carré pour le mode
+            val culturesMode = cultureRepository.let { repo ->
+                // On ne peut pas utiliser suspend ici directement dans le map,
+                // donc on récupère via le DAO synchrone
+                try {
+                    com.theshire.app.data.AppDatabase.getDatabase(context)
+                        .cultureDao()
+                        .getCulturesActivesPourCarreParMode(carre.id, estProjectionAttendue)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+            
+            // Map caseNumero -> existe-t-il une culture active dans ce mode ?
+            val casesActives = culturesMode.mapNotNull { it.caseNumero }.toSet()
+            
+            // Recopie du carré avec les cases de l'autre mode vidées
+            carre.copy(
+                case1 = if (casesActives.contains(1)) carre.case1 else null,
+                case2 = if (casesActives.contains(2)) carre.case2 else null,
+                case3 = if (casesActives.contains(3)) carre.case3 else null,
+                case4 = if (casesActives.contains(4)) carre.case4 else null,
+                case5 = if (casesActives.contains(5)) carre.case5 else null,
+                case6 = if (casesActives.contains(6)) carre.case6 else null,
+                case7 = if (casesActives.contains(7)) carre.case7 else null,
+                case8 = if (casesActives.contains(8)) carre.case8 else null,
+                case9 = if (casesActives.contains(9)) carre.case9 else null
+            )
+        }
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -708,8 +765,6 @@ fun PlancheCard(
             }
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(16.dp))
-                val carres by jardinRepository.getCarresForPlanche(planche.id)
-                    .collectAsState(initial = emptyList())
 
                 var scale by remember { mutableStateOf(1f) }
                 var offset by remember { mutableStateOf(Offset.Zero) }
@@ -745,14 +800,14 @@ fun PlancheCard(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 for (x in 0 until planche.largeur) {
-                                    val carre = carres.find {
+                                    val carre = carresFiltres.find {
                                         it.positionX == x && it.positionY == y
                                     }
                                     if (carre != null) {
                                         val couleurs = calculerCouleursCarre(
                                             carre = carre,
                                             planche = planche,
-                                            tousLesCarres = carres,
+                                            tousLesCarres = carresFiltres,
                                             legumes = legumes
                                         )
                                         Grille3x3(
