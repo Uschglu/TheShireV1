@@ -161,6 +161,7 @@ class CultureRepository(context: Context) {
                 )
             
             // Vérification : le jeune plant doit être actif
+            // ⚠️ CORRECTION : le champ s'appelle `estActif` (pas `estActive`)
             if (!jeunePlant.estActif) {
                 return ResultatCreationCulture.ErreurSourceInactive(
                     legumeNom = jeunePlant.legumeNom,
@@ -180,6 +181,7 @@ class CultureRepository(context: Context) {
             }
             
             // Décrément (ou sortie complète du stock si quantité = 1)
+            // ⚠️ CORRECTION : `estActif` (pas `estActive`)
             val nouvelleQuantite = jeunePlant.quantite - culture.quantite
             jeunePlantDao.updateJeunePlant(
                 jeunePlant.copy(
@@ -215,7 +217,8 @@ class CultureRepository(context: Context) {
                 )
             
             // Vérification : la graine doit être active
-            if (!graine.estActive) {
+            // (Ici c'est bien `estActive` pour les graines)
+            if (!graine.estActif) {
                 return ResultatCreationCulture.ErreurSourceInactive(
                     legumeNom = graine.legumeNom,
                     varieteNom = graine.varieteNom
@@ -238,7 +241,7 @@ class CultureRepository(context: Context) {
             graineDao.updateGraine(
                 graine.copy(
                     quantite = nouvelleQuantite,
-                    estActive = nouvelleQuantite > 0
+                    estActif = nouvelleQuantite > 0
                 )
             )
             
