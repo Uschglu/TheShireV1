@@ -33,6 +33,7 @@ import com.theshire.app.data.CultureRepository
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
+import com.theshire.app.data.ModePreferences
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.ResultatPlantation
 import com.theshire.app.data.VarieteRepository
@@ -194,7 +195,6 @@ fun EcranContenants() {
             }
         }
         
-        // FAB d'ajout — décalé au-dessus de la barre de navigation
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
@@ -537,6 +537,9 @@ fun FicheContenant(
     val emplacements by repository.getEmplacementsPourContenant(contenant.id)
         .collectAsState(initial = emptyList())
     
+    // NOUVEAU : emplacements filtrés par mode
+    var emplacementsFiltres by remember { mutableStateOf<List<EmplacementContenantEntity>>(emptyList()) }
+    
     var emplacementSelectionne by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
     var showAjoutPlante by remember { mutableStateOf(false) }
     var showMenuEmplacement by remember { mutableStateOf(false) }
@@ -554,11 +557,36 @@ fun FicheContenant(
     var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
     var sourceEnAttente by remember { mutableStateOf<ChoixPlantation?>(null) }
     
-    // Culture sélectionnée (clic sur emplacement occupé)
     var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
     
-    val couleurs = remember(emplacements, legumes) {
-        calculerCouleursEmplacements(emplacements, legumes)
+    // Filtre par mode
+    LaunchedEffect(emplacements, contenant.id) {
+        val modeReel = ModePreferences.estModeReel(context)
+        val estProjectionAttendue = !modeReel
+        
+        // Récupère les cultures actives du bon mode pour ce contenant
+        val culturesMode = try {
+            com.theshire.app.data.AppDatabase.getDatabase(context)
+                .cultureDao()
+                .getCulturesActivesPourContenantParMode(contenant.id, estProjectionAttendue)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        
+        val emplacementsActifs = culturesMode.mapNotNull { it.emplacementNumero }.toSet()
+        
+        // Recopie avec les emplacements de l'autre mode vidés
+        emplacementsFiltres = emplacements.map { emp ->
+            if (emplacementsActifs.contains(emp.numero)) {
+                emp
+            } else {
+                emp.copy(legumeNom = null, datePlantation = null)
+            }
+        }
+    }
+    
+    val couleurs = remember(emplacementsFiltres, legumes) {
+        calculerCouleursEmplacements(emplacementsFiltres, legumes)
     }
     
     // Si une culture est sélectionnée → afficher sa fiche
@@ -604,7 +632,11 @@ fun FicheContenant(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            // ⚠️ BUG 3 FIX : évite que le bouton "Planter" soit caché par la barre
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                bottom = LayoutConstantes.PADDING_BAS_FAB
+            )
         ) {
             item {
                 Card(
@@ -638,7 +670,7 @@ fun FicheContenant(
                 }
             }
             
-            if (emplacements.isNotEmpty()) {
+            if (emplacementsFiltres.isNotEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -661,7 +693,7 @@ fun FicheContenant(
                             Spacer(modifier = Modifier.height(12.dp))
                             
                             GrilleEmplacements(
-                                emplacements = emplacements,
+                                emplacements = emplacementsFiltres,
                                 couleurs = couleurs,
                                 legumes = legumes,
                                 onEmplacementClick = { emp ->
@@ -671,7 +703,8 @@ fun FicheContenant(
                                         showAjoutPlante = true
                                     } else {
                                         scope.launch {
-                                            val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                                            val cultureActive = cultureRepository.getCultureActiveDansEmplacementPourMode(
+                                                context = context,
                                                 contenantId = contenant.id,
                                                 emplacementNumero = empFixe.numero
                                             )
@@ -691,14 +724,14 @@ fun FicheContenant(
             
             item {
                 Text(
-                    "🪴 Emplacements (${emplacements.size})",
+                    "🪴 Emplacements (${emplacementsFiltres.size})",
                     fontWeight = FontWeight.Bold,
                     color = CouleursApp.VertPrincipal,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             
-            if (emplacements.isEmpty()) {
+            if (emplacementsFiltres.isEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -739,7 +772,7 @@ fun FicheContenant(
                     }
                 }
             } else {
-                items(emplacements, key = { it.id }) { emp ->
+                items(emplacementsFiltres, key = { it.id }) { emp ->
                     CardEmplacement(
                         emplacement = emp,
                         couleur = couleurs[emp.numero],
@@ -751,7 +784,8 @@ fun FicheContenant(
                                 showAjoutPlante = true
                             } else {
                                 scope.launch {
-                                    val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                                    val cultureActive = cultureRepository.getCultureActiveDansEmplacementPourMode(
+                                        context = context,
                                         contenantId = contenant.id,
                                         emplacementNumero = empFixe.numero
                                     )
@@ -831,6 +865,8 @@ fun FicheContenant(
         DialogPlanterCulture(
             legumeNom = legumeCible.nom,
             emoji = getEmojiCategorieLegume(legumeCible.categorie),
+            // ⚠️ BUG 2 FIX : évite la double demande de variété
+            varieteDejaChoisie = varieteChoisie,
             onDismiss = {
                 showChoixSourceStock = false
                 legumeChoisi = null
