@@ -28,17 +28,27 @@ import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
 import com.theshire.app.data.ContenantRepository
+import com.theshire.app.data.CultureEntity
+import com.theshire.app.data.CultureRepository
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
+import com.theshire.app.data.ModePreferences
 import com.theshire.app.data.NiveauRisque
+import com.theshire.app.data.ResultatPlantation
 import com.theshire.app.data.VarieteRepository
+import com.theshire.app.ui.components.DialogErreurPlantation
 import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.components.VarieteSelectionDialog
+import com.theshire.app.ui.navigation.LayoutConstantes
+import com.theshire.app.ui.screens.jardin.ChoixPlantation
+import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
+import com.theshire.app.ui.screens.jardin.FicheCulture
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
 data class TypeContenant(
     val id: String,
     val nom: String,
@@ -189,7 +199,9 @@ fun EcranContenants() {
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un contenant")
         }
@@ -519,10 +531,13 @@ fun FicheContenant(
     val scope = rememberCoroutineScope()
     val legumeRepository = remember { LegumeRepository(context) }
     val varieteRepository = remember { VarieteRepository(context) }
+    val cultureRepository = remember { CultureRepository(context) }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     val emplacements by repository.getEmplacementsPourContenant(contenant.id)
         .collectAsState(initial = emptyList())
+    
+    var emplacementsFiltres by remember { mutableStateOf<List<EmplacementContenantEntity>>(emptyList()) }
     
     var emplacementSelectionne by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
     var showAjoutPlante by remember { mutableStateOf(false) }
@@ -532,13 +547,50 @@ fun FicheContenant(
     var showAvertissement by remember { mutableStateOf(false) }
     var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
     
-    // Nouveaux états pour le choix de variété (BUG 3)
     var showVarieteSelection by remember { mutableStateOf(false) }
     var legumeChoisi by remember { mutableStateOf<LegumeEntity?>(null) }
+    var varieteChoisie by remember { mutableStateOf<String?>(null) }
     var emplacementPourVariete by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
+    var showChoixSourceStock by remember { mutableStateOf(false) }
+    var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
+    var sourceEnAttente by remember { mutableStateOf<ChoixPlantation?>(null) }
     
-    val couleurs = remember(emplacements, legumes) {
-        calculerCouleursEmplacements(emplacements, legumes)
+    var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
+    
+    LaunchedEffect(emplacements, contenant.id) {
+        val modeReel = ModePreferences.estModeReel(context)
+        val estProjectionAttendue = !modeReel
+        
+        val culturesMode = try {
+            com.theshire.app.data.AppDatabase.getDatabase(context)
+                .cultureDao()
+                .getCulturesActivesPourContenantParMode(contenant.id, estProjectionAttendue)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        
+        val emplacementsActifs = culturesMode.mapNotNull { it.emplacementNumero }.toSet()
+        
+        emplacementsFiltres = emplacements.map { emp ->
+            if (emplacementsActifs.contains(emp.numero)) {
+                emp
+            } else {
+                emp.copy(legumeNom = null, datePlantation = null)
+            }
+        }
+    }
+    
+    val couleurs = remember(emplacementsFiltres, legumes) {
+        calculerCouleursEmplacements(emplacementsFiltres, legumes)
+    }
+    
+    if (cultureSelectionnee != null) {
+        FicheCulture(
+            culture = cultureSelectionnee!!,
+            repository = cultureRepository,
+            onBack = { cultureSelectionnee = null }
+        )
+        return
     }
     
     Scaffold(
@@ -608,7 +660,7 @@ fun FicheContenant(
                 }
             }
             
-            if (emplacements.isNotEmpty()) {
+            if (emplacementsFiltres.isNotEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -631,7 +683,7 @@ fun FicheContenant(
                             Spacer(modifier = Modifier.height(12.dp))
                             
                             GrilleEmplacements(
-                                emplacements = emplacements,
+                                emplacements = emplacementsFiltres,
                                 couleurs = couleurs,
                                 legumes = legumes,
                                 onEmplacementClick = { emp ->
@@ -640,7 +692,18 @@ fun FicheContenant(
                                     if (empFixe.estVide()) {
                                         showAjoutPlante = true
                                     } else {
-                                        showMenuEmplacement = true
+                                        scope.launch {
+                                            val cultureActive = cultureRepository.getCultureActiveDansEmplacementPourMode(
+                                                context = context,
+                                                contenantId = contenant.id,
+                                                emplacementNumero = empFixe.numero
+                                            )
+                                            if (cultureActive != null) {
+                                                cultureSelectionnee = cultureActive
+                                            } else {
+                                                showMenuEmplacement = true
+                                            }
+                                        }
                                     }
                                 }
                             )
@@ -651,14 +714,14 @@ fun FicheContenant(
             
             item {
                 Text(
-                    "🪴 Emplacements (${emplacements.size})",
+                    "🪴 Emplacements (${emplacementsFiltres.size})",
                     fontWeight = FontWeight.Bold,
                     color = CouleursApp.VertPrincipal,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             
-            if (emplacements.isEmpty()) {
+            if (emplacementsFiltres.isEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -699,7 +762,7 @@ fun FicheContenant(
                     }
                 }
             } else {
-                items(emplacements, key = { it.id }) { emp ->
+                items(emplacementsFiltres, key = { it.id }) { emp ->
                     CardEmplacement(
                         emplacement = emp,
                         couleur = couleurs[emp.numero],
@@ -710,7 +773,18 @@ fun FicheContenant(
                             if (empFixe.estVide()) {
                                 showAjoutPlante = true
                             } else {
-                                showMenuEmplacement = true
+                                scope.launch {
+                                    val cultureActive = cultureRepository.getCultureActiveDansEmplacementPourMode(
+                                        context = context,
+                                        contenantId = contenant.id,
+                                        emplacementNumero = empFixe.numero
+                                    )
+                                    if (cultureActive != null) {
+                                        cultureSelectionnee = cultureActive
+                                    } else {
+                                        showMenuEmplacement = true
+                                    }
+                                }
                             }
                         }
                     )
@@ -721,6 +795,10 @@ fun FicheContenant(
                 item {
                     InfoCard("📝 Notes", contenant.notes)
                 }
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
             }
         }
     }
@@ -745,7 +823,7 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue 2 : choix de la variété (BUG 3) =====
+    // ===== Dialogue 2 : choix de la variété =====
     if (showVarieteSelection && legumeChoisi != null && emplacementPourVariete != null) {
         val legumeCible = legumeChoisi!!
         val empCible = emplacementPourVariete!!
@@ -754,13 +832,49 @@ fun FicheContenant(
             legumeNom = legumeCible.nom,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
+                val variete = if (nomComplet.contains("(")) {
+                    nomComplet.substringAfter("(").substringBefore(")").trim()
+                } else {
+                    null
+                }
+                varieteChoisie = variete
                 showVarieteSelection = false
+                showChoixSourceStock = true
+            },
+            onDismiss = {
+                showVarieteSelection = false
+                legumeChoisi = null
+                varieteChoisie = null
+                emplacementPourVariete = null
+                emplacementSelectionne = null
+            }
+        )
+    }
+    
+    // ===== Dialogue 3 : choix de la source du stock =====
+    if (showChoixSourceStock && legumeChoisi != null && emplacementPourVariete != null) {
+        val legumeCible = legumeChoisi!!
+        val empCible = emplacementPourVariete!!
+        
+        DialogPlanterCulture(
+            legumeNom = legumeCible.nom,
+            emoji = getEmojiCategorieLegume(legumeCible.categorie),
+            varieteDejaChoisie = varieteChoisie,
+            onDismiss = {
+                showChoixSourceStock = false
+                legumeChoisi = null
+                varieteChoisie = null
+                emplacementPourVariete = null
+                emplacementSelectionne = null
+            },
+            onValider = { choix ->
+                showChoixSourceStock = false
                 
                 scope.launch {
                     val associations = repository.verifierAssociationsContenant(
                         contenant = contenant,
                         numeroEmplacement = empCible.numero,
-                        legumeNom = legumeCible.nom
+                        legumeNom = choix.legumeNom
                     )
                     val mauvaises = associations.filter { it.second == "mauvaise" }
                     
@@ -769,32 +883,39 @@ fun FicheContenant(
                             niveau = NiveauRisque.MOYEN,
                             message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
                         )
-                        legumeEnAttente = legumeCible.copy(nom = nomComplet)
+                        legumeEnAttente = legumeCible.copy(nom = choix.legumeNom)
                         emplacementSelectionne = empCible
+                        varieteChoisie = choix.varieteNom
+                        sourceEnAttente = choix
                         showAvertissement = true
                     } else {
-                        repository.planterDansEmplacement(
+                        val resultat = repository.planterDansEmplacement(
+                            context = context,
                             contenant = contenant,
                             numeroEmplacement = empCible.numero,
-                            legumeNom = nomComplet,
-                            legume = legumeCible
+                            legumeNom = choix.legumeNom,
+                            legume = legumeCible,
+                            varieteNom = choix.varieteNom,
+                            emoji = choix.emoji,
+                            sourceStock = choix.sourceStock,
+                            sourceStockId = choix.sourceStockId
                         )
+                        
+                        if (resultat !is ResultatPlantation.Succes) {
+                            erreurPlantation = resultat
+                        }
+                        
                         legumeChoisi = null
+                        varieteChoisie = null
                         emplacementPourVariete = null
                         emplacementSelectionne = null
                     }
                 }
-            },
-            onDismiss = {
-                showVarieteSelection = false
-                legumeChoisi = null
-                emplacementPourVariete = null
-                emplacementSelectionne = null
             }
         )
     }
     
-    // ===== Dialogue 3 : menu emplacement occupé =====
+    // ===== Dialogue 4 : menu emplacement occupé (fallback) =====
     if (showMenuEmplacement && emplacementSelectionne != null) {
         val empAUtiliser = emplacementSelectionne!!
         AlertDialog(
@@ -828,7 +949,7 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue 4 : confirmation suppression contenant =====
+    // ===== Dialogue 5 : confirmation suppression contenant =====
     if (showSuppression) {
         val contenantASupprimer = contenant
         AlertDialog(
@@ -858,12 +979,13 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue 5 : avertissement association =====
+    // ===== Dialogue 6 : avertissement association =====
     if (showAvertissement && avertissement != null && legumeEnAttente != null && emplacementSelectionne != null) {
         val av = avertissement!!
         val legumeCible = legumeEnAttente!!
         val empCible = emplacementSelectionne!!
         val contenantFixe = contenant
+        val sourceSauvee = sourceEnAttente
         
         AlertDialog(
             onDismissRequest = {
@@ -872,7 +994,9 @@ fun FicheContenant(
                 legumeEnAttente = null
                 emplacementSelectionne = null
                 legumeChoisi = null
+                varieteChoisie = null
                 emplacementPourVariete = null
+                sourceEnAttente = null
             },
             title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
             text = { Text(av.message) },
@@ -880,22 +1004,34 @@ fun FicheContenant(
                 Button(
                     onClick = {
                         val numero = empCible.numero
-                        val nomComplet = legumeCible.nom
                         
                         showAvertissement = false
                         avertissement = null
                         legumeEnAttente = null
                         emplacementSelectionne = null
                         legumeChoisi = null
+                        varieteChoisie = null
                         emplacementPourVariete = null
+                        sourceEnAttente = null
                         
-                        scope.launch {
-                            repository.planterDansEmplacement(
-                                contenant = contenantFixe,
-                                numeroEmplacement = numero,
-                                legumeNom = nomComplet,
-                                legume = legumeCible
-                            )
+                        if (sourceSauvee != null) {
+                            scope.launch {
+                                val resultat = repository.planterDansEmplacement(
+                                    context = context,
+                                    contenant = contenantFixe,
+                                    numeroEmplacement = numero,
+                                    legumeNom = sourceSauvee.legumeNom,
+                                    legume = legumeCible,
+                                    varieteNom = sourceSauvee.varieteNom,
+                                    emoji = sourceSauvee.emoji,
+                                    sourceStock = sourceSauvee.sourceStock,
+                                    sourceStockId = sourceSauvee.sourceStockId
+                                )
+                                
+                                if (resultat !is ResultatPlantation.Succes) {
+                                    erreurPlantation = resultat
+                                }
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
@@ -911,11 +1047,21 @@ fun FicheContenant(
                     legumeEnAttente = null
                     emplacementSelectionne = null
                     legumeChoisi = null
+                    varieteChoisie = null
                     emplacementPourVariete = null
+                    sourceEnAttente = null
                 }) {
                     Text("Annuler", color = CouleursApp.VertPrincipal)
                 }
             }
+        )
+    }
+    
+    // ===== Dialogue 7 : erreur de plantation =====
+    if (erreurPlantation != null) {
+        DialogErreurPlantation(
+            resultat = erreurPlantation!!,
+            onDismiss = { erreurPlantation = null }
         )
     }
 }
