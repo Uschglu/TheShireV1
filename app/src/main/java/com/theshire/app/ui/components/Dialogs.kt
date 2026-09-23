@@ -334,9 +334,9 @@ fun AideConservationDialog(onDismiss: () -> Unit) {
 /**
  * Dialog d'aide pour l'écran Stocks.
  *
- * Explique les 3 onglets (Graines / Plants / Matériel), la distinction
- * Semis / Jeune plant, comment ajouter un élément, comment lire les
- * indicateurs, et donne une astuce générale.
+ * Explique les 4 onglets (Graines / Plants / Matériel / Récoltes),
+ * la distinction Semis / Jeune plant, le mode projection/réel,
+ * comment ajouter un élément, et donne une astuce générale.
  */
 @Composable
 fun AideStocksDialog(onDismiss: () -> Unit) {
@@ -354,14 +354,14 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(420.dp),
+                    .height(450.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
 
                 // ===== INTRO =====
                 item {
                     Text(
-                        "Ton inventaire de jardinage, en 3 onglets. Suis ce que tu as sous la main pour ne jamais être pris de court au moment de semer ou planter.",
+                        "Ton inventaire de jardinage, en 4 onglets. Suis ce que tu as sous la main pour ne jamais être pris de court au moment de semer, planter ou cuisiner.",
                         color = CouleursApp.TexteFonce,
                         fontSize = 13.sp
                     )
@@ -427,6 +427,46 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
                     )
                 }
 
+                // ===== ONGLET RÉCOLTES =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "🥕 Onglet Récoltes",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "À quoi ça sert :\nGarder une trace de tout ce que tu as récolté au potager, en kilogrammes. Le poids total cumulé s'affiche en haut de l'onglet.\n\nD'où ça vient :\n• Automatiquement : quand tu cliques sur \"Récolter\" depuis une culture en pleine terre ou en urbain. Tu saisis le poids obtenu, la récolte est enregistrée ici, et la culture se termine.\n• Manuellement : via le bouton \"+\", pour saisir un achat au marché, un don, une cueillette sauvage…\n\nComment modifier :\nTouche une carte pour ouvrir la fiche détail : tu peux corriger le poids ou les notes, ou supprimer la récolte.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // ===== MODE PROJECTION / RÉEL =====
+                item {
+                    HorizontalDivider(color = CouleursApp.VertPale)
+                }
+                item {
+                    Text(
+                        "🌱 Mode projection / réel",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.Terracotta,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                item {
+                    Text(
+                        "Le mode actif (interrupteur sur l'écran d'accueil) change le comportement :\n\n• Mode projection : tu simules ton potager sans impacter les stocks. Idéal pour tester des associations, prévoir une rotation.\n\n• Mode réel : quand tu plantes (semis ou graine directe), le stock est automatiquement décrémenté. La promotion d'un semis en jeune plant ou la plantation d'un jeune plant consomme aussi du stock.",
+                        color = CouleursApp.TexteFonce,
+                        fontSize = 13.sp
+                    )
+                }
+
                 // ===== ASTUCE =====
                 item {
                     HorizontalDivider(color = CouleursApp.VertPale)
@@ -441,7 +481,7 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
                 }
                 item {
                     Text(
-                        "Touche n'importe quelle carte (graine, plant ou outil) pour ouvrir sa fiche détail : tu pourras modifier la quantité, les notes, le fournisseur, ou supprimer l'élément.",
+                        "Touche n'importe quelle carte (graine, plant, outil ou récolte) pour ouvrir sa fiche détail : tu pourras modifier la quantité, les notes, le fournisseur, ou supprimer l'élément.",
                         color = CouleursApp.TexteFonce,
                         fontSize = 13.sp
                     )
