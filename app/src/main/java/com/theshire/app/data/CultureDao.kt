@@ -156,6 +156,32 @@ interface CultureDao {
     ): List<CultureEntity>
     
     // ============================================================
+    // LECTURE — cultures identiques (détection "m² entier")
+    // ============================================================
+    
+    /**
+     * Récupère toutes les cultures actives d'un carré ayant la même plante,
+     * la même variété et la même date de plantation que la référence.
+     * 
+     * Utilisé pour détecter si un carré a été rempli "d'un coup"
+     * (les 9 cases ont la même plante à la même date).
+     */
+    @Query(
+        "SELECT * FROM cultures " +
+        "WHERE carreId = :carreId " +
+        "AND estActive = 1 " +
+        "AND legumeNom = :legumeNom " +
+        "AND COALESCE(varieteNom, '') = COALESCE(:varieteNom, '') " +
+        "AND datePlantation = :datePlantation"
+    )
+    suspend fun getCulturesIdentiquesDansCarre(
+        carreId: Long,
+        legumeNom: String,
+        varieteNom: String?,
+        datePlantation: Long
+    ): List<CultureEntity>
+    
+    // ============================================================
     // LECTURE — historique / stats
     // ============================================================
     
@@ -209,4 +235,14 @@ interface CultureDao {
     
     @Query("UPDATE cultures SET notes = :notes WHERE id = :id")
     suspend fun updateNotes(id: Long, notes: String?)
+    
+    /**
+     * Termine plusieurs cultures d'un coup (pour "vider tout le m²").
+     */
+    @Query(
+        "UPDATE cultures " +
+        "SET estActive = 0, dateRecolteReelle = :dateRecolte " +
+        "WHERE id IN (:ids)"
+    )
+    suspend fun terminerCultures(ids: List<Long>, dateRecolte: Long?)
 }
