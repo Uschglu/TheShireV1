@@ -2,7 +2,6 @@ package com.theshire.app.ui.screens.jardin
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,19 +11,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,8 +60,8 @@ data class ChoixPlantation(
  *     - 🫘 Graine directe (si dispo)
  *     - 🚫 Aucune (plant offert/trouvé)
  *
- * Le dialogue est appelé depuis JardinPlanchesScreen (pleine terre) et
- * EcranContenants (urbain), avec le nom du légume déjà choisi.
+ * ⚠️ V1 simplifiée : on prend le premier semis/plant/graine disponible.
+ *    On ne propose pas une liste fine de variétés spécifiques.
  *
  * @param legumeNom Nom du légume à planter
  * @param emoji Emoji du légume
@@ -92,27 +86,12 @@ fun DialogPlanterCulture(
     // Sélection finale
     var varieteChoisie by remember { mutableStateOf<String?>(null) }
     
-    // Sources disponibles
-    var semisDispos by remember { mutableStateOf<List<JeunePlantEntity>>(emptyList()) }
-    var plantsDispos by remember { mutableStateOf<List<JeunePlantEntity>>(emptyList()) }
-    var grainesDispos by remember { mutableStateOf<List<GraineEntity>>(emptyList()) }
-    
-    // Charger les sources pour ce légume
-    LaunchedEffect(legumeNom) {
-        try {
-            // Semis et jeunes plants actifs
-            val tousPlants = jeunePlantRepository.jeunesPlantsActifs
-            // On collecte une première émission pour filtrer
-            // (compromis acceptable pour un dialogue)
-        } catch (e: Exception) {
-        }
-    }
-    
     // Utilisation directe des flows pour filtrer par légume
     val tousPlants by jeunePlantRepository.jeunesPlantsActifs.collectAsState(initial = emptyList())
     val toutesGraines by graineRepository.grainesActives.collectAsState(initial = emptyList())
     
     // Filtrer par légume
+    // ⚠️ CORRECTION : le champ s'appelle `estActif` sur JeunePlantEntity
     val plantsDuLegume = tousPlants.filter {
         it.legumeNom.equals(legumeNom, ignoreCase = true) && it.estActif
     }
@@ -122,8 +101,9 @@ fun DialogPlanterCulture(
     val jeunesPlantsDuLegume = plantsDuLegume.filter {
         it.categorie == JeunePlantEntity.CATEGORIE_JEUNE_PLANT
     }
+    // Graines : on garde `estActif` (c'est bien le nom dans GraineEntity)
     val grainesDuLegume = toutesGraines.filter {
-        it.legumeNom.equals(legumeNom, ignoreCase = true) && it.estActive && it.quantite > 0
+        it.legumeNom.equals(legumeNom, ignoreCase = true) && it.estActif && it.quantite > 0
     }
     
     // ============================================================
@@ -190,7 +170,6 @@ fun DialogPlanterCulture(
                                 sousTitre = "${semisDuLegume.sumOf { it.quantite }} disponible(s)",
                                 couleur = CouleursApp.VertPale,
                                 onClick = {
-                                    // Pour V1, on prend le premier semis disponible
                                     val semis = semisDuLegume.first()
                                     onValider(
                                         ChoixPlantation(
