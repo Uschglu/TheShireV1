@@ -66,6 +66,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CarreEntity
+import com.theshire.app.data.CultureEntity
+import com.theshire.app.data.CultureRepository
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PlancheEntity
@@ -82,6 +84,7 @@ import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.components.calculerCouleursCarre
 import com.theshire.app.ui.screens.jardin.ChoixPlantation
 import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
+import com.theshire.app.ui.screens.jardin.FicheCulture
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 
@@ -90,6 +93,7 @@ import kotlinx.coroutines.launch
 fun JardinPlanchesScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val jardinRepository = remember { JardinRepository(context) }
+    val cultureRepository = remember { CultureRepository(context) }
     val legumeRepository = remember { LegumeRepository(context) }
     val varieteRepository = remember { VarieteRepository(context) }
     val planches by jardinRepository.planches.collectAsState(initial = emptyList())
@@ -112,10 +116,21 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     var showAvertissement by remember { mutableStateOf(false) }
     var currentPlancheId by remember { mutableStateOf<Long>(0L) }
     var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
+    var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
 
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
         varieteRepository.ajouterVarietesPredefinies()
+    }
+
+    // Si une culture est sélectionnée → afficher sa fiche
+    if (cultureSelectionnee != null) {
+        FicheCulture(
+            culture = cultureSelectionnee!!,
+            repository = cultureRepository,
+            onBack = { cultureSelectionnee = null }
+        )
+        return
     }
 
     Scaffold(
@@ -182,11 +197,22 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             selectedCarre = carre
                             selectedCaseNumero = caseNumero
                             currentPlancheId = planche.id
-                            if (caseNumero == 5) {
-                                showChoixRemplissage = true
-                            } else {
-                                remplirM2Mode = false
-                                showLegumeSelection = true
+                            
+                            // Vérifier si la case contient déjà une culture active
+                            scope.launch {
+                                val cultureActive = cultureRepository.getCultureActiveDansCase(carre.id, caseNumero)
+                                if (cultureActive != null) {
+                                    // Ouvre la fiche culture
+                                    cultureSelectionnee = cultureActive
+                                } else {
+                                    // Comportement actuel : choix du légume
+                                    if (caseNumero == 5) {
+                                        showChoixRemplissage = true
+                                    } else {
+                                        remplirM2Mode = false
+                                        showLegumeSelection = true
+                                    }
+                                }
                             }
                         }
                     )
@@ -459,8 +485,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         associations.filter { it.second == "mauvaise" }
                                                     if (mauvaiseAssoc.isNotEmpty()) {
                                                         selectedLegumeNom = legume.nom
-                                                        // ⚠️ CORRECTION : on utilise getEmojiCategorie
-                                                        // au lieu de legume.emoji qui n'existe pas
                                                         selectedLegumeEmoji = getEmojiCategorie(legume.categorie)
                                                         avertissement = AvertissementRotation(
                                                             niveau = NiveauRisque.MOYEN,
@@ -470,7 +494,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         showLegumeSelection = false
                                                     } else {
                                                         selectedLegumeNom = legume.nom
-                                                        // ⚠️ CORRECTION : idem
                                                         selectedLegumeEmoji = getEmojiCategorie(legume.categorie)
                                                         showVarieteSelection = true
                                                         showLegumeSelection = false
@@ -523,7 +546,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         )
     }
 
-    // Dialog : choix de la source du stock (3e étape)
+    // Dialog : choix de la source du stock
     if (showChoixSourceStock && selectedLegumeNom != null && selectedCarre != null) {
         DialogPlanterCulture(
             legumeNom = selectedLegumeNom!!,
