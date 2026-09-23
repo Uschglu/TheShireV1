@@ -69,14 +69,18 @@ import com.theshire.app.data.CarreEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PlancheEntity
+import com.theshire.app.data.ResultatPlantation
 import com.theshire.app.data.getDistanceEntrePlants
 import com.theshire.app.data.JardinRepository
 import com.theshire.app.data.LegumeRepository
 import com.theshire.app.data.VarieteRepository
+import com.theshire.app.ui.components.DialogErreurPlantation
 import com.theshire.app.ui.components.Grille3x3
 import com.theshire.app.ui.components.LegendeCouleurs
 import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.components.calculerCouleursCarre
+import com.theshire.app.ui.screens.jardin.ChoixPlantation
+import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 
@@ -96,13 +100,17 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     var selectedCarre by remember { mutableStateOf<CarreEntity?>(null) }
     var selectedCaseNumero by remember { mutableStateOf(0) }
     var selectedLegumeNom by remember { mutableStateOf<String?>(null) }
+    var selectedLegumeEmoji by remember { mutableStateOf("🌱") }
+    var selectedVarieteNom by remember { mutableStateOf<String?>(null) }
     var showLegumeSelection by remember { mutableStateOf(false) }
     var showVarieteSelection by remember { mutableStateOf(false) }
     var showChoixRemplissage by remember { mutableStateOf(false) }
+    var showChoixSourceStock by remember { mutableStateOf(false) }
     var remplirM2Mode by remember { mutableStateOf(false) }
     var avertissement by remember { mutableStateOf<AvertissementRotation?>(null) }
     var showAvertissement by remember { mutableStateOf(false) }
     var currentPlancheId by remember { mutableStateOf<Long>(0L) }
+    var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
 
     LaunchedEffect(Unit) {
         legumeRepository.ajouterLegumesPredefinis()
@@ -366,9 +374,16 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                 .fillMaxWidth()
                                 .clickable {
                                     scope.launch {
-                                        jardinRepository.modifierCasePrecise(
-                                            carre, caseNumero, null, currentPlancheId
+                                        val res = jardinRepository.modifierCasePrecise(
+                                            context = context,
+                                            carre = carre,
+                                            caseNumero = caseNumero,
+                                            legumeNom = null,
+                                            plancheId = currentPlancheId
                                         )
+                                        if (res !is ResultatPlantation.Succes) {
+                                            erreurPlantation = res
+                                        }
                                     }
                                     showLegumeSelection = false
                                 }
@@ -443,6 +458,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         associations.filter { it.second == "mauvaise" }
                                                     if (mauvaiseAssoc.isNotEmpty()) {
                                                         selectedLegumeNom = legume.nom
+                                                        selectedLegumeEmoji = legume.emoji
                                                         avertissement = AvertissementRotation(
                                                             niveau = NiveauRisque.MOYEN,
                                                             message = "⚠️ Mauvaise association avec : ${mauvaiseAssoc.joinToString(", ") { it.first }}"
@@ -451,6 +467,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         showLegumeSelection = false
                                                     } else {
                                                         selectedLegumeNom = legume.nom
+                                                        selectedLegumeEmoji = legume.emoji
                                                         showVarieteSelection = true
                                                         showLegumeSelection = false
                                                     }
@@ -477,30 +494,91 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
 
     // Dialog : sélection d'une variété
     if (showVarieteSelection && selectedLegumeNom != null && selectedCarre != null) {
-        val carre = selectedCarre!!
-        val caseNumero = selectedCaseNumero
-        val modeM2 = remplirM2Mode
-        val plancheId = currentPlancheId
         VarieteSelectionDialog(
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
-                scope.launch {
-                    if (modeM2) {
-                        jardinRepository.remplirM2Entier(carre, nomComplet, plancheId)
-                    } else {
-                        jardinRepository.modifierCasePrecise(carre, caseNumero, nomComplet, plancheId)
-                    }
+                // Extraire la variété seule
+                val variete = if (nomComplet.contains("(")) {
+                    nomComplet.substringAfter("(").substringBefore(")").trim()
+                } else {
+                    null
                 }
+                selectedVarieteNom = variete
                 showVarieteSelection = false
-                selectedLegumeNom = null
-                selectedCarre = null
-                selectedCaseNumero = 0
-                remplirM2Mode = false
+                // 3e étape : choix de la source du stock
+                showChoixSourceStock = true
             },
             onDismiss = {
                 showVarieteSelection = false
                 selectedLegumeNom = null
+                selectedLegumeEmoji = "🌱"
+                selectedVarieteNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+                remplirM2Mode = false
+            }
+        )
+    }
+
+    // Dialog : choix de la source du stock (3e étape)
+    if (showChoixSourceStock && selectedLegumeNom != null && selectedCarre != null) {
+        DialogPlanterCulture(
+            legumeNom = selectedLegumeNom!!,
+            emoji = selectedLegumeEmoji,
+            onDismiss = {
+                showChoixSourceStock = false
+                selectedLegumeNom = null
+                selectedLegumeEmoji = "🌱"
+                selectedVarieteNom = null
+                selectedCarre = null
+                selectedCaseNumero = 0
+                remplirM2Mode = false
+            },
+            onValider = { choix ->
+                val carre = selectedCarre!!
+                val caseNumero = selectedCaseNumero
+                val modeM2 = remplirM2Mode
+                val plancheId = currentPlancheId
+                
+                showChoixSourceStock = false
+                
+                scope.launch {
+                    val resultat: ResultatPlantation
+                    if (modeM2) {
+                        resultat = jardinRepository.remplirM2Entier(
+                            context = context,
+                            carre = carre,
+                            legumeNom = choix.legumeNom,
+                            varieteNom = choix.varieteNom,
+                            emoji = choix.emoji,
+                            plancheId = plancheId,
+                            sourceStock = choix.sourceStock,
+                            sourceStockId = choix.sourceStockId
+                        )
+                    } else {
+                        resultat = jardinRepository.modifierCasePrecise(
+                            context = context,
+                            carre = carre,
+                            caseNumero = caseNumero,
+                            legumeNom = choix.legumeNom,
+                            varieteNom = choix.varieteNom,
+                            emoji = choix.emoji,
+                            plancheId = plancheId,
+                            sourceStock = choix.sourceStock,
+                            sourceStockId = choix.sourceStockId
+                        )
+                    }
+                    
+                    if (resultat !is ResultatPlantation.Succes) {
+                        erreurPlantation = resultat
+                    }
+                }
+                
+                // Reset des états
+                selectedLegumeNom = null
+                selectedLegumeEmoji = "🌱"
+                selectedVarieteNom = null
                 selectedCarre = null
                 selectedCaseNumero = 0
                 remplirM2Mode = false
@@ -511,35 +589,28 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
     // Dialog : avertissement d'association
     if (showAvertissement && avertissement != null) {
         val av = avertissement!!
-        val carre = selectedCarre
-        val caseNumero = selectedCaseNumero
-        val legumeNom = selectedLegumeNom
         AlertDialog(
             onDismissRequest = {
                 showAvertissement = false
                 avertissement = null
+                selectedLegumeNom = null
+                selectedLegumeEmoji = "🌱"
+                selectedCarre = null
+                selectedCaseNumero = 0
             },
             title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
             text = { Text(av.message) },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (carre != null && caseNumero > 0 && legumeNom != null) {
-                            scope.launch {
-                                jardinRepository.modifierCasePrecise(
-                                    carre, caseNumero, legumeNom, currentPlancheId
-                                )
-                            }
-                        }
+                        // Continuer vers la sélection de variété (puis source)
                         showAvertissement = false
                         avertissement = null
-                        selectedLegumeNom = null
-                        selectedCarre = null
-                        selectedCaseNumero = 0
+                        showVarieteSelection = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
                 ) {
-                    Text("Planter quand même")
+                    Text("Continuer")
                 }
             },
             dismissButton = {
@@ -547,12 +618,21 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     showAvertissement = false
                     avertissement = null
                     selectedLegumeNom = null
+                    selectedLegumeEmoji = "🌱"
                     selectedCarre = null
                     selectedCaseNumero = 0
                 }) {
                     Text("Annuler")
                 }
             }
+        )
+    }
+
+    // Dialog : erreur de plantation (mode réel)
+    if (erreurPlantation != null) {
+        DialogErreurPlantation(
+            resultat = erreurPlantation!!,
+            onDismiss = { erreurPlantation = null }
         )
     }
 }
