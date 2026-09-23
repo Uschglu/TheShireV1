@@ -39,6 +39,7 @@ import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.components.DialogErreurPlantation
 import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.components.VarieteSelectionDialog
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.screens.jardin.ChoixPlantation
 import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
 import com.theshire.app.ui.screens.jardin.FicheCulture
@@ -193,11 +194,14 @@ fun EcranContenants() {
             }
         }
         
+        // FAB d'ajout — décalé au-dessus de la barre de navigation
         FloatingActionButton(
             onClick = { showAjoutDialog = true },
             containerColor = CouleursApp.VertClair,
             shape = CircleShape,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Ajouter un contenant")
         }
@@ -550,7 +554,7 @@ fun FicheContenant(
     var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
     var sourceEnAttente by remember { mutableStateOf<ChoixPlantation?>(null) }
     
-    // NOUVEAU : culture sélectionnée (clic sur emplacement occupé)
+    // Culture sélectionnée (clic sur emplacement occupé)
     var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
     
     val couleurs = remember(emplacements, legumes) {
@@ -666,7 +670,6 @@ fun FicheContenant(
                                     if (empFixe.estVide()) {
                                         showAjoutPlante = true
                                     } else {
-                                        // NOUVEAU : ouvrir la fiche de la culture active
                                         scope.launch {
                                             val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
                                                 contenantId = contenant.id,
@@ -675,7 +678,6 @@ fun FicheContenant(
                                             if (cultureActive != null) {
                                                 cultureSelectionnee = cultureActive
                                             } else {
-                                                // Fallback : menu "vider"
                                                 showMenuEmplacement = true
                                             }
                                         }
@@ -748,7 +750,6 @@ fun FicheContenant(
                             if (empFixe.estVide()) {
                                 showAjoutPlante = true
                             } else {
-                                // NOUVEAU : ouvrir la fiche de la culture active
                                 scope.launch {
                                     val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
                                         contenantId = contenant.id,
