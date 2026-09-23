@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,6 +84,7 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     var imagePath by remember { mutableStateOf(prefs.getString("photo_path", null)) }
     val imageFile = imagePath?.let { File(it) }
     var showPhotoDialog by remember { mutableStateOf(false) }
+    var showSuppressionPhotoDialog by remember { mutableStateOf(false) }
     var showPrevisions by remember { mutableStateOf(false) }
     var previsions by remember { mutableStateOf<List<PrevisionJour>>(emptyList()) }
     var chargementPrevisions by remember { mutableStateOf(false) }
@@ -95,6 +97,9 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     ) { bitmap ->
         if (bitmap != null) {
             try {
+                // Supprimer l'ancienne photo avant d'en enregistrer une nouvelle
+                imageFile?.let { if (it.exists()) it.delete() }
+                
                 val f = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
                 f.outputStream().use {
                     bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, it)
@@ -111,6 +116,9 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
     ) { uri ->
         if (uri != null) {
             try {
+                // Supprimer l'ancienne photo avant d'en enregistrer une nouvelle
+                imageFile?.let { if (it.exists()) it.delete() }
+                
                 val f = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     f.outputStream().use { output -> input.copyTo(output) }
@@ -263,14 +271,39 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                             imageLoader = loader,
                             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(32.dp))
                         )
-                        IconButton(
-                            onClick = { showPhotoDialog = true },
+                        
+                        // ⚠️ NOUVEAU : 2 boutons en haut à droite (changer + supprimer)
+                        // Placés en HAUT pour ne pas être cachés par la barre de navigation
+                        Row(
                             modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                                .background(CouleursApp.VertPrincipal.copy(alpha = 0.8f), CircleShape)
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.CameraAlt, "Changer", tint = Color.White)
+                            IconButton(
+                                onClick = { showPhotoDialog = true },
+                                modifier = Modifier
+                                    .background(CouleursApp.VertPrincipal.copy(alpha = 0.85f), CircleShape)
+                                    .size(44.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CameraAlt,
+                                    contentDescription = "Changer la photo",
+                                    tint = Color.White
+                                )
+                            }
+                            IconButton(
+                                onClick = { showSuppressionPhotoDialog = true },
+                                modifier = Modifier
+                                    .background(Color(0xFFE53935).copy(alpha = 0.85f), CircleShape)
+                                    .size(44.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Supprimer la photo",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
                 } else {
@@ -311,7 +344,9 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         }
     }
 
+    // ============================================================
     // Dialog prévisions météo
+    // ============================================================
     if (showPrevisions) {
         AlertDialog(
             onDismissRequest = { showPrevisions = false },
@@ -358,11 +393,18 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         )
     }
 
-    // Dialog choix photo
+    // ============================================================
+    // Dialog choix photo (Ajouter / Changer)
+    // ============================================================
     if (showPhotoDialog) {
         AlertDialog(
             onDismissRequest = { showPhotoDialog = false },
-            title = { Text("Ajouter une photo", fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    if (imageFile != null && imageFile.exists()) "Changer la photo" else "Ajouter une photo",
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 Column {
                     Text(
@@ -391,14 +433,12 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                     if (imageFile != null && imageFile.exists()) {
                         HorizontalDivider()
                         Text(
-                            "🗑️ Supprimer",
+                            "🗑️ Supprimer la photo",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    imageFile!!.delete()
-                                    prefs.edit().remove("photo_path").apply()
-                                    imagePath = null
                                     showPhotoDialog = false
+                                    showSuppressionPhotoDialog = true
                                 }
                                 .padding(16.dp),
                             color = MaterialTheme.colorScheme.error,
@@ -415,7 +455,49 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
         )
     }
 
+    // ============================================================
+    // Dialog confirmation suppression photo
+    // ============================================================
+    if (showSuppressionPhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuppressionPhotoDialog = false },
+            title = { Text("Supprimer la photo ?", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "La photo de ton jardin sera définitivement supprimée. " +
+                    "Tu pourras en ajouter une nouvelle à tout moment."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            imageFile?.let { if (it.exists()) it.delete() }
+                            prefs.edit().remove("photo_path").apply()
+                            imagePath = null
+                        } catch (e: Exception) {
+                        }
+                        showSuppressionPhotoDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Supprimer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuppressionPhotoDialog = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+
+    // ============================================================
     // Dialog tutoriel de bienvenue
+    // ============================================================
     if (showTuto) {
         AlertDialog(
             onDismissRequest = {
@@ -516,10 +598,11 @@ fun AccueilScreen(onNavigateToParametres: () -> Unit) {
                                 color = CouleursApp.Terracotta
                             )
                             Text(
-                                "Gérez vos ressources en 3 onglets :\n" +
+                                "Gérez vos ressources en 4 onglets :\n" +
                                     "• 🫘 Graines : sachets en stock (variété, quantité, fournisseur, année)\n" +
                                     "• 🌱 Jeunes plants : semis et plants en attente (stade, emplacement)\n" +
-                                    "• 🛠️ Matériel : vos outils classés par usage (plantation, arrosage, taille...)",
+                                    "• 🛠️ Matériel : vos outils classés par usage (plantation, arrosage, taille...)\n" +
+                                    "• 🥕 Récoltes : le poids total de ce que vous avez récolté",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = CouleursApp.TexteFonce
                             )
