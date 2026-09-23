@@ -14,6 +14,9 @@ class JardinRepository(context: Context) {
     // Repository pour générer automatiquement les rappels culturaux
     private val rappelCulturelRepository = RappelCulturelRepository(context)
     
+    // Repository pour gérer les cultures liées aux stocks
+    private val cultureRepository = CultureRepository(context)
+    
     val planches: Flow<List<PlancheEntity>> = plancheDao.getAllPlanches()
     
     fun getCarresForPlanche(plancheId: Long): Flow<List<CarreEntity>> {
@@ -48,6 +51,9 @@ class JardinRepository(context: Context) {
         // Supprimer les rappels culturaux associés à cette planche
         rappelCulturelRepository.supprimerRappelsPourPlanche(planche.id)
         
+        // Supprimer les cultures liées à cette planche
+        cultureRepository.supprimerCulturesPourPlanche(planche.id)
+        
         plancheDao.deleteCarresForPlanche(planche.id)
         plancheDao.deletePlanche(planche)
     }
@@ -55,69 +61,370 @@ class JardinRepository(context: Context) {
     /**
      * Modifie une case précise d'un carré.
      * 
+     * ⚠️ NOUVEAU : cette méthode crée désormais une CultureEntity en parallèle
+     *    du remplissage de la case (pour lier la plantation au stock).
+     * 
+     * @param context Context (nécessaire pour lire ModePreferences)
      * @param carre Le carré concerné
      * @param caseNumero Numéro de la case (1-9)
      * @param legumeNom Nom du légume à planter (null = vider la case)
+     * @param varieteNom Variété éventuelle (ex : "Marmande")
+     * @param emoji Emoji du légume
      * @param plancheId ID de la planche (nécessaire pour générer les rappels culturaux)
+     * @param sourceStock Source du stock ("Semis" / "JeunePlant" / "Graine" / "Aucune")
+     * @param sourceStockId ID de l'entité source (JeunePlantEntity.id ou GraineEntity.id)
+     * @return ResultatPlantation pour indiquer succès ou erreur (mode réel)
      */
-    suspend fun modifierCasePrecise(carre: CarreEntity, caseNumero: Int, legumeNom: String?, plancheId: Long) {
+    suspend fun modifierCasePrecise(
+        context: Context,
+        carre: CarreEntity,
+        caseNumero: Int,
+        legumeNom: String?,
+        varieteNom: String? = null,
+        emoji: String = "🌱",
+        plancheId: Long,
+        sourceStock: String = CultureEntity.SOURCE_AUCUNE,
+        sourceStockId: Long? = null
+    ): ResultatPlantation {
         val dateActuelle = System.currentTimeMillis()
         val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
         
+        // ===== CAS 1 : on vide la case =====
+        if (legumeNom == null) {
+            // Supprimer la culture active dans cette case (si elle existe)
+            val cultureExistante = cultureRepository
+                .getCultureActiveDansCase(carre.id, caseNumero)
+            if (cultureExistante != null) {
+                cultureRepository.terminerSansRecolte(cultureExistante.id)
+            }
+            
+            // Supprimer les rappels culturaux de cette case
+            rappelCulturelRepository.supprimerRappelsPourCase(carre.id, caseNumero)
+            
+            // Vider la case dans CarreEntity
+            val nouveauCarre = when (caseNumero) {
+                1 -> carre.copy(case1 = null, datePlantationCase1 = null)
+                2 -> carre.copy(case2 = null, datePlantationCase2 = null)
+                3 -> carre.copy(case3 = null, datePlantationCase3 = null)
+                4 -> carre.copy(case4 = null, datePlantationCase4 = null)
+                5 -> carre.copy(case5 = null, datePlantationCase5 = null)
+                6 -> carre.copy(case6 = null, datePlantationCase6 = null)
+                7 -> carre.copy(case7 = null, datePlantationCase7 = null)
+                8 -> carre.copy(case8 = null, datePlantationCase8 = null)
+                9 -> carre.copy(case9 = null, datePlantationCase9 = null)
+                else -> carre
+            }
+            
+            val carreFinal = recalculerFamilles(nouveauCarre)
+            plancheDao.updateCarre(carreFinal)
+            
+            return ResultatPlantation.Succes
+        }
+        
+        // ===== CAS 2 : on plante un légume =====
+        
+        // Construire le nom complet (légume + variété)
+        val nomComplet = if (varieteNom != null) "$legumeNom ($varieteNom)" else legumeNom
+        
+        // 2.a — Créer la CultureEntity (gère le mode réel / projection)
+        val culture = CultureEntity(
+            typeEmplacement = CultureEntity.TYPE_PLEINE_TERRE,
+            plancheId = plancheId,
+            carreId = carre.id,
+            caseNumero = caseNumero,
+            legumeNom = legumeNom,
+            varieteNom = varieteNom,
+            emoji = emoji,
+            quantite = 1, // V1 : 1 plant par case
+            sourceStock = sourceStock,
+            estProjection = true, // sera écrasé par CultureRepository selon le mode
+            datePlantation = dateActuelle
+        )
+        
+        val resultatCulture = cultureRepository.creerCulture(
+            context = context,
+            culture = culture,
+            sourceStockId = sourceStockId
+        )
+        
+        // Si la culture a échoué (ex : stock insuffisant en mode réel), on bloque
+        if (resultatCulture !is ResultatCreationCulture.Succes) {
+            return when (resultatCulture) {
+                is ResultatCreationCulture.ErreurSourceIntrouvable ->
+                    ResultatPlantation.ErreurSourceIntrouvable(resultatCulture.source)
+                is ResultatCreationCulture.ErreurSourceInactive ->
+                    ResultatPlantation.ErreurSourceInactive(
+                        resultatCulture.legumeNom,
+                        resultatCulture.varieteNom
+                    )
+                is ResultatCreationCulture.ErreurStockInsuffisant ->
+                    ResultatPlantation.ErreurStockInsuffisant(
+                        resultatCulture.disponible,
+                        resultatCulture.demande,
+                        resultatCulture.legumeNom,
+                        resultatCulture.varieteNom
+                    )
+                else -> ResultatPlantation.ErreurSourceIntrouvable("Inconnu")
+            }
+        }
+        
+        // 2.b — Mettre à jour la case dans CarreEntity
         val nouveauCarre = when (caseNumero) {
             1 -> carre.copy(
-                case1 = legumeNom, 
-                datePlantationCase1 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case1 = nomComplet,
+                datePlantationCase1 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             2 -> carre.copy(
-                case2 = legumeNom, 
-                datePlantationCase2 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case2 = nomComplet,
+                datePlantationCase2 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             3 -> carre.copy(
-                case3 = legumeNom, 
-                datePlantationCase3 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case3 = nomComplet,
+                datePlantationCase3 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             4 -> carre.copy(
-                case4 = legumeNom, 
-                datePlantationCase4 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case4 = nomComplet,
+                datePlantationCase4 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             5 -> carre.copy(
-                case5 = legumeNom, 
-                datePlantationCase5 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case5 = nomComplet,
+                datePlantationCase5 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             6 -> carre.copy(
-                case6 = legumeNom, 
-                datePlantationCase6 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case6 = nomComplet,
+                datePlantationCase6 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             7 -> carre.copy(
-                case7 = legumeNom, 
-                datePlantationCase7 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case7 = nomComplet,
+                datePlantationCase7 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             8 -> carre.copy(
-                case8 = legumeNom, 
-                datePlantationCase8 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case8 = nomComplet,
+                datePlantationCase8 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             9 -> carre.copy(
-                case9 = legumeNom, 
-                datePlantationCase9 = if (legumeNom != null) dateActuelle else null,
-                anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
+                case9 = nomComplet,
+                datePlantationCase9 = dateActuelle,
+                anneeCulture = anneeActuelle
             )
             else -> carre
         }
         
-        // Mettre à jour les familles plantées
+        val carreFinal = recalculerFamilles(nouveauCarre)
+        plancheDao.updateCarre(carreFinal)
+        
+        // 2.c — Générer les rappels culturaux
+        rappelCulturelRepository.genererRappelsPourPlantation(
+            legumeNom = legumeNom,
+            datePlantation = dateActuelle,
+            carreId = carre.id,
+            caseNumero = caseNumero,
+            plancheId = plancheId
+        )
+        
+        return ResultatPlantation.Succes
+    }
+    
+    /**
+     * Remplit les 9 cases d'un carré avec le même légume.
+     * 
+     * ⚠️ NOUVEAU : cette méthode crée désormais 9 CultureEntity (une par case),
+     *    ou 1 seule selon le mode.
+     * 
+     * En mode réel : on demande 9 exemplaires du stock (9 semis, ou 9 graines).
+     * Si le stock est insuffisant, on bloque AVANT de tout remplir.
+     * 
+     * @param context Context
+     * @param carre Le carré à remplir
+     * @param legumeNom Nom du légume (null = vider tout le carré)
+     * @param varieteNom Variété éventuelle
+     * @param emoji Emoji du légume
+     * @param plancheId ID de la planche
+     * @param sourceStock Source du stock
+     * @param sourceStockId ID de l'entité source (si on plante 9 plants, il faut
+     *                      que la même source fournisse 9 plants)
+     * @return ResultatPlantation
+     */
+    suspend fun remplirM2Entier(
+        context: Context,
+        carre: CarreEntity,
+        legumeNom: String?,
+        varieteNom: String? = null,
+        emoji: String = "🌱",
+        plancheId: Long,
+        sourceStock: String = CultureEntity.SOURCE_AUCUNE,
+        sourceStockId: Long? = null
+    ): ResultatPlantation {
+        val dateActuelle = System.currentTimeMillis()
+        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
+        
+        // ===== CAS 1 : on vide tout le carré =====
+        if (legumeNom == null) {
+            // Terminer toutes les cultures actives du carré
+            val culturesActives = cultureRepository
+                .getCulturesActivesPourCarre(carre.id)
+                .first()
+            culturesActives.forEach { culture ->
+                cultureRepository.terminerSansRecolte(culture.id)
+            }
+            
+            // Supprimer les rappels culturaux du carré
+            rappelCulturelRepository.supprimerRappelsPourCarre(carre.id)
+            
+            // Vider les 9 cases
+            val carreFinal = carre.copy(
+                case1 = null, case2 = null, case3 = null,
+                case4 = null, case5 = null, case6 = null,
+                case7 = null, case8 = null, case9 = null,
+                datePlantationCase1 = null, datePlantationCase2 = null,
+                datePlantationCase3 = null, datePlantationCase4 = null,
+                datePlantationCase5 = null, datePlantationCase6 = null,
+                datePlantationCase7 = null, datePlantationCase8 = null,
+                datePlantationCase9 = null,
+                famillesPlantees = ""
+            )
+            plancheDao.updateCarre(carreFinal)
+            
+            return ResultatPlantation.Succes
+        }
+        
+        // ===== CAS 2 : on plante le même légume dans les 9 cases =====
+        
+        val nomComplet = if (varieteNom != null) "$legumeNom ($varieteNom)" else legumeNom
+        
+        // 2.a — Vérifier qu'on peut créer 9 cultures d'un coup (mode réel)
+        // En mode réel, on demande 9 exemplaires du stock.
+        // Pour simplifier, on vérifie d'abord la disponibilité, puis on crée.
+        val modeReel = ModePreferences.estModeReel(context)
+        
+        if (modeReel && sourceStock != CultureEntity.SOURCE_AUCUNE && sourceStockId != null) {
+            when (sourceStock) {
+                CultureEntity.SOURCE_SEMIS, CultureEntity.SOURCE_JEUNE_PLANT -> {
+                    val jeunePlant = AppDatabase.getDatabase(context)
+                        .jeunePlantDao()
+                        .getJeunePlantParId(sourceStockId)
+                    if (jeunePlant == null || !jeunePlant.estActif) {
+                        return ResultatPlantation.ErreurSourceInactive(legumeNom, varieteNom)
+                    }
+                    if (jeunePlant.quantite < 9) {
+                        return ResultatPlantation.ErreurStockInsuffisant(
+                            disponible = jeunePlant.quantite,
+                            demande = 9,
+                            legumeNom = legumeNom,
+                            varieteNom = varieteNom
+                        )
+                    }
+                }
+                CultureEntity.SOURCE_GRAINE -> {
+                    val graine = AppDatabase.getDatabase(context)
+                        .graineDao()
+                        .getGraineParId(sourceStockId)
+                    if (graine == null || !graine.estActive) {
+                        return ResultatPlantation.ErreurSourceInactive(legumeNom, varieteNom)
+                    }
+                    if (graine.quantite < 9) {
+                        return ResultatPlantation.ErreurStockInsuffisant(
+                            disponible = graine.quantite,
+                            demande = 9,
+                            legumeNom = legumeNom,
+                            varieteNom = varieteNom
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 2.b — Créer 9 cultures (une par case)
+        // On passe par creerCulture pour chaque case, ce qui gère le décrément.
+        for (caseNumero in 1..9) {
+            val culture = CultureEntity(
+                typeEmplacement = CultureEntity.TYPE_PLEINE_TERRE,
+                plancheId = plancheId,
+                carreId = carre.id,
+                caseNumero = caseNumero,
+                legumeNom = legumeNom,
+                varieteNom = varieteNom,
+                emoji = emoji,
+                quantite = 1,
+                sourceStock = sourceStock,
+                estProjection = true,
+                datePlantation = dateActuelle
+            )
+            
+            val resultatCulture = cultureRepository.creerCulture(
+                context = context,
+                culture = culture,
+                sourceStockId = sourceStockId
+            )
+            
+            if (resultatCulture !is ResultatCreationCulture.Succes) {
+                // En cas d'erreur à la case N, on s'arrête. Les N-1 cultures déjà
+                // créées restent en place (comportement acceptable pour la V1).
+                return when (resultatCulture) {
+                    is ResultatCreationCulture.ErreurSourceIntrouvable ->
+                        ResultatPlantation.ErreurSourceIntrouvable(resultatCulture.source)
+                    is ResultatCreationCulture.ErreurSourceInactive ->
+                        ResultatPlantation.ErreurSourceInactive(
+                            resultatCulture.legumeNom,
+                            resultatCulture.varieteNom
+                        )
+                    is ResultatCreationCulture.ErreurStockInsuffisant ->
+                        ResultatPlantation.ErreurStockInsuffisant(
+                            resultatCulture.disponible,
+                            resultatCulture.demande,
+                            resultatCulture.legumeNom,
+                            resultatCulture.varieteNom
+                        )
+                    else -> ResultatPlantation.ErreurSourceIntrouvable("Inconnu")
+                }
+            }
+        }
+        
+        // 2.c — Mettre à jour les 9 cases dans CarreEntity
+        val carreFinal = carre.copy(
+            case1 = nomComplet, case2 = nomComplet, case3 = nomComplet,
+            case4 = nomComplet, case5 = nomComplet, case6 = nomComplet,
+            case7 = nomComplet, case8 = nomComplet, case9 = nomComplet,
+            datePlantationCase1 = dateActuelle, datePlantationCase2 = dateActuelle,
+            datePlantationCase3 = dateActuelle, datePlantationCase4 = dateActuelle,
+            datePlantationCase5 = dateActuelle, datePlantationCase6 = dateActuelle,
+            datePlantationCase7 = dateActuelle, datePlantationCase8 = dateActuelle,
+            datePlantationCase9 = dateActuelle,
+            anneeCulture = anneeActuelle
+        )
+        
+        val carreAvecFamilles = recalculerFamilles(carreFinal)
+        plancheDao.updateCarre(carreAvecFamilles)
+        
+        // 2.d — Générer les rappels culturaux (une fois pour le carré entier)
+        rappelCulturelRepository.genererRappelsPourPlantation(
+            legumeNom = legumeNom,
+            datePlantation = dateActuelle,
+            carreId = carre.id,
+            caseNumero = 5, // Case centrale = référence
+            plancheId = plancheId
+        )
+        
+        return ResultatPlantation.Succes
+    }
+    
+    /**
+     * Recalcule les familles plantées d'un carré (pour l'historique
+     * et les associations culturales).
+     */
+    private fun recalculerFamilles(carre: CarreEntity): CarreEntity {
         val legumesActuels = listOfNotNull(
-            nouveauCarre.case1, nouveauCarre.case2, nouveauCarre.case3,
-            nouveauCarre.case4, nouveauCarre.case5, nouveauCarre.case6,
-            nouveauCarre.case7, nouveauCarre.case8, nouveauCarre.case9
+            carre.case1, carre.case2, carre.case3,
+            carre.case4, carre.case5, carre.case6,
+            carre.case7, carre.case8, carre.case9
         )
         
         val famillesSet = mutableSetOf<String>()
@@ -128,83 +435,7 @@ class JardinRepository(context: Context) {
             }
         }
         
-        val carreFinal = nouveauCarre.copy(famillesPlantees = famillesSet.joinToString(","))
-        
-        plancheDao.updateCarre(carreFinal)
-        
-        // ===== GESTION DES RAPPELS CULTURAUX =====
-        if (legumeNom != null) {
-            // Générer les rappels pour cette nouvelle plantation
-            rappelCulturelRepository.genererRappelsPourPlantation(
-                legumeNom = legumeNom,
-                datePlantation = dateActuelle,
-                carreId = carre.id,
-                caseNumero = caseNumero,
-                plancheId = plancheId
-            )
-        } else {
-            // Case vidée → supprimer les rappels associés
-            rappelCulturelRepository.supprimerRappelsPourCase(carre.id, caseNumero)
-        }
-    }
-    
-    // ========== FONCTION : Remplir les 9 cases d'un coup ==========
-    suspend fun remplirM2Entier(carre: CarreEntity, legumeNom: String?, plancheId: Long) {
-        val dateActuelle = System.currentTimeMillis()
-        val anneeActuelle = Calendar.getInstance().get(Calendar.YEAR)
-        
-        val carreFinal = carre.copy(
-            case1 = legumeNom,
-            case2 = legumeNom,
-            case3 = legumeNom,
-            case4 = legumeNom,
-            case5 = legumeNom,
-            case6 = legumeNom,
-            case7 = legumeNom,
-            case8 = legumeNom,
-            case9 = legumeNom,
-            datePlantationCase1 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase2 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase3 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase4 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase5 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase6 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase7 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase8 = if (legumeNom != null) dateActuelle else null,
-            datePlantationCase9 = if (legumeNom != null) dateActuelle else null,
-            anneeCulture = if (legumeNom != null) anneeActuelle else carre.anneeCulture
-        )
-        
-        // Mettre à jour les familles plantées
-        val famillesSet = mutableSetOf<String>()
-        if (legumeNom != null) {
-            val famille = getFamilleLegume(legumeNom)
-            if (famille != "Autre") {
-                famillesSet.add(famille)
-            }
-        }
-        
-        plancheDao.updateCarre(carreFinal.copy(famillesPlantees = famillesSet.joinToString(",")))
-        
-        // ===== GESTION DES RAPPELS CULTURAUX =====
-        if (legumeNom != null) {
-            // Supprimer les anciens rappels des 9 cases
-            for (case in 1..9) {
-                rappelCulturelRepository.supprimerRappelsPourCase(carre.id, case)
-            }
-            // Générer les rappels UNE SEULE FOIS pour la case centrale (case 5)
-            // car c'est la même plante dans tout le carré
-            rappelCulturelRepository.genererRappelsPourPlantation(
-                legumeNom = legumeNom,
-                datePlantation = dateActuelle,
-                carreId = carre.id,
-                caseNumero = 5,   // Case centrale = référence
-                plancheId = plancheId
-            )
-        } else {
-            // Carré vidé → supprimer tous les rappels
-            rappelCulturelRepository.supprimerRappelsPourCarre(carre.id)
-        }
+        return carre.copy(famillesPlantees = famillesSet.joinToString(","))
     }
     
     suspend fun getLegumesPlantes(): List<String> {
@@ -447,5 +678,34 @@ class JardinRepository(context: Context) {
             "Basilic", "Menthe", "Thym", "Romarin" -> "Lamiacées"
             else -> "Autre"
         }
+    }
+}
+
+/**
+ * Résultat d'une plantation (pleine terre).
+ */
+sealed class ResultatPlantation {
+    
+    /** Plantation réussie. */
+    object Succes : ResultatPlantation()
+    
+    /** La source demandée n'existe pas dans le stock. */
+    data class ErreurSourceIntrouvable(val source: String) : ResultatPlantation()
+    
+    /** La source existe mais n'est plus active. */
+    data class ErreurSourceInactive(
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatPlantation()
+    
+    /** La source existe mais le stock est insuffisant. */
+    data class ErreurStockInsuffisant(
+        val disponible: Int,
+        val demande: Int,
+        val legumeNom: String,
+        val varieteNom: String?
+    ) : ResultatPlantation() {
+        val manquant: Int
+            get() = (demande - disponible).coerceAtLeast(0)
     }
 }
