@@ -70,6 +70,7 @@ import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.NiveauRisque
 import com.theshire.app.data.PlancheEntity
 import com.theshire.app.data.ResultatPlantation
+import com.theshire.app.data.getEmojiCategorie
 import com.theshire.app.data.getDistanceEntrePlants
 import com.theshire.app.data.JardinRepository
 import com.theshire.app.data.LegumeRepository
@@ -416,7 +417,7 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                     },
                                     label = {
                                         Text(
-                                            "${com.theshire.app.data.getEmojiCategorie(c)} $c",
+                                            "${getEmojiCategorie(c)} $c",
                                             fontSize = MaterialTheme.typography.bodySmall.fontSize
                                         )
                                     },
@@ -458,7 +459,9 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         associations.filter { it.second == "mauvaise" }
                                                     if (mauvaiseAssoc.isNotEmpty()) {
                                                         selectedLegumeNom = legume.nom
-                                                        selectedLegumeEmoji = legume.emoji
+                                                        // ⚠️ CORRECTION : on utilise getEmojiCategorie
+                                                        // au lieu de legume.emoji qui n'existe pas
+                                                        selectedLegumeEmoji = getEmojiCategorie(legume.categorie)
                                                         avertissement = AvertissementRotation(
                                                             niveau = NiveauRisque.MOYEN,
                                                             message = "⚠️ Mauvaise association avec : ${mauvaiseAssoc.joinToString(", ") { it.first }}"
@@ -467,7 +470,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                                         showLegumeSelection = false
                                                     } else {
                                                         selectedLegumeNom = legume.nom
-                                                        selectedLegumeEmoji = legume.emoji
+                                                        // ⚠️ CORRECTION : idem
+                                                        selectedLegumeEmoji = getEmojiCategorie(legume.categorie)
                                                         showVarieteSelection = true
                                                         showLegumeSelection = false
                                                     }
@@ -498,7 +502,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             legumeNom = selectedLegumeNom!!,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
-                // Extraire la variété seule
                 val variete = if (nomComplet.contains("(")) {
                     nomComplet.substringAfter("(").substringBefore(")").trim()
                 } else {
@@ -506,7 +509,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                 }
                 selectedVarieteNom = variete
                 showVarieteSelection = false
-                // 3e étape : choix de la source du stock
                 showChoixSourceStock = true
             },
             onDismiss = {
@@ -575,7 +577,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                     }
                 }
                 
-                // Reset des états
                 selectedLegumeNom = null
                 selectedLegumeEmoji = "🌱"
                 selectedVarieteNom = null
@@ -603,7 +604,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             confirmButton = {
                 Button(
                     onClick = {
-                        // Continuer vers la sélection de variété (puis source)
                         showAvertissement = false
                         avertissement = null
                         showVarieteSelection = true
