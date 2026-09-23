@@ -801,13 +801,19 @@ fun FicheContenant(
                 }
             }
             
-            if (contenant.notes.isNotEmpty()) {
-                item {
-                    InfoCard("📝 Notes", contenant.notes)
-                }
+                  if (contenant.notes.isNotEmpty()) {
+            item {
+                InfoCard("📝 Notes", contenant.notes)
             }
         }
+        
+        // ⚠️ Spacer pour garantir que le contenu n'est jamais collé
+        // à la barre de navigation flottante, même si le contenu est court
+        item {
+            Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
+        }
     }
+}
     
     // ===== Dialogue 1 : choix de la plante =====
     if (showAjoutPlante && emplacementSelectionne != null) {
