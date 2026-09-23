@@ -82,6 +82,7 @@ import com.theshire.app.ui.components.Grille3x3
 import com.theshire.app.ui.components.LegendeCouleurs
 import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.components.calculerCouleursCarre
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.screens.jardin.ChoixPlantation
 import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
 import com.theshire.app.ui.screens.jardin.FicheCulture
@@ -155,7 +156,8 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
             FloatingActionButton(
                 onClick = { showAddPlancheDialog = true },
                 containerColor = CouleursApp.VertClair,
-                shape = CircleShape
+                shape = CircleShape,
+                modifier = Modifier.padding(bottom = LayoutConstantes.PADDING_BAS_FAB - 16.dp)
             ) {
                 Icon(Icons.Default.Add, "Ajouter")
             }
@@ -198,14 +200,11 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             selectedCaseNumero = caseNumero
                             currentPlancheId = planche.id
                             
-                            // Vérifier si la case contient déjà une culture active
                             scope.launch {
                                 val cultureActive = cultureRepository.getCultureActiveDansCase(carre.id, caseNumero)
                                 if (cultureActive != null) {
-                                    // Ouvre la fiche culture
                                     cultureSelectionnee = cultureActive
                                 } else {
-                                    // Comportement actuel : choix du légume
                                     if (caseNumero == 5) {
                                         showChoixRemplissage = true
                                     } else {
