@@ -537,7 +537,6 @@ fun FicheContenant(
     val emplacements by repository.getEmplacementsPourContenant(contenant.id)
         .collectAsState(initial = emptyList())
     
-    // NOUVEAU : emplacements filtrés par mode
     var emplacementsFiltres by remember { mutableStateOf<List<EmplacementContenantEntity>>(emptyList()) }
     
     var emplacementSelectionne by remember { mutableStateOf<EmplacementContenantEntity?>(null) }
@@ -548,7 +547,6 @@ fun FicheContenant(
     var showAvertissement by remember { mutableStateOf(false) }
     var legumeEnAttente by remember { mutableStateOf<LegumeEntity?>(null) }
     
-    // États pour le flux de plantation unifié
     var showVarieteSelection by remember { mutableStateOf(false) }
     var legumeChoisi by remember { mutableStateOf<LegumeEntity?>(null) }
     var varieteChoisie by remember { mutableStateOf<String?>(null) }
@@ -559,12 +557,10 @@ fun FicheContenant(
     
     var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
     
-    // Filtre par mode
     LaunchedEffect(emplacements, contenant.id) {
         val modeReel = ModePreferences.estModeReel(context)
         val estProjectionAttendue = !modeReel
         
-        // Récupère les cultures actives du bon mode pour ce contenant
         val culturesMode = try {
             com.theshire.app.data.AppDatabase.getDatabase(context)
                 .cultureDao()
@@ -575,7 +571,6 @@ fun FicheContenant(
         
         val emplacementsActifs = culturesMode.mapNotNull { it.emplacementNumero }.toSet()
         
-        // Recopie avec les emplacements de l'autre mode vidés
         emplacementsFiltres = emplacements.map { emp ->
             if (emplacementsActifs.contains(emp.numero)) {
                 emp
@@ -589,7 +584,6 @@ fun FicheContenant(
         calculerCouleursEmplacements(emplacementsFiltres, legumes)
     }
     
-    // Si une culture est sélectionnée → afficher sa fiche
     if (cultureSelectionnee != null) {
         FicheCulture(
             culture = cultureSelectionnee!!,
@@ -632,11 +626,7 @@ fun FicheContenant(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            // ⚠️ BUG 3 FIX : évite que le bouton "Planter" soit caché par la barre
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                bottom = LayoutConstantes.PADDING_BAS_FAB
-            )
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Card(
@@ -801,19 +791,17 @@ fun FicheContenant(
                 }
             }
             
-                  if (contenant.notes.isNotEmpty()) {
+            if (contenant.notes.isNotEmpty()) {
+                item {
+                    InfoCard("📝 Notes", contenant.notes)
+                }
+            }
+            
             item {
-                InfoCard("📝 Notes", contenant.notes)
+                Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
             }
         }
-        
-        // ⚠️ Spacer pour garantir que le contenu n'est jamais collé
-        // à la barre de navigation flottante, même si le contenu est court
-        item {
-            Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
-        }
     }
-}
     
     // ===== Dialogue 1 : choix de la plante =====
     if (showAjoutPlante && emplacementSelectionne != null) {
@@ -871,7 +859,6 @@ fun FicheContenant(
         DialogPlanterCulture(
             legumeNom = legumeCible.nom,
             emoji = getEmojiCategorieLegume(legumeCible.categorie),
-            // ⚠️ BUG 2 FIX : évite la double demande de variété
             varieteDejaChoisie = varieteChoisie,
             onDismiss = {
                 showChoixSourceStock = false
