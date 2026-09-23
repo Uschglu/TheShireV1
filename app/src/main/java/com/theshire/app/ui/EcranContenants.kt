@@ -459,6 +459,8 @@ fun GrilleEmplacements(
             ) {
                 ligne.forEach { emp ->
                     val couleur = couleurs[emp.numero] ?: CouleursApp.CaseVide
+                    // ⚠️ CORRECTION : on utilise la fonction locale getEmojiCategorieLegume
+                    // au lieu de `legume.emoji` qui n'existe pas sur LegumeEntity
                     val emoji = if (emp.estOccupe()) {
                         val nomBase = if (emp.legumeNom!!.contains("(")) emp.legumeNom.substringBefore("(").trim() else emp.legumeNom
                         val legume = legumes.find { it.nom == nomBase }
@@ -789,7 +791,7 @@ fun FicheContenant(
         
         DialogPlanterCulture(
             legumeNom = legumeCible.nom,
-            emoji = legumeCible.emoji,
+            emoji = getEmojiCategorieLegume(legumeCible.categorie),
             onDismiss = {
                 showChoixSourceStock = false
                 legumeChoisi = null
