@@ -249,8 +249,7 @@ class JardinRepository(context: Context) {
      * @param emoji Emoji du légume
      * @param plancheId ID de la planche
      * @param sourceStock Source du stock
-     * @param sourceStockId ID de l'entité source (si on plante 9 plants, il faut
-     *                      que la même source fournisse 9 plants)
+     * @param sourceStockId ID de l'entité source
      * @return ResultatPlantation
      */
     suspend fun remplirM2Entier(
@@ -301,8 +300,6 @@ class JardinRepository(context: Context) {
         val nomComplet = if (varieteNom != null) "$legumeNom ($varieteNom)" else legumeNom
         
         // 2.a — Vérifier qu'on peut créer 9 cultures d'un coup (mode réel)
-        // En mode réel, on demande 9 exemplaires du stock.
-        // Pour simplifier, on vérifie d'abord la disponibilité, puis on crée.
         val modeReel = ModePreferences.estModeReel(context)
         
         if (modeReel && sourceStock != CultureEntity.SOURCE_AUCUNE && sourceStockId != null) {
@@ -311,6 +308,7 @@ class JardinRepository(context: Context) {
                     val jeunePlant = AppDatabase.getDatabase(context)
                         .jeunePlantDao()
                         .getJeunePlantParId(sourceStockId)
+                    // ⚠️ CORRECTION : `estActif` (pas `estActive`)
                     if (jeunePlant == null || !jeunePlant.estActif) {
                         return ResultatPlantation.ErreurSourceInactive(legumeNom, varieteNom)
                     }
@@ -327,7 +325,8 @@ class JardinRepository(context: Context) {
                     val graine = AppDatabase.getDatabase(context)
                         .graineDao()
                         .getGraineParId(sourceStockId)
-                    if (graine == null || !graine.estActive) {
+                    // ⚠️ Ici c'est `estActive` (avec E) pour les graines
+                    if (graine == null || !graine.estActif) {
                         return ResultatPlantation.ErreurSourceInactive(legumeNom, varieteNom)
                     }
                     if (graine.quantite < 9) {
@@ -343,7 +342,6 @@ class JardinRepository(context: Context) {
         }
         
         // 2.b — Créer 9 cultures (une par case)
-        // On passe par creerCulture pour chaque case, ce qui gère le décrément.
         for (caseNumero in 1..9) {
             val culture = CultureEntity(
                 typeEmplacement = CultureEntity.TYPE_PLEINE_TERRE,
@@ -366,8 +364,6 @@ class JardinRepository(context: Context) {
             )
             
             if (resultatCulture !is ResultatCreationCulture.Succes) {
-                // En cas d'erreur à la case N, on s'arrête. Les N-1 cultures déjà
-                // créées restent en place (comportement acceptable pour la V1).
                 return when (resultatCulture) {
                     is ResultatCreationCulture.ErreurSourceIntrouvable ->
                         ResultatPlantation.ErreurSourceIntrouvable(resultatCulture.source)
@@ -409,7 +405,7 @@ class JardinRepository(context: Context) {
             legumeNom = legumeNom,
             datePlantation = dateActuelle,
             carreId = carre.id,
-            caseNumero = 5, // Case centrale = référence
+            caseNumero = 5,
             plancheId = plancheId
         )
         
@@ -417,8 +413,7 @@ class JardinRepository(context: Context) {
     }
     
     /**
-     * Recalcule les familles plantées d'un carré (pour l'historique
-     * et les associations culturales).
+     * Recalcule les familles plantées d'un carré.
      */
     private fun recalculerFamilles(carre: CarreEntity): CarreEntity {
         val legumesActuels = listOfNotNull(
