@@ -11,6 +11,11 @@ import androidx.room.RoomDatabase
  * Version 13 : ajout des champs de cycle de vie à JeunePlantEntity.
  * Version 14 : ajout du champ estProjection à JeunePlantEntity
  *              pour séparer les semis projetés des semis réels.
+ * Version 15 : ajout du champ categorie à JeunePlantEntity
+ *              ("Semis" / "JeunePlant") pour distinguer les semis en cours
+ *              des jeunes plants promus (ou achetés).
+ * Version 16 : ajout de CultureEntity (cultures en pleine terre et en urbain)
+ *              et de RecolteEntity (récoltes en kg, 4e onglet de Stocks).
  *
  * ⚠️ fallbackToDestructiveMigration est activé : les données sont perdues
  * à chaque changement de version. À désactiver / migrer proprement avant prod.
@@ -27,9 +32,11 @@ import androidx.room.RoomDatabase
         ContenantEntity::class,
         EmplacementContenantEntity::class,
         GraineEntity::class,
-        JeunePlantEntity::class
+        JeunePlantEntity::class,
+        CultureEntity::class,
+        RecolteEntity::class
     ],
-    version = 14,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -41,6 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contenantDao(): ContenantDao
     abstract fun graineDao(): GraineDao
     abstract fun jeunePlantDao(): JeunePlantDao
+    abstract fun cultureDao(): CultureDao
+    abstract fun recolteDao(): RecolteDao
     
     companion object {
         @Volatile
