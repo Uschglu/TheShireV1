@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.TypeSol
 import com.theshire.app.data.TypesDeSol
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.theme.CouleursApp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -368,6 +369,12 @@ fun AnalyseSolScreen(onBack: () -> Unit) {
                         }
                     }
                 }
+            }
+
+            // ⚠️ NOUVEAU : Spacer pour ne pas être collé / caché
+            // par la barre de navigation flottante
+            item {
+                Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
             }
         }
     }
