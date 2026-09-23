@@ -33,19 +33,19 @@ import com.theshire.app.ui.components.AideStocksDialog
 import com.theshire.app.ui.screens.stocks.OngletGraines
 import com.theshire.app.ui.screens.stocks.OngletMateriel
 import com.theshire.app.ui.screens.stocks.OngletPlants
+import com.theshire.app.ui.screens.stocks.OngletRecoltes
 import com.theshire.app.ui.theme.CouleursApp
 
 /**
  * Écran Stocks : hub de gestion du matériel et des stocks de jardinage.
  * 
- * Trois onglets :
+ * Quatre onglets :
  * - 🫘 Graines : sachets de graines en stock
  * - 🌱 Jeunes plants : semis et plants en attente
  * - 🛠️ Matériel : outils possédés
+ * - 🥕 Récoltes : légumes récoltés (en kg)
  * 
- * Le Store est désormais dans un écran séparé (EcranStore.kt).
- * 
- * Un bouton "❓" en haut à droite ouvre un guide expliquant les 3 onglets.
+ * Un bouton "❓" en haut à droite ouvre un guide expliquant les 4 onglets.
  */
 @Composable
 fun EcranStocks(onBack: () -> Unit) {
@@ -84,12 +84,13 @@ fun EcranStocks(onBack: () -> Unit) {
                 }
             }
 
-            // ===== BARRE D'ONGLETS =====
+            // ===== BARRE D'ONGLETS (4 onglets) =====
             TabRow(
                 selectedTabIndex = when (selectedOnglet) {
                     "graines" -> 0
                     "plants" -> 1
-                    else -> 2
+                    "materiel" -> 2
+                    else -> 3
                 },
                 containerColor = CouleursApp.VertPrincipal,
                 contentColor = Color.White
@@ -101,6 +102,7 @@ fun EcranStocks(onBack: () -> Unit) {
                         Text(
                             "🫘 Graines",
                             fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
                             color = if (selectedOnglet == "graines") Color.White else Color.White.copy(alpha = 0.6f)
                         )
                     }
@@ -112,6 +114,7 @@ fun EcranStocks(onBack: () -> Unit) {
                         Text(
                             "🌱 Plants",
                             fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
                             color = if (selectedOnglet == "plants") Color.White else Color.White.copy(alpha = 0.6f)
                         )
                     }
@@ -123,7 +126,20 @@ fun EcranStocks(onBack: () -> Unit) {
                         Text(
                             "🛠️ Matériel",
                             fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
                             color = if (selectedOnglet == "materiel") Color.White else Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedOnglet == "recoltes",
+                    onClick = { selectedOnglet = "recoltes" },
+                    text = {
+                        Text(
+                            "🥕 Récoltes",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = if (selectedOnglet == "recoltes") Color.White else Color.White.copy(alpha = 0.6f)
                         )
                     }
                 )
@@ -133,7 +149,8 @@ fun EcranStocks(onBack: () -> Unit) {
             when (selectedOnglet) {
                 "graines" -> OngletGraines()
                 "plants" -> OngletPlants()
-                else -> OngletMateriel()
+                "materiel" -> OngletMateriel()
+                else -> OngletRecoltes()
             }
         }
     }
