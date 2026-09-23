@@ -203,7 +203,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             currentPlancheId = planche.id
                             
                             scope.launch {
-                                // ⚠️ NOUVEAU : on filtre par mode actif
                                 val cultureActive = cultureRepository.getCultureActiveDansCasePourMode(
                                     context = context,
                                     carreId = carre.id,
@@ -212,7 +211,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                                 if (cultureActive != null) {
                                     cultureSelectionnee = cultureActive
                                 } else {
-                                    // Case vide (ou culture de l'autre mode) → planter
                                     if (caseNumero == 5) {
                                         showChoixRemplissage = true
                                     } else {
@@ -223,6 +221,12 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
                             }
                         }
                     )
+                }
+                
+                // ⚠️ Spacer pour garantir que le contenu n'est jamais collé
+                // à la barre de navigation flottante
+                item {
+                    Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
                 }
             }
         }
@@ -558,7 +562,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
         DialogPlanterCulture(
             legumeNom = selectedLegumeNom!!,
             emoji = selectedLegumeEmoji,
-            // ⚠️ BUG 2 FIX : la variété a déjà été choisie → on la passe pour éviter le double choix
             varieteDejaChoisie = selectedVarieteNom,
             onDismiss = {
                 showChoixSourceStock = false
@@ -671,9 +674,6 @@ fun JardinPlanchesScreen(onBack: () -> Unit) {
 
 /**
  * Carte d'une planche.
- * 
- * ⚠️ NOUVEAU : filtre les cultures affichées selon le mode actif.
- * Les cases dont la culture est de l'autre mode sont affichées comme vides.
  */
 @Composable
 fun PlancheCard(
@@ -687,35 +687,26 @@ fun PlancheCard(
     onSousCarreClick: (CarreEntity, Int) -> Unit
 ) {
     val context = LocalContext.current
-    // État local : cases filtrées par mode
     var carresFiltres by remember { mutableStateOf<List<CarreEntity>>(emptyList()) }
     
     val carres by jardinRepository.getCarresForPlanche(planche.id)
         .collectAsState(initial = emptyList())
     
-    // Recalcule les cases filtrées à chaque changement de mode ou de données
     LaunchedEffect(carres, planche.id) {
         val modeReel = ModePreferences.estModeReel(context)
         val estProjectionAttendue = !modeReel
         
         carresFiltres = carres.map { carre ->
-            // Récupère les cultures actives du carré pour le mode
-            val culturesMode = cultureRepository.let { repo ->
-                // On ne peut pas utiliser suspend ici directement dans le map,
-                // donc on récupère via le DAO synchrone
-                try {
-                    com.theshire.app.data.AppDatabase.getDatabase(context)
-                        .cultureDao()
-                        .getCulturesActivesPourCarreParMode(carre.id, estProjectionAttendue)
-                } catch (e: Exception) {
-                    emptyList()
-                }
+            val culturesMode = try {
+                com.theshire.app.data.AppDatabase.getDatabase(context)
+                    .cultureDao()
+                    .getCulturesActivesPourCarreParMode(carre.id, estProjectionAttendue)
+            } catch (e: Exception) {
+                emptyList()
             }
             
-            // Map caseNumero -> existe-t-il une culture active dans ce mode ?
             val casesActives = culturesMode.mapNotNull { it.caseNumero }.toSet()
             
-            // Recopie du carré avec les cases de l'autre mode vidées
             carre.copy(
                 case1 = if (casesActives.contains(1)) carre.case1 else null,
                 case2 = if (casesActives.contains(2)) carre.case2 else null,
