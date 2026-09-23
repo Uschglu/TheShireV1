@@ -28,6 +28,8 @@ import com.theshire.app.data.AvertissementRotation
 import com.theshire.app.data.CalculEmplacements
 import com.theshire.app.data.ContenantEntity
 import com.theshire.app.data.ContenantRepository
+import com.theshire.app.data.CultureEntity
+import com.theshire.app.data.CultureRepository
 import com.theshire.app.data.EmplacementContenantEntity
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
@@ -39,6 +41,7 @@ import com.theshire.app.ui.components.InfoCard
 import com.theshire.app.ui.components.VarieteSelectionDialog
 import com.theshire.app.ui.screens.jardin.ChoixPlantation
 import com.theshire.app.ui.screens.jardin.DialogPlanterCulture
+import com.theshire.app.ui.screens.jardin.FicheCulture
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -459,8 +462,6 @@ fun GrilleEmplacements(
             ) {
                 ligne.forEach { emp ->
                     val couleur = couleurs[emp.numero] ?: CouleursApp.CaseVide
-                    // ⚠️ CORRECTION : on utilise la fonction locale getEmojiCategorieLegume
-                    // au lieu de `legume.emoji` qui n'existe pas sur LegumeEntity
                     val emoji = if (emp.estOccupe()) {
                         val nomBase = if (emp.legumeNom!!.contains("(")) emp.legumeNom.substringBefore("(").trim() else emp.legumeNom
                         val legume = legumes.find { it.nom == nomBase }
@@ -526,6 +527,7 @@ fun FicheContenant(
     val scope = rememberCoroutineScope()
     val legumeRepository = remember { LegumeRepository(context) }
     val varieteRepository = remember { VarieteRepository(context) }
+    val cultureRepository = remember { CultureRepository(context) }
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
     
     val emplacements by repository.getEmplacementsPourContenant(contenant.id)
@@ -548,8 +550,21 @@ fun FicheContenant(
     var erreurPlantation by remember { mutableStateOf<ResultatPlantation?>(null) }
     var sourceEnAttente by remember { mutableStateOf<ChoixPlantation?>(null) }
     
+    // NOUVEAU : culture sélectionnée (clic sur emplacement occupé)
+    var cultureSelectionnee by remember { mutableStateOf<CultureEntity?>(null) }
+    
     val couleurs = remember(emplacements, legumes) {
         calculerCouleursEmplacements(emplacements, legumes)
+    }
+    
+    // Si une culture est sélectionnée → afficher sa fiche
+    if (cultureSelectionnee != null) {
+        FicheCulture(
+            culture = cultureSelectionnee!!,
+            repository = cultureRepository,
+            onBack = { cultureSelectionnee = null }
+        )
+        return
     }
     
     Scaffold(
@@ -651,7 +666,19 @@ fun FicheContenant(
                                     if (empFixe.estVide()) {
                                         showAjoutPlante = true
                                     } else {
-                                        showMenuEmplacement = true
+                                        // NOUVEAU : ouvrir la fiche de la culture active
+                                        scope.launch {
+                                            val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                                                contenantId = contenant.id,
+                                                emplacementNumero = empFixe.numero
+                                            )
+                                            if (cultureActive != null) {
+                                                cultureSelectionnee = cultureActive
+                                            } else {
+                                                // Fallback : menu "vider"
+                                                showMenuEmplacement = true
+                                            }
+                                        }
                                     }
                                 }
                             )
@@ -721,7 +748,18 @@ fun FicheContenant(
                             if (empFixe.estVide()) {
                                 showAjoutPlante = true
                             } else {
-                                showMenuEmplacement = true
+                                // NOUVEAU : ouvrir la fiche de la culture active
+                                scope.launch {
+                                    val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                                        contenantId = contenant.id,
+                                        emplacementNumero = empFixe.numero
+                                    )
+                                    if (cultureActive != null) {
+                                        cultureSelectionnee = cultureActive
+                                    } else {
+                                        showMenuEmplacement = true
+                                    }
+                                }
                             }
                         }
                     )
@@ -847,7 +885,7 @@ fun FicheContenant(
         )
     }
     
-    // ===== Dialogue 4 : menu emplacement occupé =====
+    // ===== Dialogue 4 : menu emplacement occupé (fallback) =====
     if (showMenuEmplacement && emplacementSelectionne != null) {
         val empAUtiliser = emplacementSelectionne!!
         AlertDialog(
