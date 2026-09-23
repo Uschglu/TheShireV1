@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.theshire.app.data.ResultatPlantation
 import com.theshire.app.data.VarieteRepository
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
@@ -454,6 +455,86 @@ fun AideStocksDialog(onDismiss: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
             ) {
                 Text("Fermer")
+            }
+        }
+    )
+}
+
+/**
+ * Dialogue d'erreur affiché après une tentative de plantation en mode réel
+ * qui a échoué (source introuvable, stock insuffisant, etc.).
+ *
+ * Utilisé par JardinPlanchesScreen et EcranContenants quand
+ * JardinRepository / ContenantRepository retourne un ResultatPlantation
+ * autre que Succes.
+ */
+@Composable
+fun DialogErreurPlantation(
+    resultat: ResultatPlantation,
+    onDismiss: () -> Unit
+) {
+    val titre: String
+    val message: String
+    
+    when (resultat) {
+        is ResultatPlantation.ErreurSourceIntrouvable -> {
+            titre = "Source introuvable"
+            message = "Aucun stock correspondant n'a été trouvé pour cette plantation.\n\n" +
+                "Source demandée : ${resultat.source}\n\n" +
+                "Ajoute d'abord un sachet ou un semis dans tes Stocks, ou choisis une autre source."
+        }
+        is ResultatPlantation.ErreurSourceInactive -> {
+            titre = "Source épuisée"
+            val nom = if (resultat.varieteNom != null) {
+                "${resultat.legumeNom} (${resultat.varieteNom})"
+            } else {
+                resultat.legumeNom
+            }
+            message = "Ton stock pour \"$nom\" est épuisé ou déjà utilisé.\n\n" +
+                "Recharge ton stock avant de pouvoir replanter, ou choisis une autre source."
+        }
+        is ResultatPlantation.ErreurStockInsuffisant -> {
+            titre = "Stock insuffisant"
+            val nom = if (resultat.varieteNom != null) {
+                "${resultat.legumeNom} (${resultat.varieteNom})"
+            } else {
+                resultat.legumeNom
+            }
+            message = "Il te manque ${resultat.manquant} unité(s) pour planter.\n\n" +
+                "Disponible : ${resultat.disponible}\n" +
+                "Demandé  : ${resultat.demande}\n" +
+                "Plante   : $nom\n\n" +
+                "Complète ton stock ou réduis la quantité."
+        }
+        is ResultatPlantation.Succes -> {
+            // Ne devrait jamais arriver : pas la peine d'afficher un dialogue.
+            titre = "Plantage réussi"
+            message = "La plantation a réussi."
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "⚠️ $titre",
+                fontWeight = FontWeight.Bold,
+                color = CouleursApp.Terracotta
+            )
+        },
+        text = {
+            Text(
+                message,
+                color = CouleursApp.TexteFonce
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+            ) {
+                Text("Compris")
             }
         }
     )
