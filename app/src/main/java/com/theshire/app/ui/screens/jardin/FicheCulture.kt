@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.CultureEntity
 import com.theshire.app.data.CultureRepository
+import com.theshire.app.ui.navigation.LayoutConstantes
 import com.theshire.app.ui.theme.CouleursApp
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit
  * Permet :
  *  - De voir toutes les infos (légume, variété, localisation, source, mode, dates)
  *  - De récolter (génère une RecolteEntity + clôture la culture)
- *  - De retirer sans récolter (plant mort, arraché)
+ *  - De retirer sans récolter (plant mort, arraché, erreur de plantation…)
  *  - De modifier les notes
  */
 @Composable
@@ -78,7 +78,6 @@ fun FicheCulture(
     
     val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.FRANCE) }
     
-    // Calcul du nombre de jours depuis la plantation
     val joursDepuisPlantation = remember(cultureActuelle.datePlantation) {
         val diff = System.currentTimeMillis() - cultureActuelle.datePlantation
         TimeUnit.MILLISECONDS.toDays(diff).coerceAtLeast(0)
@@ -166,6 +165,21 @@ fun FicheCulture(
                     colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertClair)
                 ) {
                     Text("🌾 Récolter cette culture", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            
+            // ===== Bouton Retirer sans récolter (secondaire, bien visible) =====
+            if (cultureActuelle.estActive) {
+                OutlinedButton(
+                    onClick = { showRetraitDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text(
+                        "🗑️ Retirer sans récolter (libérer la case)",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
             
@@ -260,17 +274,8 @@ fun FicheCulture(
                 }
             }
             
-            // ===== Bouton retirer sans récolter =====
-            if (cultureActuelle.estActive) {
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { showRetraitDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text("🥀 Retirer sans récolter", color = MaterialTheme.colorScheme.error)
-                }
-            }
+            // ===== Spacer pour ne pas être collé à la barre de navigation =====
+            Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
         }
     }
     
@@ -294,10 +299,10 @@ fun FicheCulture(
             title = { Text("Retirer cette culture ?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "La culture sera marquée comme terminée. " +
-                    "Aucune récolte ne sera enregistrée.\n\n" +
+                    "La culture sera marquée comme terminée et la case / l'emplacement " +
+                    "sera libéré. Aucune récolte ne sera enregistrée dans tes Stocks.\n\n" +
                     "Utilise cette option si la plante est morte, arrachée, ou si tu " +
-                    "veux simplement libérer l'emplacement."
+                    "t'es trompé en la plantant."
                 )
             },
             confirmButton = {
@@ -367,9 +372,6 @@ fun FicheCulture(
     }
 }
 
-/**
- * Une ligne "info" : libellé + valeur.
- */
 @Composable
 private fun LigneInfoCulture(label: String, valeur: String) {
     Row(
