@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.CultureEntity
-import com.theshire.app.data.GraineEntity
 import com.theshire.app.data.GraineRepository
 import com.theshire.app.data.JeunePlantEntity
 import com.theshire.app.data.JeunePlantRepository
@@ -52,26 +51,21 @@ data class ChoixPlantation(
 /**
  * Dialogue unifié pour planter une culture.
  *
- * Étapes :
- *  1. Choix de la variété (via VarieteSelectionDialog)
- *  2. Choix de la source :
- *     - 🌰 Depuis un semis (si dispo)
- *     - 🌿 Depuis un jeune plant (si dispo)
- *     - 🫘 Graine directe (si dispo)
- *     - 🚫 Aucune (plant offert/trouvé)
+ * ⚠️ NOUVEAU : si `varieteDejaChoisie` est fourni (non null), on saute
+ * l'étape de sélection de variété et on va directement à la sélection
+ * de la source. Ça évite la double demande.
  *
- * ⚠️ V1 simplifiée : on prend le premier semis/plant/graine disponible.
- *    On ne propose pas une liste fine de variétés spécifiques.
- *
- * @param legumeNom Nom du légume à planter
+ * @param legumeNom Nom du légume
  * @param emoji Emoji du légume
- * @param onDismiss Callback si l'utilisateur annule
+ * @param varieteDejaChoisie Si non null, on saute l'étape variété
+ * @param onDismiss Callback si annulation
  * @param onValider Callback avec le ChoixPlantation retenu
  */
 @Composable
 fun DialogPlanterCulture(
     legumeNom: String,
     emoji: String,
+    varieteDejaChoisie: String? = null,
     onDismiss: () -> Unit,
     onValider: (ChoixPlantation) -> Unit
 ) {
@@ -80,18 +74,13 @@ fun DialogPlanterCulture(
     val graineRepository = remember { GraineRepository(context) }
     val varieteRepository = remember { VarieteRepository(context) }
     
-    // Étape actuelle : 1 = variété, 2 = source
-    var etape by remember { mutableStateOf(1) }
+    // Si la variété est déjà choisie, on démarre directement à l'étape 2
+    var etape by remember { mutableStateOf(if (varieteDejaChoisie != null) 2 else 1) }
+    var varieteChoisie by remember { mutableStateOf(varieteDejaChoisie) }
     
-    // Sélection finale
-    var varieteChoisie by remember { mutableStateOf<String?>(null) }
-    
-    // Utilisation directe des flows pour filtrer par légume
     val tousPlants by jeunePlantRepository.jeunesPlantsActifs.collectAsState(initial = emptyList())
     val toutesGraines by graineRepository.grainesActives.collectAsState(initial = emptyList())
     
-    // Filtrer par légume
-    // ⚠️ CORRECTION : le champ s'appelle `estActif` sur JeunePlantEntity
     val plantsDuLegume = tousPlants.filter {
         it.legumeNom.equals(legumeNom, ignoreCase = true) && it.estActif
     }
@@ -101,20 +90,16 @@ fun DialogPlanterCulture(
     val jeunesPlantsDuLegume = plantsDuLegume.filter {
         it.categorie == JeunePlantEntity.CATEGORIE_JEUNE_PLANT
     }
-    // Graines : on garde `estActif` (c'est bien le nom dans GraineEntity)
     val grainesDuLegume = toutesGraines.filter {
         it.legumeNom.equals(legumeNom, ignoreCase = true) && it.estActif && it.quantite > 0
     }
     
-    // ============================================================
-    // ÉTAPE 1 : choix de la variété
-    // ============================================================
+    // ÉTAPE 1 : choix de la variété (seulement si pas déjà fournie)
     if (etape == 1) {
         VarieteSelectionDialog(
             legumeNom = legumeNom,
             varieteRepository = varieteRepository,
             onVarieteChoisie = { nomComplet ->
-                // nomComplet peut être "Tomate" ou "Tomate (Marmande)"
                 val variete = if (nomComplet.contains("(")) {
                     nomComplet.substringAfter("(").substringBefore(")").trim()
                 } else {
@@ -128,9 +113,7 @@ fun DialogPlanterCulture(
         return
     }
     
-    // ============================================================
     // ÉTAPE 2 : choix de la source
-    // ============================================================
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -161,7 +144,6 @@ fun DialogPlanterCulture(
                         .heightIn(max = 400.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // ----- 🌰 Depuis un semis -----
                     if (semisDuLegume.isNotEmpty()) {
                         item {
                             CarteSource(
@@ -185,7 +167,6 @@ fun DialogPlanterCulture(
                         }
                     }
                     
-                    // ----- 🌿 Depuis un jeune plant -----
                     if (jeunesPlantsDuLegume.isNotEmpty()) {
                         item {
                             CarteSource(
@@ -209,7 +190,6 @@ fun DialogPlanterCulture(
                         }
                     }
                     
-                    // ----- 🫘 Graine directe -----
                     if (grainesDuLegume.isNotEmpty()) {
                         item {
                             CarteSource(
@@ -233,7 +213,6 @@ fun DialogPlanterCulture(
                         }
                     }
                     
-                    // ----- 🚫 Aucune source -----
                     item {
                         CarteSource(
                             emoji = "🚫",
@@ -264,9 +243,6 @@ fun DialogPlanterCulture(
     )
 }
 
-/**
- * Carte d'une source dans le dialogue de plantation.
- */
 @Composable
 private fun CarteSource(
     emoji: String,
