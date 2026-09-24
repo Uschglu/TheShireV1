@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theshire.app.data.LegumeEntity
 import com.theshire.app.data.LegumeRepository
+import com.theshire.app.data.ModePreferences
 import com.theshire.app.data.RecolteEntity
 import com.theshire.app.data.RecolteRepository
 import com.theshire.app.data.getEmojiCategorie
@@ -47,6 +48,9 @@ import kotlinx.coroutines.launch
  * 
  * Utilisé pour enregistrer des récoltes qui ne proviennent pas d'une culture
  * suivie dans l'app (marché, don, cueillette sauvage, etc.).
+ * 
+ * ⚠️ La récolte hérite automatiquement du mode actif (projection ou réel)
+ *    via `RecolteRepository.ajouterRecolte()`.
  * 
  * Étapes :
  *  1. Choix du légume (avec recherche)
@@ -63,6 +67,9 @@ fun DialogAjoutRecolte(
     val scope = rememberCoroutineScope()
     
     val legumes by legumeRepository.legumes.collectAsState(initial = emptyList())
+    
+    // Mode actif (pour l'affichage informatif)
+    val modeReel = ModePreferences.estModeReel(context)
     
     // Étape 1 = choix légume, Étape 2 = poids
     var etape by remember { mutableStateOf(1) }
@@ -99,6 +106,19 @@ fun DialogAjoutRecolte(
                         "Choisis le légume que tu as récolté.",
                         style = MaterialTheme.typography.bodySmall,
                         color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Indicateur de mode
+                    Text(
+                        if (modeReel) {
+                            "🌱 Cette récolte sera marquée comme RÉELLE"
+                        } else {
+                            "🧪 Cette récolte sera marquée comme PROJETÉE"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CouleursApp.VertPrincipal,
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     
@@ -185,6 +205,14 @@ fun DialogAjoutRecolte(
                     color = CouleursApp.VertPrincipal,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Indicateur de mode
+                Text(
+                    if (modeReel) "🌱 Récolte réelle" else "🧪 Récolte projetée",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 OutlinedTextField(
@@ -239,6 +267,7 @@ fun DialogAjoutRecolte(
                                 poidsKg = poids,
                                 dateRecolte = System.currentTimeMillis(),
                                 cultureId = null, // Ajout manuel
+                                // estProjection : forcé par le repository selon le mode actif
                                 notes = notesSaisies.takeIf { it.isNotBlank() }
                             )
                             repository.ajouterRecolte(recolte)
