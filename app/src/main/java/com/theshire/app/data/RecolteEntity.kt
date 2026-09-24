@@ -19,13 +19,26 @@ import androidx.room.PrimaryKey
  * 
  * ⚠️ Les quantités sont exprimées en kilogrammes (kg), avec une précision
  *    au gramme (double).
+ *
+ * ⚠️ MODE PROJECTION vs RÉEL :
+ *    - estProjection = true  → récolte "projetée" (mode simulation)
+ *    - estProjection = false → récolte "réelle" (mode suivi réel)
+ * 
+ *    Ce champ permet de filtrer les récoltes selon le mode actif, comme
+ *    on le fait déjà pour les cultures.
+ *    
+ *    Règle :
+ *      - Récolte auto depuis une culture → hérite du mode de la culture
+ *      - Récolte ajoutée manuellement   → utilise le mode actif au moment
+ *                                          de l'ajout
  */
 @Entity(
     tableName = "recoltes",
     indices = [
         Index(value = ["cultureId"]),
         Index(value = ["legumeNom"]),
-        Index(value = ["dateRecolte"])
+        Index(value = ["dateRecolte"]),
+        Index(value = ["estProjection"])
     ]
 )
 data class RecolteEntity(
@@ -71,6 +84,23 @@ data class RecolteEntity(
     val cultureId: Long? = null,
     
     // ============================================================
+    // MODE (projection / réel)
+    // ============================================================
+    
+    /**
+     * true  : récolte "projetée" (mode simulation)
+     * false : récolte "réelle" (mode suivi réel)
+     * 
+     * Par défaut : true (les récoltes existantes sont considérées comme
+     * des projections — cohérent avec l'esprit du mode par défaut).
+     * 
+     * Héritée :
+     *  - Du mode de la culture si récolte automatique (cultureId != null)
+     *  - Du mode actif au moment de l'ajout si récolte manuelle
+     */
+    val estProjection: Boolean = true,
+    
+    // ============================================================
     // NOTES ET MÉTADONNÉES
     // ============================================================
     
@@ -91,4 +121,14 @@ data class RecolteEntity(
      * Retourne true si la récolte provient d'une culture suivie.
      */
     fun estLieeAUneCulture(): Boolean = cultureId != null
+    
+    /**
+     * Retourne true si la récolte est réelle (mode suivi réel).
+     */
+    fun estReelle(): Boolean = !estProjection
+    
+    /**
+     * Retourne true si la récolte est une projection (mode simulation).
+     */
+    fun estProjetee(): Boolean = estProjection
 }
