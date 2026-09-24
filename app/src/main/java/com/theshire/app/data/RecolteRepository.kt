@@ -1,268 +1,294 @@
-package com.theshire.app.data
+package com.theshire.app.ui.screens.stocks
 
-import android.content.Context
-import kotlinx.coroutines.flow.Flow
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.theshire.app.data.ModePreferences
+import com.theshire.app.data.RecolteEntity
+import com.theshire.app.data.RecolteRepository
+import com.theshire.app.ui.navigation.LayoutConstantes
+import com.theshire.app.ui.theme.CouleursApp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Repository pour les récoltes (4e onglet de Stocks).
- *
- * Utilisé par :
- *  - L'onglet "Récoltes" de Stocks : liste, statistiques
- *  - La fiche "Récolte" : détail + modification + suppression
- *  - L'ajout manuel d'une récolte (marché, don, cueillette sauvage…)
- *  - La récolte automatique depuis une culture (génère l'entité ici)
- *
- * Toutes les quantités sont en kilogrammes (double).
- *
- * ⚠️ MODE PROJECTION vs RÉEL :
- *    Les récoltes sont filtrées selon le mode actif (ModePreferences).
- *    - Une récolte auto depuis une culture hérite du mode de la culture
- *    - Une récolte manuelle utilise le mode actif au moment de l'ajout
+ * Onglet "Récoltes" de l'écran Stocks (4e onglet).
+ * 
+ * Affiche la liste des récoltes enregistrées (poids en kg) :
+ *  - Récoltes automatiques (générées quand on "Récolte" une culture)
+ *  - Récoltes manuelles (marché, don, cueillette sauvage)
+ * 
+ * ⚠️ Les récoltes affichées sont filtrées selon le mode actif :
+ *    - Mode projection → uniquement les récoltes "projetées"
+ *    - Mode réel       → uniquement les récoltes "réelles"
+ * 
+ * En haut : un résumé du poids total récolté (pour le mode actif).
  */
-class RecolteRepository(context: Context) {
+@Composable
+fun OngletRecoltes() {
+    val context = LocalContext.current
+    val repository = remember { RecolteRepository(context) }
     
-    private val appContext = context.applicationContext
-    private val recolteDao = AppDatabase.getDatabase(context).recolteDao()
+    // Mode actif (lu une fois pour l'affichage du badge, mis à jour à chaque recomposition)
+    val modeReel = ModePreferences.estModeReel(context)
     
-    // ============================================================
-    // OUTILS INTERNES
-    // ============================================================
+    // On utilise les flows filtrés par mode
+    val recoltes by repository.recoltesDuModeActif()
+        .collectAsState(initial = emptyList())
+    val poidsTotal by repository.poidsTotalDuModeActif()
+        .collectAsState(initial = 0.0)
     
-    /**
-     * Retourne la valeur `estProjection` correspondant au mode actif.
-     * 
-     *  - mode réel       → estProjection = false
-     *  - mode projection → estProjection = true
-     */
-    private fun estProjectionDuModeActif(): Boolean {
-        return !ModePreferences.estModeReel(appContext)
-    }
+    var showAjoutDialog by remember { mutableStateOf(false) }
+    var recolteSelectionnee by remember { mutableStateOf<RecolteEntity?>(null) }
     
-    // ============================================================
-    // LECTURE — générique
-    // ============================================================
-    
-    /**
-     * Toutes les récoltes, tous modes confondus, triées par date décroissante.
-     * 
-     * ⚠️ À utiliser avec parcimonie — pour l'affichage normal, préférer
-     *    `recoltesDuModeActif`.
-     */
-    val toutesLesRecoltes: Flow<List<RecolteEntity>> = recolteDao.getAllRecoltes()
-    
-    /**
-     * Poids total récolté (tous légumes confondus, tous modes confondus).
-     */
-    val poidsTotalGlobal: Flow<Double> = recolteDao.getPoidsTotalGlobal()
-    
-    // ============================================================
-    // LECTURE — par mode
-    // ============================================================
-    
-    /**
-     * Toutes les récoltes du mode actif (projection OU réel).
-     * 
-     * C'est la méthode à privilégier pour l'affichage dans l'onglet Récoltes.
-     * Le mode est lu dynamiquement via ModePreferences à chaque collecte.
-     */
-    fun recoltesDuModeActif(): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesParMode(estProjectionDuModeActif())
-    }
-    
-    /**
-     * Toutes les récoltes d'un mode explicite.
-     */
-    fun recoltesParMode(estProjection: Boolean): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesParMode(estProjection)
-    }
-    
-    /**
-     * Poids total récolté pour le mode actif.
-     */
-    fun poidsTotalDuModeActif(): Flow<Double> {
-        return recolteDao.getPoidsTotalParMode(estProjectionDuModeActif())
-    }
-    
-    /**
-     * Poids total récolté pour un mode explicite.
-     */
-    fun poidsTotalParMode(estProjection: Boolean): Flow<Double> {
-        return recolteDao.getPoidsTotalParMode(estProjection)
-    }
-    
-    // ============================================================
-    // LECTURE — par identifiant / comptage
-    // ============================================================
-    
-    suspend fun getRecolteParId(id: Long): RecolteEntity? {
-        return recolteDao.getRecolteParId(id)
-    }
-    
-    fun countRecoltes(): Flow<Int> {
-        return recolteDao.countRecoltes()
-    }
-    
-    fun countRecoltesDuModeActif(): Flow<Int> {
-        return recolteDao.countRecoltesParMode(estProjectionDuModeActif())
-    }
-    
-    // ============================================================
-    // LECTURE — par légume
-    // ============================================================
-    
-    fun getRecoltesPourLegume(legumeNom: String): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesPourLegume(legumeNom)
-    }
-    
-    fun getPoidsTotalPourLegume(legumeNom: String): Flow<Double> {
-        return recolteDao.getPoidsTotalPourLegume(legumeNom)
-    }
-    
-    // ============================================================
-    // LECTURE — par culture d'origine
-    // ============================================================
-    
-    fun getRecoltesPourCulture(cultureId: Long): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesPourCulture(cultureId)
-    }
-    
-    // ============================================================
-    // LECTURE — par période
-    // ============================================================
-    
-    fun getRecoltesEntreDates(debut: Long, fin: Long): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesEntreDates(debut, fin)
-    }
-    
-    fun getPoidsTotalEntreDates(debut: Long, fin: Long): Flow<Double> {
-        return recolteDao.getPoidsTotalEntreDates(debut, fin)
-    }
-    
-    // ============================================================
-    // LECTURE — par source
-    // ============================================================
-    
-    fun getRecoltesLieesAUneCulture(): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesLieesAUneCulture()
-    }
-    
-    fun getRecoltesManuelles(): Flow<List<RecolteEntity>> {
-        return recolteDao.getRecoltesManuelles()
-    }
-    
-    // ============================================================
-    // ÉCRITURE — ajout
-    // ============================================================
-    
-    /**
-     * Ajoute une récolte manuellement.
-     * 
-     * ⚠️ Le mode (`estProjection`) est automatiquement forcé sur le mode actif
-     *    au moment de l'ajout. Cela garantit que la récolte apparaît bien dans
-     *    l'onglet du mode en cours.
-     * 
-     * Utilisé par le bouton "+" de l'onglet Récoltes (achat marché, don,
-     * cueillette sauvage, etc.).
-     * 
-     * @param recolte RecolteEntity (sans id, estProjection ignoré)
-     * @return ID de la récolte créée
-     */
-    suspend fun ajouterRecolte(recolte: RecolteEntity): Long {
-        val recolteModee = recolte.copy(estProjection = estProjectionDuModeActif())
-        return recolteDao.insertRecolte(recolteModee)
-    }
-    
-    /**
-     * Ajoute une récolte liée à une culture (appelée par CultureRepository).
-     * 
-     * ⚠️ La récolte hérite du mode de la culture source (projection ou réel).
-     *    C'est indispensable pour que les récoltes d'une culture en mode réel
-     *    restent en mode réel et inversement.
-     * 
-     * ⚠️ En usage normal, c'est `CultureRepository.terminerAvecRecolte()`
-     *    qu'on appelle. Cette méthode existe pour un cas particulier.
-     */
-    suspend fun ajouterRecoltePourCulture(
-        culture: CultureEntity,
-        poidsKg: Double,
-        notes: String? = null
-    ): Long {
-        val recolte = RecolteEntity(
-            legumeNom = culture.legumeNom,
-            varieteNom = culture.varieteNom,
-            emoji = culture.emoji,
-            poidsKg = poidsKg,
-            dateRecolte = System.currentTimeMillis(),
-            cultureId = culture.id,
-            estProjection = culture.estProjection,
-            notes = notes
+    // Fiche détail d'une récolte
+    if (recolteSelectionnee != null) {
+        FicheRecolte(
+            recolte = recolteSelectionnee!!,
+            repository = repository,
+            onBack = { recolteSelectionnee = null }
         )
-        return recolteDao.insertRecolte(recolte)
+        return
     }
     
-    // ============================================================
-    // ÉCRITURE — modification
-    // ============================================================
-    
-    /**
-     * Met à jour une récolte existante.
-     */
-    suspend fun mettreAJourRecolte(recolte: RecolteEntity) {
-        recolteDao.updateRecolte(recolte)
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (recoltes.isEmpty()) {
+            // Écran vide
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("🥕", style = MaterialTheme.typography.displayLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Aucune récolte",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = CouleursApp.TexteFonce
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    if (modeReel) {
+                        "Les récoltes réelles apparaissent ici quand tu récoltes une culture en mode réel. Tu peux aussi en ajouter manuellement."
+                    } else {
+                        "Les récoltes projetées apparaissent ici quand tu simules une récolte. Bascule en mode réel pour enregistrer tes vraies récoltes."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = LayoutConstantes.PADDING_BAS_FAB)
+            ) {
+                // Résumé : poids total (du mode actif)
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = CouleursApp.VertPale),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "🏆 Total récolté",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = CouleursApp.VertPrincipal
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BadgeMode(modeReel = modeReel)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                String.format("%.3f", poidsTotal).replace(".", ",") + " kg",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = CouleursApp.TexteFonce
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "${recoltes.size} récolte(s) ${if (modeReel) "réelle(s)" else "projetée(s)"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
+                // Liste des récoltes
+                items(recoltes, key = { it.id }) { recolte ->
+                    CarteRecolte(
+                        recolte = recolte,
+                        onClick = { recolteSelectionnee = recolte }
+                    )
+                }
+            }
+        }
+        
+        // FAB d'ajout manuel
+        FloatingActionButton(
+            onClick = { showAjoutDialog = true },
+            containerColor = CouleursApp.VertClair,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = LayoutConstantes.PADDING_BAS_FAB)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Ajouter une récolte")
+        }
     }
     
-    /**
-     * Met à jour uniquement le poids d'une récolte.
-     */
-    suspend fun mettreAJourPoids(recolteId: Long, poidsKg: Double) {
-        recolteDao.updatePoids(recolteId, poidsKg)
+    // Dialogue d'ajout manuel
+    if (showAjoutDialog) {
+        DialogAjoutRecolte(
+            repository = repository,
+            onDismiss = { showAjoutDialog = false },
+            onRecolteAjoutee = { showAjoutDialog = false }
+        )
+    }
+}
+
+/**
+ * Petit badge indiquant le mode actif (projection ou réel).
+ */
+@Composable
+private fun BadgeMode(modeReel: Boolean) {
+    val (texte, couleur) = if (modeReel) {
+        "🌱 Réel" to CouleursApp.VertPrincipal
+    } else {
+        "🧪 Projection" to CouleursApp.TexteFonce.copy(alpha = 0.6f)
     }
     
-    /**
-     * Met à jour uniquement les notes d'une récolte.
-     */
-    suspend fun mettreAJourNotes(recolteId: Long, notes: String?) {
-        recolteDao.updateNotes(recolteId, notes)
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = couleur.copy(alpha = 0.15f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            texte,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = couleur,
+            fontWeight = FontWeight.Bold
+        )
     }
+}
+
+/**
+ * Carte d'une récolte dans la liste.
+ */
+@Composable
+fun CarteRecolte(
+    recolte: RecolteEntity,
+    onClick: () -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.FRANCE) }
     
-    /**
-     * Bascule le mode d'une récolte (rarement utilisé).
-     */
-    suspend fun mettreAJourMode(recolteId: Long, estProjection: Boolean) {
-        recolteDao.updateMode(recolteId, estProjection)
-    }
-    
-    // ============================================================
-    // ÉCRITURE — suppression
-    // ============================================================
-    
-    /**
-     * Supprime une récolte.
-     * 
-     * ⚠️ Si la récolte est liée à une culture terminée, la culture n'est
-     *    PAS rétablie (l'historique reste : la culture a bien été récoltée).
-     */
-    suspend fun supprimerRecolte(recolte: RecolteEntity) {
-        recolteDao.deleteRecolte(recolte)
-    }
-    
-    suspend fun supprimerRecolteParId(id: Long) {
-        recolteDao.deleteRecolteParId(id)
-    }
-    
-    // ============================================================
-    // STATISTIQUES
-    // ============================================================
-    
-    suspend fun getLegumesRecoltes(): List<String> {
-        return recolteDao.getLegumesRecoltes()
-    }
-    
-    suspend fun getPoidsTotalParLegume(): List<LegumePoidsTotal> {
-        return recolteDao.getPoidsTotalParLegume()
-    }
-    
-    suspend fun getPoidsTotalParLegumeParMode(estProjection: Boolean): List<LegumePoidsTotal> {
-        return recolteDao.getPoidsTotalParLegumeParMode(estProjection)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(recolte.emoji, style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                // Ligne 1 : Nom + variété
+                val titreComplet = if (recolte.varieteNom != null) {
+                    "${recolte.legumeNom} (${recolte.varieteNom})"
+                } else {
+                    recolte.legumeNom
+                }
+                Text(
+                    titreComplet,
+                    fontWeight = FontWeight.Bold,
+                    color = CouleursApp.TexteFonce,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                
+                // Ligne 2 : poids (en gros)
+                Text(
+                    "⚖️ ${recolte.poidsTexte()}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = CouleursApp.VertPrincipal,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                // Ligne 3 : source (auto / manuel) + mode discret
+                val sourceTexte = if (recolte.estLieeAUneCulture()) "🌱 Récolté au jardin" else "🛒 Ajout manuel"
+                val modeTexte = if (recolte.estProjection) " · 🧪" else " · 🌱"
+                Text(
+                    sourceTexte + modeTexte,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
+                )
+                
+                // Ligne 4 : date
+                Text(
+                    "Le ${dateFormat.format(Date(recolte.dateRecolte))}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.5f)
+                )
+            }
+            Text(
+                "›",
+                style = MaterialTheme.typography.titleLarge,
+                color = CouleursApp.VertPrincipal
+            )
+        }
     }
 }
