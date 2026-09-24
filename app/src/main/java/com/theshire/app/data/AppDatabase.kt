@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Base de données Room de l'application TheShire.
@@ -18,10 +16,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *              des jeunes plants promus (ou achetés).
  * Version 16 : ajout de CultureEntity (cultures en pleine terre et en urbain)
  *              et de RecolteEntity (récoltes en kg, 4e onglet de Stocks).
- * Version 17 : ajout du champ estProjection à RecolteEntity
- *              pour filtrer les récoltes par mode (projection/réel).
- *              Toutes les récoltes existantes sont marquées "projetées"
- *              (estProjection = 1) par défaut.
+ *
+ * ⚠️ fallbackToDestructiveMigration est activé : les données sont perdues
+ * à chaque changement de version. À désactiver / migrer proprement avant prod.
  */
 @Database(
     entities = [
@@ -39,7 +36,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CultureEntity::class,
         RecolteEntity::class
     ],
-    version = 17,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -58,28 +55,6 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
         
-        /**
-         * Migration v16 → v17.
-         * 
-         * Ajoute la colonne `estProjection` à la table `recoltes`.
-         * Valeur par défaut : 1 (true) → toutes les récoltes existantes
-         * sont considérées comme "projetées" (cohérent avec le mode par défaut).
-         * 
-         * Ajoute aussi l'index correspondant pour accélérer les requêtes filtrées.
-         */
-        private val MIGRATION_16_17 = object : Migration(16, 17) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                // Ajout de la colonne estProjection avec valeur par défaut 1 (true)
-                db.execSQL(
-                    "ALTER TABLE recoltes ADD COLUMN estProjection INTEGER NOT NULL DEFAULT 1"
-                )
-                // Index pour accélérer les requêtes filtrées par mode
-                db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS index_recoltes_estProjection ON recoltes(estProjection)"
-                )
-            }
-        }
-        
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -87,9 +62,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "potager_db"
                 )
-                .addMigrations(MIGRATION_16_17)
-                // ⚠️ On garde fallbackToDestructiveMigration en sécurité,
-                //    mais les migrations explicites sont prioritaires.
                 .fallbackToDestructiveMigration()
                 .allowMainThreadQueries()
                 .build()
