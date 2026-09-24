@@ -18,6 +18,11 @@ import kotlinx.coroutines.flow.Flow
  *  - Les statistiques futures (poids total par légume, par année…)
  *
  * Toutes les quantités sont en kilogrammes (double).
+ *
+ * ⚠️ MODE PROJECTION vs RÉEL :
+ *    Le champ `estProjection` permet de filtrer les récoltes selon le mode
+ *    actif (comme pour CultureEntity). Les requêtes de base retournent TOUT ;
+ *    les variantes "ParMode" filtrent sur `estProjection = :estProjection`.
  */
 @Dao
 interface RecolteDao {
@@ -37,6 +42,28 @@ interface RecolteDao {
     
     @Query("SELECT COUNT(*) FROM recoltes")
     fun countRecoltes(): Flow<Int>
+    
+    // ============================================================
+    // LECTURE — par mode (projection / réel)
+    // ============================================================
+    
+    /**
+     * Toutes les récoltes d'un mode donné, triées par date décroissante.
+     * 
+     * @param estProjection true → récoltes "projetées", false → récoltes "réelles"
+     */
+    @Query(
+        "SELECT * FROM recoltes " +
+        "WHERE estProjection = :estProjection " +
+        "ORDER BY dateRecolte DESC"
+    )
+    fun getRecoltesParMode(estProjection: Boolean): Flow<List<RecolteEntity>>
+    
+    /**
+     * Compte les récoltes d'un mode donné.
+     */
+    @Query("SELECT COUNT(*) FROM recoltes WHERE estProjection = :estProjection")
+    fun countRecoltesParMode(estProjection: Boolean): Flow<Int>
     
     // ============================================================
     // LECTURE — par légume
@@ -63,6 +90,15 @@ interface RecolteDao {
      */
     @Query("SELECT COALESCE(SUM(poidsKg), 0.0) FROM recoltes")
     fun getPoidsTotalGlobal(): Flow<Double>
+    
+    /**
+     * Poids total récolté pour un mode donné.
+     */
+    @Query(
+        "SELECT COALESCE(SUM(poidsKg), 0.0) FROM recoltes " +
+        "WHERE estProjection = :estProjection"
+    )
+    fun getPoidsTotalParMode(estProjection: Boolean): Flow<Double>
     
     // ============================================================
     // LECTURE — par culture d'origine
@@ -151,6 +187,13 @@ interface RecolteDao {
     @Query("DELETE FROM recoltes WHERE cultureId = :cultureId")
     suspend fun deleteRecoltesPourCulture(cultureId: Long)
     
+    /**
+     * Supprime toutes les récoltes d'un mode donné.
+     * (usage debug / reset sélectif)
+     */
+    @Query("DELETE FROM recoltes WHERE estProjection = :estProjection")
+    suspend fun deleteRecoltesParMode(estProjection: Boolean)
+    
     @Query("DELETE FROM recoltes")
     suspend fun deleteAllRecoltes()
     
@@ -169,6 +212,12 @@ interface RecolteDao {
      */
     @Query("UPDATE recoltes SET notes = :notes WHERE id = :id")
     suspend fun updateNotes(id: Long, notes: String?)
+    
+    /**
+     * Bascule le mode d'une récolte (utile pour migration ou correction).
+     */
+    @Query("UPDATE recoltes SET estProjection = :estProjection WHERE id = :id")
+    suspend fun updateMode(id: Long, estProjection: Boolean)
     
     // ============================================================
     // STATISTIQUES (préparation pour plus tard)
@@ -191,6 +240,18 @@ interface RecolteDao {
         "ORDER BY total DESC"
     )
     suspend fun getPoidsTotalParLegume(): List<LegumePoidsTotal>
+    
+    /**
+     * Récupère le poids total groupé par légume, pour un mode donné.
+     */
+    @Query(
+        "SELECT legumeNom, SUM(poidsKg) as total " +
+        "FROM recoltes " +
+        "WHERE estProjection = :estProjection " +
+        "GROUP BY legumeNom " +
+        "ORDER BY total DESC"
+    )
+    suspend fun getPoidsTotalParLegumeParMode(estProjection: Boolean): List<LegumePoidsTotal>
 }
 
 /**
