@@ -172,7 +172,7 @@ class CultureRepository(context: Context) {
             val id = cultureDao.insertCulture(cultureMarquee)
             return ResultatCreationCulture.Succes(
                 id = id,
-                stockDecremente = false,
+                stockDecrementee = false,
                 modeReel = false
             )
         }
@@ -186,7 +186,7 @@ class CultureRepository(context: Context) {
             val id = cultureDao.insertCulture(cultureMarquee)
             return ResultatCreationCulture.Succes(
                 id = id,
-                stockDecremente = false,
+                stockDecrementee = false,
                 modeReel = true
             )
         }
@@ -234,7 +234,7 @@ class CultureRepository(context: Context) {
             val id = cultureDao.insertCulture(cultureMarquee)
             return ResultatCreationCulture.Succes(
                 id = id,
-                stockDecremente = true,
+                stockDecrementee = true,
                 modeReel = true
             )
         }
@@ -281,7 +281,7 @@ class CultureRepository(context: Context) {
             val id = cultureDao.insertCulture(cultureMarquee)
             return ResultatCreationCulture.Succes(
                 id = id,
-                stockDecremente = true,
+                stockDecrementee = true,
                 modeReel = true
             )
         }
@@ -305,6 +305,16 @@ class CultureRepository(context: Context) {
         cultureDao.terminerCultures(cultureIds, null)
     }
     
+    /**
+     * Termine une culture avec récolte.
+     * 
+     * ⚠️ La récolte créée hérite du MODE de la culture source :
+     *    - culture.estProjection = true  → récolte projetée
+     *    - culture.estProjection = false → récolte réelle
+     * 
+     * Cela garantit la cohérence : les récoltes d'une culture en mode
+     * réel restent en mode réel, et inversement.
+     */
     suspend fun terminerAvecRecolte(
         cultureId: Long,
         poidsKg: Double,
@@ -322,6 +332,7 @@ class CultureRepository(context: Context) {
             poidsKg = poidsKg,
             dateRecolte = maintenant,
             cultureId = culture.id,
+            estProjection = culture.estProjection,   // ⭐ HÉRITAGE DU MODE
             notes = notes
         )
         val recolteId = recolteDao.insertRecolte(recolte)
@@ -371,7 +382,7 @@ sealed class ResultatCreationCulture {
     
     data class Succes(
         val id: Long,
-        val stockDecremente: Boolean,
+        val stockDecrementee: Boolean,
         val modeReel: Boolean
     ) : ResultatCreationCulture()
     
