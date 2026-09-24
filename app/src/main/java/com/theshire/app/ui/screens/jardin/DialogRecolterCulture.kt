@@ -33,8 +33,12 @@ import kotlinx.coroutines.launch
  *  - Crée une RecolteEntity (via CultureRepository.terminerAvecRecolte)
  *  - Marque la culture comme terminée (estActive = false, dateRecolteReelle = now)
  * 
- * La culture disparaît ensuite de la grille / de la liste des emplacements,
- * et la récolte apparaît dans le 4e onglet Stocks.
+ * ⚠️ La récolte créée hérite du mode de la culture source :
+ *    - Culture en mode projection → récolte "projetée" (estProjection = true)
+ *    - Culture en mode réel       → récolte "réelle" (estProjection = false)
+ * 
+ * La culture disparaît ensuite de la grille / de la liste des emplacements
+ * (pour le mode actif), et la récolte apparaît dans le 4e onglet Stocks.
  */
 @Composable
 fun DialogRecolterCulture(
@@ -72,6 +76,15 @@ fun DialogRecolterCulture(
                     culture.libelleLocalisation(),
                     style = MaterialTheme.typography.bodySmall,
                     color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Indicateur de mode hérité de la culture
+                Text(
+                    if (culture.estProjection) "🧪 Récolte projetée" else "🌱 Récolte réelle",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.TexteFonce.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 
