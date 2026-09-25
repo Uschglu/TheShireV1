@@ -15,11 +15,17 @@ import kotlinx.coroutines.flow.Flow
  * - CRUD pour les contenants
  * - CRUD pour les emplacements
  * - Requêtes avec Flow pour l'observation Compose
+ * 
+ * ⚠️ TOURS EMPILABLES (v19) :
+ *    Les emplacements peuvent être rattachés à un ÉTAGE (etageId).
+ *    Requêtes spécifiques par étage fournies.
  */
 @Dao
 interface ContenantDao {
     
-    // ===== CONTENANTS =====
+    // ============================================================
+    // CONTENANTS
+    // ============================================================
     
     /**
      * Récupère tous les contenants, triés par date de création décroissante.
@@ -69,10 +75,13 @@ interface ContenantDao {
     @Query("DELETE FROM contenants WHERE id = :id")
     suspend fun deleteContenantParId(id: Long)
     
-    // ===== EMPLACEMENTS =====
+    // ============================================================
+    // EMPLACEMENTS — génériques
+    // ============================================================
     
     /**
-     * Récupère tous les emplacements d'un contenant, triés par numéro.
+     * Récupère TOUS les emplacements d'un contenant, triés par numéro.
+     * (Y compris les emplacements rattachés à des étages.)
      */
     @Query("SELECT * FROM emplacements_contenants WHERE contenantId = :contenantId ORDER BY numero ASC")
     fun getEmplacementsPourContenant(contenantId: Long): Flow<List<EmplacementContenantEntity>>
@@ -90,7 +99,7 @@ interface ContenantDao {
     suspend fun getEmplacementParId(id: Long): EmplacementContenantEntity?
     
     /**
-     * Compte le nombre d'emplacements d'un contenant.
+     * Compte le nombre d'emplacements d'un contenant (tous étages confondus).
      */
     @Query("SELECT COUNT(*) FROM emplacements_contenants WHERE contenantId = :contenantId")
     suspend fun countEmplacementsPourContenant(contenantId: Long): Int
@@ -100,6 +109,89 @@ interface ContenantDao {
      */
     @Query("SELECT COUNT(*) FROM emplacements_contenants WHERE contenantId = :contenantId AND legumeNom IS NOT NULL")
     suspend fun countEmplacementsOccupes(contenantId: Long): Int
+    
+    // ============================================================
+    // EMPLACEMENTS — directs (contenants non-tour, etageId IS NULL)
+    // ============================================================
+    
+    /**
+     * Récupère les emplacements DIRECTS d'un contenant
+     * (non rattachés à un étage, donc pour les contenants non-tour).
+     */
+    @Query(
+        "SELECT * FROM emplacements_contenants " +
+        "WHERE contenantId = :contenantId AND etageId IS NULL " +
+        "ORDER BY numero ASC"
+    )
+    fun getEmplacementsDirectsPourContenant(contenantId: Long): Flow<List<EmplacementContenantEntity>>
+    
+    /**
+     * Version synchrone des emplacements directs.
+     */
+    @Query(
+        "SELECT * FROM emplacements_contenants " +
+        "WHERE contenantId = :contenantId AND etageId IS NULL " +
+        "ORDER BY numero ASC"
+    )
+    suspend fun getEmplacementsDirectsPourContenantSync(contenantId: Long): List<EmplacementContenantEntity>
+    
+    /**
+     * Compte les emplacements directs (non-tour).
+     */
+    @Query(
+        "SELECT COUNT(*) FROM emplacements_contenants " +
+        "WHERE contenantId = :contenantId AND etageId IS NULL"
+    )
+    suspend fun countEmplacementsDirects(contenantId: Long): Int
+    
+    // ============================================================
+    // EMPLACEMENTS — par étage (tours)
+    // ============================================================
+    
+    /**
+     * Récupère les emplacements d'un étage donné.
+     */
+    @Query(
+        "SELECT * FROM emplacements_contenants " +
+        "WHERE etageId = :etageId " +
+        "ORDER BY numero ASC"
+    )
+    fun getEmplacementsPourEtage(etageId: Long): Flow<List<EmplacementContenantEntity>>
+    
+    /**
+     * Version synchrone des emplacements d'un étage.
+     */
+    @Query(
+        "SELECT * FROM emplacements_contenants " +
+        "WHERE etageId = :etageId " +
+        "ORDER BY numero ASC"
+    )
+    suspend fun getEmplacementsPourEtageSync(etageId: Long): List<EmplacementContenantEntity>
+    
+    /**
+     * Compte le nombre d'emplacements d'un étage.
+     */
+    @Query("SELECT COUNT(*) FROM emplacements_contenants WHERE etageId = :etageId")
+    suspend fun countEmplacementsPourEtage(etageId: Long): Int
+    
+    /**
+     * Compte le nombre d'emplacements occupés d'un étage.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM emplacements_contenants " +
+        "WHERE etageId = :etageId AND legumeNom IS NOT NULL"
+    )
+    suspend fun countEmplacementsOccupesPourEtage(etageId: Long): Int
+    
+    /**
+     * Supprime tous les emplacements d'un étage.
+     */
+    @Query("DELETE FROM emplacements_contenants WHERE etageId = :etageId")
+    suspend fun deleteEmplacementsPourEtage(etageId: Long)
+    
+    // ============================================================
+    // EMPLACEMENTS — écriture
+    // ============================================================
     
     /**
      * Insère un nouvel emplacement et retourne son ID.
@@ -137,10 +229,22 @@ interface ContenantDao {
     @Query("DELETE FROM emplacements_contenants WHERE contenantId = :contenantId")
     suspend fun deleteEmplacementsPourContenant(contenantId: Long)
     
-    // ===== REQUÊTES UTILITAIRES =====
+    // ============================================================
+    // EMPLACEMENTS — opérations métier
+    // ============================================================
     
     /**
-     * Récupère tous les emplacements (toutes contenants confondus).
+     * Rattache un emplacement à un étage.
+     */
+    @Query("UPDATE emplacements_contenants SET etageId = :etageId WHERE id = :id")
+    suspend fun updateEtageIdPourEmplacement(id: Long, etageId: Long?)
+    
+    // ============================================================
+    // REQUÊTES UTILITAIRES
+    // ============================================================
+    
+    /**
+     * Récupère tous les emplacements (tous contenants confondus).
      */
     @Query("SELECT * FROM emplacements_contenants ORDER BY contenantId ASC, numero ASC")
     fun getAllEmplacements(): Flow<List<EmplacementContenantEntity>>
@@ -161,7 +265,11 @@ interface ContenantDao {
      * Récupère tous les emplacements d'un légume donné (pour retrouver
      * où une plante est installée).
      */
-    @Query("SELECT * FROM emplacements_contenants WHERE legumeNom LIKE :legumeNom || '%' ORDER BY datePlantation DESC")
+    @Query(
+        "SELECT * FROM emplacements_contenants " +
+        "WHERE legumeNom LIKE :legumeNom || '%' " +
+        "ORDER BY datePlantation DESC"
+    )
     suspend fun getEmplacementsPourLegume(legumeNom: String): List<EmplacementContenantEntity>
     
     /**
