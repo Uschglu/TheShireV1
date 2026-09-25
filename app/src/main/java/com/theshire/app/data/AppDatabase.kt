@@ -22,6 +22,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *              pour filtrer les récoltes par mode (projection/réel).
  *              Toutes les récoltes existantes sont marquées "projetées"
  *              (estProjection = 1) par défaut.
+ * Version 18 : ajout de EtageEntity (étages des tours empilables).
+ *              Chaque étage d'une tour est indépendant (emplacements,
+ *              cultures, notes).
  */
 @Database(
     entities = [
@@ -37,9 +40,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         GraineEntity::class,
         JeunePlantEntity::class,
         CultureEntity::class,
-        RecolteEntity::class
+        RecolteEntity::class,
+        EtageEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -53,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun jeunePlantDao(): JeunePlantDao
     abstract fun cultureDao(): CultureDao
     abstract fun recolteDao(): RecolteDao
+    abstract fun etageDao(): EtageDao
     
     companion object {
         @Volatile
@@ -80,6 +85,52 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * Migration v17 → v18.
+         * 
+         * Crée la table `etages` pour les étages des tours empilables.
+         * 
+         * Structure :
+         *  - id (PK auto)
+         *  - contenantId (FK vers contenants, CASCADE)
+         *  - numero (ordre dans la tour)
+         *  - forme ("rond" par défaut)
+         *  - nombreEmplacements (0 = non initialisé)
+         *  - notes (vide par défaut)
+         *  - dateCreation
+         * 
+         * Index :
+         *  - Index sur contenantId (pour accès rapide aux étages d'une tour)
+         *  - Index unique sur (contenantId, numero) (un seul étage par position)
+         */
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Création de la table etages
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `etages` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contenantId` INTEGER NOT NULL,
+                        `numero` INTEGER NOT NULL,
+                        `forme` TEXT NOT NULL DEFAULT 'rond',
+                        `nombreEmplacements` INTEGER NOT NULL DEFAULT 0,
+                        `notes` TEXT NOT NULL DEFAULT '',
+                        `dateCreation` INTEGER NOT NULL,
+                        FOREIGN KEY(`contenantId`) REFERENCES `contenants`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                // Index sur contenantId
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_etages_contenantId` ON `etages` (`contenantId`)"
+                )
+                // Index unique sur (contenantId, numero)
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_etages_contenantId_numero` ON `etages` (`contenantId`, `numero`)"
+                )
+            }
+        }
+        
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -87,7 +138,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "potager_db"
                 )
-                .addMigrations(MIGRATION_16_17)
+                .addMigrations(MIGRATION_16_17, MIGRATION_17_18)
                 // ⚠️ On garde fallbackToDestructiveMigration en sécurité,
                 //    mais les migrations explicites sont prioritaires.
                 .fallbackToDestructiveMigration()
