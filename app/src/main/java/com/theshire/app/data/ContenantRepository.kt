@@ -14,11 +14,18 @@ import kotlinx.coroutines.sync.withLock
  *   CultureEntity et décrément du stock source en mode réel)
  * - Les associations de culture au sein d'un même contenant
  * - La suppression en cascade
+ * 
+ * ⚠️ TOURS EMPILABLES (v18) :
+ *    Les contenants de type "tour" possèdent des ÉTAGES (EtageEntity).
+ *    Chaque étage est indépendant (peut avoir sa propre culture).
+ *    Les étages sont créés automatiquement à la création de la tour
+ *    (nombreEtages) et supprimés en cascade avec le contenant.
  */
 class ContenantRepository(context: Context) {
     
     private val appContext = context.applicationContext
     private val contenantDao = AppDatabase.getDatabase(context).contenantDao()
+    private val etageDao = AppDatabase.getDatabase(context).etageDao()
     private val legumeDao = AppDatabase.getDatabase(context).legumeDao()
     
     private val rappelCulturelRepository = RappelCulturelRepository(context)
@@ -26,6 +33,9 @@ class ContenantRepository(context: Context) {
     
     companion object {
         private val mutexCreation = Mutex()
+        
+        /** Type de contenant "tour" (pour accès rapide). */
+        const val TYPE_TOUR = "tour"
     }
     
     // ============================================================
@@ -42,6 +52,13 @@ class ContenantRepository(context: Context) {
         return contenantDao.getAllContenantsSync()
     }
     
+    /**
+     * Crée un nouveau contenant.
+     * 
+     * ⚠️ Si le type est "tour", les N étages sont créés automatiquement.
+     * 
+     * @param nombreEtages Utilisé UNIQUEMENT si type == "tour" (ignoré sinon)
+     */
     suspend fun creerContenant(
         nom: String,
         type: String,
@@ -65,7 +82,30 @@ class ContenantRepository(context: Context) {
                 milieu = milieu,
                 notes = notes
             )
-            return contenantDao.insertContenant(contenant)
+            val contenantId = contenantDao.insertContenant(contenant)
+            
+            // ⭐ Si c'est une tour, créer automatiquement les N étages
+            if (type == TYPE_TOUR && nombreEtages > 0) {
+                val etages = (1..nombreEtages).map { numero ->
+                    EtageEntity(
+                        contenantId = contenantId,
+                        numero = numero,
+                        forme = EtageEntity.FORME_ROND,
+                        nombreEmplacements = 0,  // Sera défini à la 1ère plantation
+                        notes = ""
+                    )
+                }
+                try {
+                    etageDao.insertEtages(etages)
+                } catch (e: Exception) {
+                    // En cas d'échec de création des étages, on supprime le contenant
+                    // pour ne pas laisser un état incohérent.
+                    contenantDao.deleteContenantParId(contenantId)
+                    throw e
+                }
+            }
+            
+            return contenantId
         }
     }
     
@@ -98,17 +138,106 @@ class ContenantRepository(context: Context) {
     }
     
     suspend fun supprimerContenant(contenant: ContenantEntity) {
+        // 1. Supprimer les rappels culturaux du contenant
         try {
             rappelCulturelRepository.supprimerRappelsPourContenant(contenant.id)
         } catch (e: Exception) {
+            // Silencieux : les rappels peuvent ne pas exister
         }
         
+        // 2. Terminer les cultures liées au contenant
         try {
             cultureRepository.supprimerCulturesPourContenant(contenant.id)
         } catch (e: Exception) {
+            // Silencieux
         }
         
+        // 3. Supprimer explicitement les étages
+        // (le CASCADE le ferait, mais on est explicites pour la clarté)
+        try {
+            etageDao.deleteEtagesPourContenant(contenant.id)
+        } catch (e: Exception) {
+            // Silencieux
+        }
+        
+        // 4. Supprimer le contenant (CASCADE sur emplacements_contenants)
         contenantDao.deleteContenant(contenant)
+    }
+    
+    // ============================================================
+    // ÉTAGES (TOURS EMPILABLES)
+    // ============================================================
+    
+    /**
+     * Retourne true si le contenant est une tour (possède des étages).
+     */
+    fun estTour(contenant: ContenantEntity): Boolean {
+        return contenant.type == TYPE_TOUR
+    }
+    
+    /**
+     * Récupère les étages d'un contenant (flow réactif).
+     * Retourne une liste vide si le contenant n'est pas une tour.
+     */
+    fun getEtagesPourContenant(contenantId: Long): Flow<List<EtageEntity>> {
+        return etageDao.getEtagesPourContenant(contenantId)
+    }
+    
+    /**
+     * Version synchrone pour usage ponctuel.
+     */
+    suspend fun getEtagesSync(contenantId: Long): List<EtageEntity> {
+        return etageDao.getEtagesPourContenantSync(contenantId)
+    }
+    
+    /**
+     * Récupère un étage par son ID.
+     */
+    suspend fun getEtageParId(id: Long): EtageEntity? {
+        return etageDao.getEtageParId(id)
+    }
+    
+    /**
+     * Récupère un étage précis d'une tour par son numéro.
+     */
+    suspend fun getEtageParNumero(contenantId: Long, numero: Int): EtageEntity? {
+        return etageDao.getEtageParNumero(contenantId, numero)
+    }
+    
+    /**
+     * Compte le nombre d'étages d'un contenant.
+     */
+    suspend fun countEtages(contenantId: Long): Int {
+        return etageDao.countEtagesPourContenant(contenantId)
+    }
+    
+    /**
+     * Compte le nombre d'étages déjà initialisés (au moins une plantation).
+     */
+    suspend fun countEtagesInitialises(contenantId: Long): Int {
+        return etageDao.countEtagesInitialises(contenantId)
+    }
+    
+    /**
+     * Définit le nombre d'emplacements d'un étage (à la 1ère plantation).
+     * Une fois défini, ce nombre ne change plus automatiquement.
+     */
+    suspend fun definirNombreEmplacementsEtage(etageId: Long, nombre: Int) {
+        etageDao.definirNombreEmplacements(etageId, nombre)
+    }
+    
+    /**
+     * Modifie les notes d'un étage.
+     */
+    suspend fun modifierNotesEtage(etageId: Long, nouvellesNotes: String) {
+        etageDao.updateNotes(etageId, nouvellesNotes)
+    }
+    
+    /**
+     * Met à jour un étage (usage avancé).
+     */
+    suspend fun mettreAJourEtage(etage: EtageEntity) {
+        etageDao.updateEtage(etage)
     }
     
     // ============================================================
@@ -134,8 +263,10 @@ class ContenantRepository(context: Context) {
     /**
      * Plante une culture dans un emplacement d'un contenant.
      * 
-     * ⚠️ NOUVEAU : cette méthode crée désormais une CultureEntity en parallèle
-     *    de l'occupation de l'emplacement (pour lier la plantation au stock).
+     * ⚠️ NOTE v18 : cette méthode fonctionne sur le CONTENANT global.
+     *    Le support multi-étages (planter sur un étage précis d'une tour)
+     *    sera ajouté dans un prochain sous-lot, avec l'UI correspondante.
+     *    Pour l'instant, une tour est traitée comme un contenant unique.
      * 
      * @param context Context (nécessaire pour lire ModePreferences)
      * @param contenant Le contenant concerné
@@ -249,7 +380,7 @@ class ContenantRepository(context: Context) {
     /**
      * Vide un emplacement (retrait sans récolte).
      * 
-     * ⚠️ NOUVEAU : termine aussi la CultureEntity associée.
+     * ⚠️ Termine aussi la CultureEntity associée.
      */
     suspend fun viderEmplacement(emplacementId: Long) {
         val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
@@ -264,6 +395,7 @@ class ContenantRepository(context: Context) {
                 cultureRepository.terminerSansRecolte(cultureActive.id)
             }
         } catch (e: Exception) {
+            // Silencieux
         }
         
         // 2. Supprimer les rappels culturaux
