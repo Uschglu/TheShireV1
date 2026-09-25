@@ -792,3 +792,580 @@ fun FicheContenant(
                                             } else {
                                                 showMenuEmplacement = true
                                             }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            item {
+                Text(
+                    "🪴 Emplacements (${emplacementsFiltres.size})",
+                    fontWeight = FontWeight.Bold,
+                    color = CouleursApp.VertPrincipal,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            if (emplacementsFiltres.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = CouleursApp.Blanc),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Aucun emplacement pour l'instant",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CouleursApp.TexteFonce
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Plantez votre première plante : les emplacements seront créés automatiquement.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CouleursApp.TexteFonce.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    emplacementSelectionne = EmplacementContenantEntity(
+                                        contenantId = contenant.id,
+                                        numero = 1
+                                    )
+                                    showAjoutPlante = true
+                                },
+                                shape = RoundedCornerShape(28.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal)
+                            ) {
+                                Text("Planter")
+                            }
+                        }
+                    }
+                }
+            } else {
+                items(emplacementsFiltres, key = { it.id }) { emp ->
+                    CardEmplacement(
+                        emplacement = emp,
+                        couleur = couleurs[emp.numero],
+                        legumes = legumes,
+                        onClick = {
+                            val empFixe = emp
+                            emplacementSelectionne = empFixe
+                            if (empFixe.estVide()) {
+                                showAjoutPlante = true
+                            } else {
+                                scope.launch {
+                                    val cultureActive = cultureRepository.getCultureActiveDansEmplacementPourMode(
+                                        context = context,
+                                        contenantId = contenant.id,
+                                        emplacementNumero = empFixe.numero
+                                    )
+                                    if (cultureActive != null) {
+                                        cultureSelectionnee = cultureActive
+                                    } else {
+                                        showMenuEmplacement = true
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+            
+            if (contenant.notes.isNotEmpty()) {
+                item {
+                    InfoCard("📝 Notes", contenant.notes)
+                }
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(LayoutConstantes.PADDING_BAS_FAB))
+            }
+        }
+    }
+    
+    // ===== Dialogue 1 : choix de la plante =====
+    if (showAjoutPlante && emplacementSelectionne != null) {
+        val empCible = emplacementSelectionne!!
+        ChoixPlanteDialog(
+            contenant = contenant,
+            legumeRepository = legumeRepository,
+            legumes = legumes,
+            onPlanteChoisie = { legume ->
+                showAjoutPlante = false
+                legumeChoisi = legume
+                emplacementPourVariete = empCible
+                showVarieteSelection = true
+            },
+            onDismiss = {
+                showAjoutPlante = false
+                emplacementSelectionne = null
+            }
+        )
+    }
+    
+    // ===== Dialogue 2 : choix de la variété =====
+    if (showVarieteSelection && legumeChoisi != null && emplacementPourVariete != null) {
+        val legumeCible = legumeChoisi!!
+        val empCible = emplacementPourVariete!!
+        
+        VarieteSelectionDialog(
+            legumeNom = legumeCible.nom,
+            varieteRepository = varieteRepository,
+            onVarieteChoisie = { nomComplet ->
+                val variete = if (nomComplet.contains("(")) {
+                    nomComplet.substringAfter("(").substringBefore(")").trim()
+                } else {
+                    null
+                }
+                varieteChoisie = variete
+                showVarieteSelection = false
+                showChoixSourceStock = true
+            },
+            onDismiss = {
+                showVarieteSelection = false
+                legumeChoisi = null
+                varieteChoisie = null
+                emplacementPourVariete = null
+                emplacementSelectionne = null
+            }
+        )
+    }
+    
+    // ===== Dialogue 3 : choix de la source du stock =====
+    if (showChoixSourceStock && legumeChoisi != null && emplacementPourVariete != null) {
+        val legumeCible = legumeChoisi!!
+        val empCible = emplacementPourVariete!!
+        
+        DialogPlanterCulture(
+            legumeNom = legumeCible.nom,
+            emoji = getEmojiCategorieLegume(legumeCible.categorie),
+            varieteDejaChoisie = varieteChoisie,
+            onDismiss = {
+                showChoixSourceStock = false
+                legumeChoisi = null
+                varieteChoisie = null
+                emplacementPourVariete = null
+                emplacementSelectionne = null
+            },
+            onValider = { choix ->
+                showChoixSourceStock = false
+                
+                scope.launch {
+                    val associations = repository.verifierAssociationsContenant(
+                        contenant = contenant,
+                        numeroEmplacement = empCible.numero,
+                        legumeNom = choix.legumeNom
+                    )
+                    val mauvaises = associations.filter { it.second == "mauvaise" }
+                    
+                    if (mauvaises.isNotEmpty()) {
+                        avertissement = AvertissementRotation(
+                            niveau = NiveauRisque.MOYEN,
+                            message = "⚠️ Mauvaise association avec : ${mauvaises.joinToString(", ") { it.first }}"
+                        )
+                        legumeEnAttente = legumeCible.copy(nom = choix.legumeNom)
+                        emplacementSelectionne = empCible
+                        varieteChoisie = choix.varieteNom
+                        sourceEnAttente = choix
+                        showAvertissement = true
+                    } else {
+                        val resultat = repository.planterDansEmplacement(
+                            context = context,
+                            contenant = contenant,
+                            numeroEmplacement = empCible.numero,
+                            legumeNom = choix.legumeNom,
+                            legume = legumeCible,
+                            varieteNom = choix.varieteNom,
+                            emoji = choix.emoji,
+                            sourceStock = choix.sourceStock,
+                            sourceStockId = choix.sourceStockId
+                        )
+                        
+                        if (resultat !is ResultatPlantation.Succes) {
+                            erreurPlantation = resultat
+                        }
+                        
+                        legumeChoisi = null
+                        varieteChoisie = null
+                        emplacementPourVariete = null
+                        emplacementSelectionne = null
+                    }
+                }
+            }
+        )
+    }
+    
+    // ===== Dialogue 4 : menu emplacement occupé (fallback) =====
+    if (showMenuEmplacement && emplacementSelectionne != null) {
+        val empAUtiliser = emplacementSelectionne!!
+        AlertDialog(
+            onDismissRequest = { showMenuEmplacement = false },
+            title = { Text(empAUtiliser.legumeNom ?: "Emplacement", fontWeight = FontWeight.Bold) },
+            text = { Text("Que souhaitez-vous faire ?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = empAUtiliser.id
+                        showMenuEmplacement = false
+                        emplacementSelectionne = null
+                        scope.launch {
+                            repository.viderEmplacement(id)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("🗑️ Vider l'emplacement")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showMenuEmplacement = false
+                    emplacementSelectionne = null
+                }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // ===== Dialogue 5 : confirmation suppression contenant =====
+    if (showSuppression) {
+        val contenantASupprimer = contenant
+        AlertDialog(
+            onDismissRequest = { showSuppression = false },
+            title = { Text("Supprimer le contenant ?", fontWeight = FontWeight.Bold) },
+            text = { Text("Le contenant \"${contenant.nom}\" et tous ses emplacements seront supprimés.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuppression = false
+                        scope.launch {
+                            repository.supprimerContenant(contenantASupprimer)
+                        }
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Supprimer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuppression = false }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // ===== Dialogue 6 : avertissement association =====
+    if (showAvertissement && avertissement != null && legumeEnAttente != null && emplacementSelectionne != null) {
+        val av = avertissement!!
+        val legumeCible = legumeEnAttente!!
+        val empCible = emplacementSelectionne!!
+        val contenantFixe = contenant
+        val sourceSauvee = sourceEnAttente
+        
+        AlertDialog(
+            onDismissRequest = {
+                showAvertissement = false
+                avertissement = null
+                legumeEnAttente = null
+                emplacementSelectionne = null
+                legumeChoisi = null
+                varieteChoisie = null
+                emplacementPourVariete = null
+                sourceEnAttente = null
+            },
+            title = { Text("Avertissement", fontWeight = FontWeight.Bold) },
+            text = { Text(av.message) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val numero = empCible.numero
+                        
+                        showAvertissement = false
+                        avertissement = null
+                        legumeEnAttente = null
+                        emplacementSelectionne = null
+                        legumeChoisi = null
+                        varieteChoisie = null
+                        emplacementPourVariete = null
+                        sourceEnAttente = null
+                        
+                        if (sourceSauvee != null) {
+                            scope.launch {
+                                val resultat = repository.planterDansEmplacement(
+                                    context = context,
+                                    contenant = contenantFixe,
+                                    numeroEmplacement = numero,
+                                    legumeNom = sourceSauvee.legumeNom,
+                                    legume = legumeCible,
+                                    varieteNom = sourceSauvee.varieteNom,
+                                    emoji = sourceSauvee.emoji,
+                                    sourceStock = sourceSauvee.sourceStock,
+                                    sourceStockId = sourceSauvee.sourceStockId
+                                )
+                                
+                                if (resultat !is ResultatPlantation.Succes) {
+                                    erreurPlantation = resultat
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CouleursApp.VertPrincipal),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Planter quand même")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAvertissement = false
+                    avertissement = null
+                    legumeEnAttente = null
+                    emplacementSelectionne = null
+                    legumeChoisi = null
+                    varieteChoisie = null
+                    emplacementPourVariete = null
+                    sourceEnAttente = null
+                }) {
+                    Text("Annuler", color = CouleursApp.VertPrincipal)
+                }
+            }
+        )
+    }
+    
+    // ===== Dialogue 7 : erreur de plantation =====
+    if (erreurPlantation != null) {
+        DialogErreurPlantation(
+            resultat = erreurPlantation!!,
+            onDismiss = { erreurPlantation = null }
+        )
+    }
+}
+
+/**
+ * Ligne d'un étage dans la fiche d'une tour.
+ */
+@Composable
+fun LigneEtage(etage: EtageEntity) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CouleursApp.VertPale.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(CouleursApp.VertPrincipal, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "${etage.numero}",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                etage.libellePosition(),
+                fontWeight = FontWeight.Bold,
+                color = CouleursApp.TexteFonce,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            val sousTitre = if (etage.estInitialise()) {
+                "${etage.nombreEmplacements} emplacement(s)"
+            } else {
+                "Pas encore planté"
+            }
+            Text(
+                sousTitre,
+                style = MaterialTheme.typography.bodySmall,
+                color = CouleursApp.TexteFonce.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun CardEmplacement(
+    emplacement: EmplacementContenantEntity,
+    couleur: Color?,
+    legumes: List<LegumeEntity>,
+    onClick: () -> Unit
+) {
+    val couleurAffichee = couleur ?: CouleursApp.CaseVide
+    
+    val emoji = if (emplacement.estOccupe()) {
+        val nomBase = if (emplacement.legumeNom!!.contains("(")) emplacement.legumeNom.substringBefore("(").trim() else emplacement.legumeNom
+        val legume = legumes.find { it.nom == nomBase }
+        getEmojiCategorieLegume(legume?.categorie ?: "")
+    } else {
+        ""
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (emplacement.estVide()) CouleursApp.Blanc else couleurAffichee.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        if (emplacement.estVide()) CouleursApp.VertPrincipal.copy(alpha = 0.15f) else couleurAffichee,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (emplacement.estVide()) {
+                    Text(
+                        "${emplacement.numero}",
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.VertPrincipal,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                } else {
+                    Text(emoji, style = MaterialTheme.typography.titleLarge)
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                if (emplacement.estVide()) {
+                    Text(
+                        "Emplacement ${emplacement.numero} vide",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CouleursApp.TexteFonce.copy(alpha = 0.6f),
+                        fontStyle = FontStyle.Italic
+                    )
+                    Text(
+                        "Appuyez pour planter",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CouleursApp.VertPrincipal
+                    )
+                } else {
+                    Text(
+                        emplacement.legumeNom!!,
+                        fontWeight = FontWeight.Bold,
+                        color = CouleursApp.TexteFonce,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (emplacement.datePlantation != null) {
+                        val dateFormat = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.FRANCE)
+                        Text(
+                            "Planté le ${dateFormat.format(java.util.Date(emplacement.datePlantation!!))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CouleursApp.TexteFonce.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            Text("›", style = MaterialTheme.typography.titleLarge, color = CouleursApp.VertPrincipal)
+        }
+    }
+}
+
+@Composable
+fun ChoixPlanteDialog(
+    contenant: ContenantEntity,
+    legumeRepository: LegumeRepository,
+    legumes: List<LegumeEntity>,
+    onPlanteChoisie: (LegumeEntity) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(Unit) { legumeRepository.ajouterLegumesPredefinis() }
+    
+    val plantesFiltrees = legumes.filter {
+        searchQuery.isEmpty() || it.nom.contains(searchQuery, ignoreCase = true)
+    }.sortedBy { it.nom }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choisir une plante", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
+                Text(
+                    "${contenant.emoji} ${contenant.nom} · ${contenant.dimensionsTexte()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CouleursApp.VertPrincipal,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("🔍 Rechercher...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                ) {
+                    items(plantesFiltrees, key = { it.id }) { legume ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPlanteChoisie(legume) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    legume.nom,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CouleursApp.TexteFonce
+                                )
+                                Text(
+                                    "${legume.categorie} · ${legume.difficulte}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CouleursApp.VertPrincipal
+                                )
+                            }
+                            Text("›", style = MaterialTheme.typography.titleMedium, color = CouleursApp.VertPrincipal)
+                        }
+                        HorizontalDivider(color = CouleursApp.VertPale)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler", color = CouleursApp.VertPrincipal)
+            }
+        }
+    )
+}
