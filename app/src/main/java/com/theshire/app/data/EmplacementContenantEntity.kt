@@ -20,6 +20,15 @@ import androidx.room.PrimaryKey
  * 
  * Si legumeNom est null → emplacement vide (disponible)
  * 
+ * ⚠️ TOURS EMPILABLES (v19) :
+ *    Le champ `etageId` permet de rattacher un emplacement à un ÉTAGE
+ *    spécifique d'une tour :
+ *    - etageId = null  → emplacement d'un contenant non-tour (pot, bac...)
+ *    - etageId != null → emplacement d'un étage de tour
+ * 
+ *    Pour une tour, TOUS les emplacements ont un etageId non-null.
+ *    Pour les autres contenants, tous les emplacements ont etageId = null.
+ * 
  * NOTE : Les emplacements sont supprimés automatiquement si le contenant
  * est supprimé (ON DELETE CASCADE).
  */
@@ -33,13 +42,29 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["contenantId"])]
+    indices = [
+        Index(value = ["contenantId"]),
+        Index(value = ["etageId"])
+    ]
 )
 data class EmplacementContenantEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     
     // Lien vers le contenant parent
     val contenantId: Long,
+    
+    /**
+     * ID de l'étage auquel appartient cet emplacement.
+     * 
+     * - null  → contenant non-tour (pot, jardinière, bac...)
+     * - non-null → étage d'une tour
+     * 
+     * ⚠️ Pas de FK stricte vers EtageEntity : on reste souple pour
+     *    éviter les problèmes de cascade multiples. L'étage est
+     *    supprimé avec le contenant, et on nettoie les emplacements
+     *    manuellement dans le repository.
+     */
+    val etageId: Long? = null,
     
     // Position dans le contenant (1, 2, 3... pour l'ordre d'affichage)
     val numero: Int,
@@ -61,4 +86,9 @@ data class EmplacementContenantEntity(
      * Retourne true si l'emplacement est vide.
      */
     fun estVide(): Boolean = legumeNom == null
+    
+    /**
+     * Retourne true si l'emplacement appartient à un étage de tour.
+     */
+    fun appartientAUneTour(): Boolean = etageId != null
 }
