@@ -20,11 +20,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *              et de RecolteEntity (récoltes en kg, 4e onglet de Stocks).
  * Version 17 : ajout du champ estProjection à RecolteEntity
  *              pour filtrer les récoltes par mode (projection/réel).
- *              Toutes les récoltes existantes sont marquées "projetées"
- *              (estProjection = 1) par défaut.
+ *              Toutes les récoltes existantes sont marquées "projetées".
  * Version 18 : ajout de EtageEntity (étages des tours empilables).
- *              Chaque étage d'une tour est indépendant (emplacements,
- *              cultures, notes).
+ *              Chaque étage d'une tour est indépendant.
+ * Version 19 : ajout du champ etageId à EmplacementContenantEntity
+ *              pour rattacher les emplacements à un étage de tour.
+ *              Les emplacements existants restent à etageId = null
+ *              (contenants non-tour).
  */
 @Database(
     entities = [
@@ -43,7 +45,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RecolteEntity::class,
         EtageEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -68,17 +70,13 @@ abstract class AppDatabase : RoomDatabase() {
          * 
          * Ajoute la colonne `estProjection` à la table `recoltes`.
          * Valeur par défaut : 1 (true) → toutes les récoltes existantes
-         * sont considérées comme "projetées" (cohérent avec le mode par défaut).
-         * 
-         * Ajoute aussi l'index correspondant pour accélérer les requêtes filtrées.
+         * sont considérées comme "projetées".
          */
         private val MIGRATION_16_17 = object : Migration(16, 17) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Ajout de la colonne estProjection avec valeur par défaut 1 (true)
                 db.execSQL(
                     "ALTER TABLE recoltes ADD COLUMN estProjection INTEGER NOT NULL DEFAULT 1"
                 )
-                // Index pour accélérer les requêtes filtrées par mode
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_recoltes_estProjection ON recoltes(estProjection)"
                 )
@@ -89,23 +87,9 @@ abstract class AppDatabase : RoomDatabase() {
          * Migration v17 → v18.
          * 
          * Crée la table `etages` pour les étages des tours empilables.
-         * 
-         * Structure :
-         *  - id (PK auto)
-         *  - contenantId (FK vers contenants, CASCADE)
-         *  - numero (ordre dans la tour)
-         *  - forme ("rond" par défaut)
-         *  - nombreEmplacements (0 = non initialisé)
-         *  - notes (vide par défaut)
-         *  - dateCreation
-         * 
-         * Index :
-         *  - Index sur contenantId (pour accès rapide aux étages d'une tour)
-         *  - Index unique sur (contenantId, numero) (un seul étage par position)
          */
         private val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Création de la table etages
                 db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS `etages` (
@@ -120,13 +104,34 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
-                // Index sur contenantId
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_etages_contenantId` ON `etages` (`contenantId`)"
                 )
-                // Index unique sur (contenantId, numero)
                 db.execSQL(
                     "CREATE UNIQUE INDEX IF NOT EXISTS `index_etages_contenantId_numero` ON `etages` (`contenantId`, `numero`)"
+                )
+            }
+        }
+        
+        /**
+         * Migration v18 → v19.
+         * 
+         * Ajoute la colonne `etageId` à `emplacements_contenants` pour
+         * rattacher un emplacement à un étage d'une tour.
+         * 
+         * Colonne nullable, valeur par défaut NULL (les emplacements
+         * existants restent sur des contenants non-tour).
+         * 
+         * Ajoute aussi l'index correspondant.
+         */
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE emplacements_contenants ADD COLUMN etageId INTEGER DEFAULT NULL"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_emplacements_contenants_etageId " +
+                        "ON emplacements_contenants(etageId)"
                 )
             }
         }
@@ -138,7 +143,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "potager_db"
                 )
-                .addMigrations(MIGRATION_16_17, MIGRATION_17_18)
+                .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                 // ⚠️ On garde fallbackToDestructiveMigration en sécurité,
                 //    mais les migrations explicites sont prioritaires.
                 .fallbackToDestructiveMigration()
