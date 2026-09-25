@@ -15,11 +15,13 @@ import kotlinx.coroutines.sync.withLock
  * - Les associations de culture au sein d'un même contenant
  * - La suppression en cascade
  * 
- * ⚠️ TOURS EMPILABLES (v18) :
+ * ⚠️ TOURS EMPILABLES (v19) :
  *    Les contenants de type "tour" possèdent des ÉTAGES (EtageEntity).
- *    Chaque étage est indépendant (peut avoir sa propre culture).
- *    Les étages sont créés automatiquement à la création de la tour
- *    (nombreEtages) et supprimés en cascade avec le contenant.
+ *    Chaque étage est INDÉPENDANT : il a ses propres emplacements,
+ *    sa propre culture, son propre nombre d'emplacements.
+ *    
+ *    Pour les tours, TOUS les emplacements ont un etageId non-null.
+ *    Pour les autres contenants, tous les emplacements ont etageId = null.
  */
 class ContenantRepository(context: Context) {
     
@@ -91,15 +93,13 @@ class ContenantRepository(context: Context) {
                         contenantId = contenantId,
                         numero = numero,
                         forme = EtageEntity.FORME_ROND,
-                        nombreEmplacements = 0,  // Sera défini à la 1ère plantation
+                        nombreEmplacements = 0,
                         notes = ""
                     )
                 }
                 try {
                     etageDao.insertEtages(etages)
                 } catch (e: Exception) {
-                    // En cas d'échec de création des étages, on supprime le contenant
-                    // pour ne pas laisser un état incohérent.
                     contenantDao.deleteContenantParId(contenantId)
                     throw e
                 }
@@ -138,29 +138,31 @@ class ContenantRepository(context: Context) {
     }
     
     suspend fun supprimerContenant(contenant: ContenantEntity) {
-        // 1. Supprimer les rappels culturaux du contenant
+        // 1. Rappels culturaux
         try {
             rappelCulturelRepository.supprimerRappelsPourContenant(contenant.id)
         } catch (e: Exception) {
-            // Silencieux : les rappels peuvent ne pas exister
         }
         
-        // 2. Terminer les cultures liées au contenant
+        // 2. Cultures liées
         try {
             cultureRepository.supprimerCulturesPourContenant(contenant.id)
         } catch (e: Exception) {
-            // Silencieux
         }
         
-        // 3. Supprimer explicitement les étages
-        // (le CASCADE le ferait, mais on est explicites pour la clarté)
+        // 3. Emplacements (tous, y compris ceux d'étages)
+        try {
+            contenantDao.deleteEmplacementsPourContenant(contenant.id)
+        } catch (e: Exception) {
+        }
+        
+        // 4. Étages
         try {
             etageDao.deleteEtagesPourContenant(contenant.id)
         } catch (e: Exception) {
-            // Silencieux
         }
         
-        // 4. Supprimer le contenant (CASCADE sur emplacements_contenants)
+        // 5. Contenant
         contenantDao.deleteContenant(contenant)
     }
     
@@ -175,67 +177,38 @@ class ContenantRepository(context: Context) {
         return contenant.type == TYPE_TOUR
     }
     
-    /**
-     * Récupère les étages d'un contenant (flow réactif).
-     * Retourne une liste vide si le contenant n'est pas une tour.
-     */
     fun getEtagesPourContenant(contenantId: Long): Flow<List<EtageEntity>> {
         return etageDao.getEtagesPourContenant(contenantId)
     }
     
-    /**
-     * Version synchrone pour usage ponctuel.
-     */
     suspend fun getEtagesSync(contenantId: Long): List<EtageEntity> {
         return etageDao.getEtagesPourContenantSync(contenantId)
     }
     
-    /**
-     * Récupère un étage par son ID.
-     */
     suspend fun getEtageParId(id: Long): EtageEntity? {
         return etageDao.getEtageParId(id)
     }
     
-    /**
-     * Récupère un étage précis d'une tour par son numéro.
-     */
     suspend fun getEtageParNumero(contenantId: Long, numero: Int): EtageEntity? {
         return etageDao.getEtageParNumero(contenantId, numero)
     }
     
-    /**
-     * Compte le nombre d'étages d'un contenant.
-     */
     suspend fun countEtages(contenantId: Long): Int {
         return etageDao.countEtagesPourContenant(contenantId)
     }
     
-    /**
-     * Compte le nombre d'étages déjà initialisés (au moins une plantation).
-     */
     suspend fun countEtagesInitialises(contenantId: Long): Int {
         return etageDao.countEtagesInitialises(contenantId)
     }
     
-    /**
-     * Définit le nombre d'emplacements d'un étage (à la 1ère plantation).
-     * Une fois défini, ce nombre ne change plus automatiquement.
-     */
     suspend fun definirNombreEmplacementsEtage(etageId: Long, nombre: Int) {
         etageDao.definirNombreEmplacements(etageId, nombre)
     }
     
-    /**
-     * Modifie les notes d'un étage.
-     */
     suspend fun modifierNotesEtage(etageId: Long, nouvellesNotes: String) {
         etageDao.updateNotes(etageId, nouvellesNotes)
     }
     
-    /**
-     * Met à jour un étage (usage avancé).
-     */
     suspend fun mettreAJourEtage(etage: EtageEntity) {
         etageDao.updateEtage(etage)
     }
@@ -252,6 +225,29 @@ class ContenantRepository(context: Context) {
         return contenantDao.getEmplacementsPourContenantSync(contenantId)
     }
     
+    /**
+     * Récupère uniquement les emplacements DIRECTS d'un contenant
+     * (ceux sans étage — pour les contenants non-tour).
+     */
+    fun getEmplacementsDirectsPourContenant(contenantId: Long): Flow<List<EmplacementContenantEntity>> {
+        return contenantDao.getEmplacementsDirectsPourContenant(contenantId)
+    }
+    
+    suspend fun getEmplacementsDirectsSync(contenantId: Long): List<EmplacementContenantEntity> {
+        return contenantDao.getEmplacementsDirectsPourContenantSync(contenantId)
+    }
+    
+    /**
+     * Récupère les emplacements d'un étage spécifique (tour).
+     */
+    fun getEmplacementsPourEtage(etageId: Long): Flow<List<EmplacementContenantEntity>> {
+        return contenantDao.getEmplacementsPourEtage(etageId)
+    }
+    
+    suspend fun getEmplacementsPourEtageSync(etageId: Long): List<EmplacementContenantEntity> {
+        return contenantDao.getEmplacementsPourEtageSync(etageId)
+    }
+    
     suspend fun countEmplacements(contenantId: Long): Int {
         return contenantDao.countEmplacementsPourContenant(contenantId)
     }
@@ -260,24 +256,32 @@ class ContenantRepository(context: Context) {
         return contenantDao.countEmplacementsOccupes(contenantId)
     }
     
+    suspend fun countEmplacementsPourEtage(etageId: Long): Int {
+        return contenantDao.countEmplacementsPourEtage(etageId)
+    }
+    
+    suspend fun countEmplacementsOccupesPourEtage(etageId: Long): Int {
+        return contenantDao.countEmplacementsOccupesPourEtage(etageId)
+    }
+    
+    // ============================================================
+    // PLANTATION
+    // ============================================================
+    
     /**
-     * Plante une culture dans un emplacement d'un contenant.
+     * Plante une culture dans un emplacement d'un contenant NON-TOUR.
      * 
-     * ⚠️ NOTE v18 : cette méthode fonctionne sur le CONTENANT global.
-     *    Le support multi-étages (planter sur un étage précis d'une tour)
-     *    sera ajouté dans un prochain sous-lot, avec l'UI correspondante.
-     *    Pour l'instant, une tour est traitée comme un contenant unique.
+     * Pour planter sur une tour, utiliser `planterDansEtage()`.
      * 
-     * @param context Context (nécessaire pour lire ModePreferences)
+     * @param context Context
      * @param contenant Le contenant concerné
      * @param numeroEmplacement Numéro de l'emplacement
      * @param legumeNom Nom complet (ex : "Tomate (Marmande)")
-     * @param legume L'entité légume (pour calcul d'emplacements)
-     * @param varieteNom Variété seule (ex : "Marmande")
+     * @param legume L'entité légume
+     * @param varieteNom Variété seule
      * @param emoji Emoji du légume
-     * @param sourceStock Source ("Semis" / "JeunePlant" / "Graine" / "Aucune")
+     * @param sourceStock Source
      * @param sourceStockId ID de l'entité source
-     * @return ResultatPlantation
      */
     suspend fun planterDansEmplacement(
         context: Context,
@@ -290,9 +294,32 @@ class ContenantRepository(context: Context) {
         sourceStock: String = CultureEntity.SOURCE_AUCUNE,
         sourceStockId: Long? = null
     ): ResultatPlantation {
+        // ⚠️ Si c'est une tour, on redirige vers planterDansEtage (avec étage 1 par défaut)
+        if (estTour(contenant)) {
+            val etages = getEtagesSync(contenant.id)
+            if (etages.isEmpty()) {
+                return ResultatPlantation.ErreurSourceIntrouvable("Aucun étage dans cette tour")
+            }
+            // ⚠️ Fallback : on plante sur l'étage 1 si aucun étage n'est précisé.
+            // En usage normal, l'UI appelle directement planterDansEtage.
+            return planterDansEtage(
+                context = context,
+                contenant = contenant,
+                etage = etages.first(),
+                numeroEmplacement = numeroEmplacement,
+                legumeNom = legumeNom,
+                legume = legume,
+                varieteNom = varieteNom,
+                emoji = emoji,
+                sourceStock = sourceStock,
+                sourceStockId = sourceStockId
+            )
+        }
+        
+        // ==== Contenant NON-TOUR : comportement classique ====
         val dateActuelle = System.currentTimeMillis()
         
-        // ===== 1. Créer la CultureEntity (gère le mode réel / projection) =====
+        // 1. Créer la CultureEntity
         val culture = CultureEntity(
             typeEmplacement = CultureEntity.TYPE_URBAIN,
             contenantId = contenant.id,
@@ -300,7 +327,7 @@ class ContenantRepository(context: Context) {
             legumeNom = legumeNom,
             varieteNom = varieteNom,
             emoji = emoji,
-            quantite = 1, // V1 : 1 plant par emplacement
+            quantite = 1,
             sourceStock = sourceStock,
             estProjection = true,
             datePlantation = dateActuelle
@@ -313,30 +340,14 @@ class ContenantRepository(context: Context) {
         )
         
         if (resultatCulture !is ResultatCreationCulture.Succes) {
-            return when (resultatCulture) {
-                is ResultatCreationCulture.ErreurSourceIntrouvable ->
-                    ResultatPlantation.ErreurSourceIntrouvable(resultatCulture.source)
-                is ResultatCreationCulture.ErreurSourceInactive ->
-                    ResultatPlantation.ErreurSourceInactive(
-                        resultatCulture.legumeNom,
-                        resultatCulture.varieteNom
-                    )
-                is ResultatCreationCulture.ErreurStockInsuffisant ->
-                    ResultatPlantation.ErreurStockInsuffisant(
-                        resultatCulture.disponible,
-                        resultatCulture.demande,
-                        resultatCulture.legumeNom,
-                        resultatCulture.varieteNom
-                    )
-                else -> ResultatPlantation.ErreurSourceIntrouvable("Inconnu")
-            }
+            return resultatCulture.versResultatPlantation()
         }
         
-        // ===== 2. Mettre à jour l'emplacement (occupation) =====
-        val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
+        // 2. Mettre à jour l'emplacement
+        val emplacements = contenantDao.getEmplacementsDirectsPourContenantSync(contenant.id)
         
         if (emplacements.isEmpty()) {
-            // Premier plant → générer tous les emplacements d'un coup
+            // Premier plant → générer tous les emplacements
             val nombreEmplacements = CalculEmplacements.calculerNombreEmplacements(
                 contenant = contenant,
                 legume = legume
@@ -345,6 +356,7 @@ class ContenantRepository(context: Context) {
             val nouveauxEmplacements = (1..nombreEmplacements).map { numero ->
                 EmplacementContenantEntity(
                     contenantId = contenant.id,
+                    etageId = null,
                     numero = numero,
                     legumeNom = if (numero == numeroEmplacement) legumeNom else null,
                     datePlantation = if (numero == numeroEmplacement) dateActuelle else null
@@ -363,7 +375,7 @@ class ContenantRepository(context: Context) {
             }
         }
         
-        // ===== 3. Générer les rappels culturaux =====
+        // 3. Rappels culturaux
         rappelCulturelRepository.genererRappelsPourPlantation(
             legumeNom = legumeNom,
             datePlantation = dateActuelle,
@@ -378,14 +390,114 @@ class ContenantRepository(context: Context) {
     }
     
     /**
-     * Vide un emplacement (retrait sans récolte).
+     * Plante une culture sur un ÉTAGE spécifique d'une tour.
      * 
-     * ⚠️ Termine aussi la CultureEntity associée.
+     * Chaque étage a ses propres emplacements, indépendants des autres étages.
+     * 
+     * ⚠️ La 1ère plantation sur un étage définit automatiquement son
+     *    nombre d'emplacements (basé sur la densité de la plante et la
+     *    surface de l'anneau de l'étage).
+     */
+    suspend fun planterDansEtage(
+        context: Context,
+        contenant: ContenantEntity,
+        etage: EtageEntity,
+        numeroEmplacement: Int,
+        legumeNom: String,
+        legume: LegumeEntity,
+        varieteNom: String? = null,
+        emoji: String = "🌱",
+        sourceStock: String = CultureEntity.SOURCE_AUCUNE,
+        sourceStockId: Long? = null
+    ): ResultatPlantation {
+        val dateActuelle = System.currentTimeMillis()
+        
+        // 1. Créer la CultureEntity
+        val culture = CultureEntity(
+            typeEmplacement = CultureEntity.TYPE_URBAIN,
+            contenantId = contenant.id,
+            emplacementNumero = numeroEmplacement,
+            legumeNom = legumeNom,
+            varieteNom = varieteNom,
+            emoji = emoji,
+            quantite = 1,
+            sourceStock = sourceStock,
+            estProjection = true,
+            datePlantation = dateActuelle
+        )
+        
+        val resultatCulture = cultureRepository.creerCulture(
+            context = context,
+            culture = culture,
+            sourceStockId = sourceStockId
+        )
+        
+        if (resultatCulture !is ResultatCreationCulture.Succes) {
+            return resultatCulture.versResultatPlantation()
+        }
+        
+        // 2. Récupérer les emplacements de l'étage
+        val emplacements = contenantDao.getEmplacementsPourEtageSync(etage.id)
+        
+        if (emplacements.isEmpty()) {
+            // ⭐ Premier plant sur cet étage → calculer le nombre d'emplacements
+            //    La surface d'un étage = surface d'un disque simple (pas × nombre d'étages)
+            val contenantUnEtage = contenant.copy(nombreEtages = 1)
+            val nombreEmplacements = CalculEmplacements.calculerNombreEmplacements(
+                contenant = contenantUnEtage,
+                legume = legume
+            )
+            
+            // Mettre à jour le nombre d'emplacements de l'étage
+            etageDao.definirNombreEmplacements(etage.id, nombreEmplacements)
+            
+            // Créer tous les emplacements de l'étage
+            val nouveauxEmplacements = (1..nombreEmplacements).map { numero ->
+                EmplacementContenantEntity(
+                    contenantId = contenant.id,
+                    etageId = etage.id,
+                    numero = numero,
+                    legumeNom = if (numero == numeroEmplacement) legumeNom else null,
+                    datePlantation = if (numero == numeroEmplacement) dateActuelle else null
+                )
+            }
+            contenantDao.insertEmplacements(nouveauxEmplacements)
+        } else {
+            val emplacement = emplacements.find { it.numero == numeroEmplacement }
+            if (emplacement != null) {
+                contenantDao.updateEmplacement(
+                    emplacement.copy(
+                        legumeNom = legumeNom,
+                        datePlantation = dateActuelle
+                    )
+                )
+            }
+        }
+        
+        // 3. Rappels culturaux (mêmes que pour un contenant classique)
+        rappelCulturelRepository.genererRappelsPourPlantation(
+            legumeNom = legumeNom,
+            datePlantation = dateActuelle,
+            carreId = null,
+            caseNumero = null,
+            plancheId = null,
+            contenantId = contenant.id,
+            emplacementNumero = numeroEmplacement
+        )
+        
+        return ResultatPlantation.Succes
+    }
+    
+    // ============================================================
+    // VIDAGE
+    // ============================================================
+    
+    /**
+     * Vide un emplacement (retrait sans récolte).
      */
     suspend fun viderEmplacement(emplacementId: Long) {
         val emplacement = contenantDao.getEmplacementParId(emplacementId) ?: return
         
-        // 1. Terminer la culture active dans cet emplacement (si elle existe)
         try {
             val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
                 contenantId = emplacement.contenantId,
@@ -395,10 +507,8 @@ class ContenantRepository(context: Context) {
                 cultureRepository.terminerSansRecolte(cultureActive.id)
             }
         } catch (e: Exception) {
-            // Silencieux
         }
         
-        // 2. Supprimer les rappels culturaux
         try {
             rappelCulturelRepository.supprimerRappelsPourEmplacement(
                 contenantId = emplacement.contenantId,
@@ -408,7 +518,6 @@ class ContenantRepository(context: Context) {
             throw e
         }
         
-        // 3. Vider l'emplacement
         try {
             contenantDao.updateEmplacement(
                 emplacement.copy(
@@ -421,13 +530,57 @@ class ContenantRepository(context: Context) {
         }
     }
     
+    /**
+     * Vide un étage entier (toutes les cultures terminées, emplacements libérés).
+     * 
+     * ⚠️ Le nombre d'emplacements de l'étage est conservé (pas remis à 0).
+     *    Comme ça, si l'utilisateur replante, il retrouve la même structure.
+     */
+    suspend fun viderEtage(etageId: Long) {
+        val emplacements = contenantDao.getEmplacementsPourEtageSync(etageId)
+        
+        emplacements.forEach { emp ->
+            if (emp.estOccupe()) {
+                // Terminer la culture active
+                try {
+                    val cultureActive = cultureRepository.getCultureActiveDansEmplacement(
+                        contenantId = emp.contenantId,
+                        emplacementNumero = emp.numero
+                    )
+                    if (cultureActive != null) {
+                        cultureRepository.terminerSansRecolte(cultureActive.id)
+                    }
+                } catch (e: Exception) {
+                }
+                
+                // Supprimer les rappels
+                try {
+                    rappelCulturelRepository.supprimerRappelsPourEmplacement(
+                        contenantId = emp.contenantId,
+                        emplacementNumero = emp.numero
+                    )
+                } catch (e: Exception) {
+                }
+                
+                // Vider l'emplacement
+                try {
+                    contenantDao.updateEmplacement(
+                        emp.copy(legumeNom = null, datePlantation = null)
+                    )
+                } catch (e: Exception) {
+                }
+            }
+        }
+    }
+    
     suspend fun ajouterEmplacements(contenantId: Long, nombre: Int) {
-        val existants = contenantDao.getEmplacementsPourContenantSync(contenantId)
+        val existants = contenantDao.getEmplacementsDirectsPourContenantSync(contenantId)
         val dernierNumero = existants.maxOfOrNull { it.numero } ?: 0
         
         val nouveaux = (1..nombre).map { i ->
             EmplacementContenantEntity(
                 contenantId = contenantId,
+                etageId = null,
                 numero = dernierNumero + i
             )
         }
@@ -443,14 +596,23 @@ class ContenantRepository(context: Context) {
     // VALIDATION DES ASSOCIATIONS
     // ============================================================
     
+    /**
+     * Vérifie les associations d'un nouvel emplacement avec les autres
+     * emplacements DU MÊME ÉTAGE (pour une tour) ou du même contenant.
+     */
     suspend fun verifierAssociationsContenant(
         contenant: ContenantEntity,
         numeroEmplacement: Int,
-        legumeNom: String
+        legumeNom: String,
+        etageId: Long? = null
     ): List<Pair<String, String>> {
         val resultats = mutableListOf<Pair<String, String>>()
         
-        val emplacements = contenantDao.getEmplacementsPourContenantSync(contenant.id)
+        val emplacements = if (etageId != null) {
+            contenantDao.getEmplacementsPourEtageSync(etageId)
+        } else {
+            contenantDao.getEmplacementsDirectsPourContenantSync(contenant.id)
+        }
         
         val nomBase = if (legumeNom.contains("(")) legumeNom.substringBefore("(").trim() else legumeNom
         val legume = legumeDao.getLegumeByNom(nomBase) ?: return emptyList()
@@ -494,5 +656,26 @@ class ContenantRepository(context: Context) {
     
     suspend fun getEmplacementsPourLegume(legumeNom: String): List<EmplacementContenantEntity> {
         return contenantDao.getEmplacementsPourLegume(legumeNom)
+    }
+}
+
+/**
+ * Convertit un ResultatCreationCulture en ResultatPlantation.
+ */
+private fun ResultatCreationCulture.versResultatPlantation(): ResultatPlantation {
+    return when (this) {
+        is ResultatCreationCulture.Succes ->
+            ResultatPlantation.Succes
+        is ResultatCreationCulture.ErreurSourceIntrouvable ->
+            ResultatPlantation.ErreurSourceIntrouvable(this.source)
+        is ResultatCreationCulture.ErreurSourceInactive ->
+            ResultatPlantation.ErreurSourceInactive(this.legumeNom, this.varieteNom)
+        is ResultatCreationCulture.ErreurStockInsuffisant ->
+            ResultatPlantation.ErreurStockInsuffisant(
+                this.disponible,
+                this.demande,
+                this.legumeNom,
+                this.varieteNom
+            )
     }
 }
